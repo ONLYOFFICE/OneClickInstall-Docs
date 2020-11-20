@@ -163,6 +163,13 @@ while [ "$1" != "" ]; do
 				shift
 			fi
 		;;
+		
+		-ls | --local_scripts )
+			if [ "$2" != "" ]; then
+				LOCAL_SCRIPTS=$2
+				shift
+			fi
+		;;
 
 		-? | -h | --help )
 			echo "  Usage: bash $HELP_TARGET [PARAMETER] [[PARAMETER], ...]"
@@ -183,6 +190,7 @@ while [ "$1" != "" ]; do
 			echo "      -skipvc, --skipversioncheck       skip version check while update (true|false)"
 			echo "      -skipdc, --skipdomaincheck        skip domain check when installing mail server (true|false)"
 			echo "      -cp, --communityport              community port (default value 80)"
+			echo "      -ls, --local_scripts              use 'true' to run local scripts (true|false)"
 			echo "      -?, -h, --help                    this help"
 			exit 0
 		;;
@@ -1021,7 +1029,7 @@ start_installation () {
 	fi
 
 	echo ""
-	echo "Thank you for installing ONLYOFFICE."
+	echo "Thank you for installing ONLYOFFICE Docs."
 	echo "In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://dev.onlyoffice.org"
 	echo ""
 

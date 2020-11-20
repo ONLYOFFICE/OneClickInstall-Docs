@@ -58,8 +58,8 @@ command_exists () {
 }
 
 ARCH="$(dpkg --print-architecture)"
-if [ "$ARCH" = "i386" ]; then
-    echo "Onlyoffice Docs doesn't support architecture 'i386'"
+if [ "$ARCH" != "amd64" ]; then
+    echo "Onlyoffice Docs doesn't support architecture '$ARCH'"
     exit;
 fi
 

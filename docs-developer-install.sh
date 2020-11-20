@@ -13,16 +13,25 @@
 
 PARAMETERS="";
 DOCKER="";
+LOCAL_SCRIPTS="false"
 HELP="false";
 
 while [ "$1" != "" ]; do
+	case $1 in
+		-ls | --local_scripts )
+			if [ "$2" == "true" ] || [ "$2" == "false" ]; then
+				PARAMETERS="$PARAMETERS ${1}";
+				LOCAL_SCRIPTS=$2
+				shift
+			fi
+		;;
 
-	if [ "$1" == "-?" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
-		HELP="true";
-		DOCKER="true";
-		PARAMETERS="$PARAMETERS -ht docs-developer-install.sh";
-	fi
-
+		-? | -h | --help )
+			HELP="true";
+			DOCKER="true";
+			PARAMETERS="$PARAMETERS -ht docs-install.sh";
+		;;
+	esac
 	PARAMETERS="$PARAMETERS ${1}";
 	shift
 done
@@ -55,7 +64,7 @@ install_curl () {
 }
 
 read_installation_method () {
-	echo "Select 'Y' to install ONLYOFFICE using Docker (recommended). Select 'N' to install it using RPM/DEB packages.";
+	echo "Select 'Y' to install ONLYOFFICE Docs using Docker (recommended). Select 'N' to install it using RPM/DEB packages.";
 	read -p "Install with Docker [Y/N/C]? " choice
 	case "$choice" in
 		y|Y )
@@ -91,9 +100,13 @@ if [ "$HELP" == "false" ]; then
 fi
 
 if [ "$DOCKER" == "true" ]; then
-	### curl -s -O http://download.onlyoffice.com/install/install.sh
-	bash install.sh ${PARAMETERS}
-	### rm install.sh
+	if [ "$LOCAL_SCRIPTS" == "true" ]; then
+		bash install.sh ${PARAMETERS}
+	else
+		### curl -s -O http://download.onlyoffice.com/install/install.sh
+		bash install.sh ${PARAMETERS}
+		### rm install.sh
+	fi
 else
 	if [ -f /etc/redhat-release ] ; then
 		DIST=$(cat /etc/redhat-release |sed s/\ release.*//);
@@ -107,13 +120,21 @@ else
 			exit 1;
 		fi
 
-		### curl -s -O http://download.onlyoffice.com/install/install-RedHat.sh
-		bash install-RedHat.sh ${PARAMETERS}
-		### rm install-RedHat.sh
+		if [ "$LOCAL_SCRIPTS" == "true" ]; then
+			bash install-RedHat.sh ${PARAMETERS}
+		else
+			### curl -s -O http://download.onlyoffice.com/install/install-RedHat.sh
+			bash install-RedHat.sh ${PARAMETERS}
+			### rm install-RedHat.sh
+		fi
 	elif [ -f /etc/debian_version ] ; then
-		### curl -s -O http://download.onlyoffice.com/install/install-Debian.sh
-		bash install-Debian.sh ${PARAMETERS}
-		### rm install-Debian.sh
+		if [ "$LOCAL_SCRIPTS" == "true" ]; then
+			bash install-Debian.sh ${PARAMETERS}
+		else
+			### curl -s -O http://download.onlyoffice.com/install/install-Debian.sh
+			bash install-Debian.sh ${PARAMETERS}
+			### rm install-Debian.sh
+		fi
 	else
 		echo "Not supported OS";
 		exit 1;
