@@ -29,7 +29,7 @@ while [ "$1" != "" ]; do
 		-? | -h | --help )
 			HELP="true";
 			DOCKER="true";
-			PARAMETERS="$PARAMETERS -ht docs-install.sh";
+			PARAMETERS="$PARAMETERS -ht docs-developer-install.sh";
 		;;
 	esac
 	PARAMETERS="$PARAMETERS ${1}";
