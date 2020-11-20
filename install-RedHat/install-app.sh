@@ -175,6 +175,5 @@ systemctl restart nginx
 
 echo ""
 echo "$RES_INSTALL_SUCCESS"
-echo "$RES_PROPOSAL"
 echo "$RES_QUESTIONS"
 echo ""

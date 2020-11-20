@@ -11,7 +11,6 @@ RES_APP_INSTALLED="is already installed";
 RES_APP_CHECK_PORTS="uses ports"
 RES_CHECK_PORTS="please, make sure that the ports are free.";
 RES_INSTALL_SUCCESS="Thank you for installing ONLYOFFICE.";
-RES_PROPOSAL="You can now configure your portal using the Control Panel";
 RES_QUESTIONS="In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://dev.onlyoffice.org"
 
 while [ "$1" != "" ]; do
@@ -65,8 +64,6 @@ baseurl=http://download.onlyoffice.com/repo/centos/main/noarch/
 gpgcheck=1
 enabled=1
 END
-
-export MYSQL_SERVER_HOST="127.0.0.1"
 
 DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/install/install-RedHat"
 

@@ -551,8 +551,6 @@ docker_login () {
 }
 
 make_directories () {
-	mkdir -p "$BASE_DIR/setup";
-
 	mkdir -p "$BASE_DIR/DocumentServer/data";
 	mkdir -p "$BASE_DIR/DocumentServer/logs";
 	mkdir -p "$BASE_DIR/DocumentServer/fonts";
@@ -1024,7 +1022,6 @@ start_installation () {
 
 	echo ""
 	echo "Thank you for installing ONLYOFFICE."
-	echo "You can now configure your portal and add Mail Server to your installation (in case you skipped it earlier) using the Control Panel"
 	echo "In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://dev.onlyoffice.org"
 	echo ""
 

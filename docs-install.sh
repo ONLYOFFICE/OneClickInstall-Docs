@@ -56,8 +56,6 @@ install_curl () {
 
 read_installation_method () {
 	echo "Select 'Y' to install ONLYOFFICE using Docker (recommended). Select 'N' to install it using RPM/DEB packages.";
-	echo "Please note, that in case you select RPM/DEB installation, you will need to manually install Mail Server and connect it to your ONLYOFFICE installation.";
-	echo "See instructions in our Help Center: http://helpcenter.onlyoffice.com/server/docker/mail/connect-mail-server-to-community-server-via-portal-settings.aspx";
 	read -p "Install with Docker [Y/N/C]? " choice
 	case "$choice" in
 		y|Y )

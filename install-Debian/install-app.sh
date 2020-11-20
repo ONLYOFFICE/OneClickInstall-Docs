@@ -96,6 +96,5 @@ make_swap
 
 echo ""
 echo "$RES_INSTALL_SUCCESS"
-echo "$RES_PROPOSAL"
 echo "$RES_QUESTIONS"
 echo ""

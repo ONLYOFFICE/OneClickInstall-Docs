@@ -21,5 +21,3 @@ fi
 if ! dpkg -l | grep -q "dirmngr"; then
 	apt-get install -yq dirmngr
 fi
-
- 
