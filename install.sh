@@ -391,7 +391,7 @@ check_hardware () {
 
 make_swap () {
 	DISK_REQUIREMENTS=4096; #4Gb free space
-	MEMORY_REQUIREMENTS=11000; #RAM ~12Gb
+	MEMORY_REQUIREMENTS=4096; #RAM ~12Gb
 
 	AVAILABLE_DISK_SPACE=$(df -m /  | tail -1 | awk '{ print $4 }');
 	TOTAL_MEMORY=$(free -m | grep -oP '\d+' | head -n 1);
