@@ -39,7 +39,7 @@ if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
 fi
 
 if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
-	DS_PORT=${DS_PORT:-8083};
+	DS_PORT=${DS_PORT:-80};
 
 	DS_DB_HOST=localhost;
 	DS_DB_NAME=$DS_COMMON_NAME;
