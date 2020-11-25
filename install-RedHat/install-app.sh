@@ -10,15 +10,15 @@ cat<<EOF
 
 EOF
 function make_swap () {
-	local DISK_REQUIREMENTS=6144; #6Gb free space
-	local MEMORY_REQUIREMENTS=11000; #RAM ~12Gb
+	local DISK_REQUIREMENTS=4096; #4Gb free space
+	local MEMORY_REQUIREMENTS=4096; #RAM 4Gb
 
 	local AVAILABLE_DISK_SPACE=$(df -m /  | tail -1 | awk '{ print $4 }');
 	local TOTAL_MEMORY=$(free -m | grep -oP '\d+' | head -n 1);
 	local EXIST=$(swapon -s | awk '{ print $1 }' | { grep -x '/app_swapfile' || true; });
 
 	if [[ -z $EXIST ]] && [ ${TOTAL_MEMORY} -lt ${MEMORY_REQUIREMENTS} ] && [ ${AVAILABLE_DISK_SPACE} -gt ${DISK_REQUIREMENTS} ]; then
-		dd if=/dev/zero of=/app_swapfile count=6144 bs=1MiB
+		dd if=/dev/zero of=/app_swapfile count=4096 bs=1MiB
 		chmod 600 /app_swapfile
 		mkswap /app_swapfile
 		swapon /app_swapfile
@@ -45,9 +45,11 @@ if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
         if [ "$INSTALLATION_TYPE" = "COMMUNITY" ]; then
                 if rpm -q ${package_sysname}-documentserver-ee; then
                         ${package_manager} -y remove ${package_sysname}-documentserver-ee
-
                         DOCUMENT_SERVER_INSTALLED="false"
-                else
+                elif rpm -q ${package_sysname}-documentserver-de; then
+                        ${package_manager} -y remove ${package_sysname}-documentserver-de
+                        DOCUMENT_SERVER_INSTALLED="false"
+				else
                         ${package_manager} -y update ${package_sysname}-documentserver
                 fi
         fi
@@ -55,9 +57,11 @@ if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
         if [ "$INSTALLATION_TYPE" = "ENTERPRISE" ]; then
                 if rpm -q ${package_sysname}-documentserver; then
                         ${package_manager} -y remove ${package_sysname}-documentserver
-
                         DOCUMENT_SERVER_INSTALLED="false"
-                else
+                elif rpm -q ${package_sysname}-documentserver-de; then
+                        ${package_manager} -y remove ${package_sysname}-documentserver-de
+                        DOCUMENT_SERVER_INSTALLED="false"
+				else
                         ${package_manager} -y update ${package_sysname}-documentserver-ee
                 fi
         fi
@@ -65,7 +69,9 @@ if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
         if [ "$INSTALLATION_TYPE" = "DEVELOPER" ]; then
                if rpm -q ${package_sysname}-documentserver; then
                         ${package_manager} -y remove ${package_sysname}-documentserver
-
+                        DOCUMENT_SERVER_INSTALLED="false"
+				elif rpm -q ${package_sysname}-documentserver-ee; then
+                        ${package_manager} -y remove ${package_sysname}-documentserver-ee
                         DOCUMENT_SERVER_INSTALLED="false"
                 else
                         ${package_manager} -y update ${package_sysname}-documentserver-de
@@ -99,12 +105,12 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
 		su - postgres -s /bin/bash -c "psql -c \"GRANT ALL privileges ON DATABASE ${DS_DB_NAME} TO ${DS_DB_USER};\""
 	fi
 	
-	if [ "$INSTALLATION_TYPE" = "COMMUNITY" ]; then	
-		${package_manager} -y install ${package_sysname}-documentserver
+	if [ "$INSTALLATION_TYPE" = "ENTERPRISE" ]; then	
+		${package_manager} -y install ${package_sysname}-documentserver-ee
 	elif [ "$INSTALLATION_TYPE" = "DEVELOPER" ]; then
 		${package_manager} -y install ${package_sysname}-documentserver-de
 	else
-		${package_manager} -y install ${package_sysname}-documentserver-ee
+		${package_manager} -y install ${package_sysname}-documentserver
 	fi
 
 	systemctl restart supervisord

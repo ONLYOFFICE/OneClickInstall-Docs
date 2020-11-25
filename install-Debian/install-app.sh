@@ -14,7 +14,9 @@ if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
 	if [ "$INSTALLATION_TYPE" = "COMMUNITY" ]; then	
 		if dpkg -l | grep -q ${package_sysname}-documentserver-ee; then
 			apt-get remove -yq ${package_sysname}-documentserver-ee
-			
+			apt-get install -yq ${package_sysname}-documentserver
+		elif dpkg -l | grep -q ${package_sysname}-documentserver-de; then
+			apt-get remove -yq ${package_sysname}-documentserver-de
 			apt-get install -yq ${package_sysname}-documentserver
 		fi
 		apt-get install -y --only-upgrade ${package_sysname}-documentserver
@@ -22,7 +24,9 @@ if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
 	elif [ "$INSTALLATION_TYPE" = "ENTERPRISE" ]; then
 	    if dpkg -l | grep -q ${package_sysname}-documentserver; then
 			apt-get remove -yq ${package_sysname}-documentserver
-			
+			apt-get install -yq ${package_sysname}-documentserver-ee
+		elif dpkg -l | grep -q ${package_sysname}-documentserver-de; then
+			apt-get remove -yq ${package_sysname}-documentserver-de
 			apt-get install -yq ${package_sysname}-documentserver-ee
 		fi 	
 		apt-get install -y --only-upgrade ${package_sysname}-documentserver-ee
@@ -30,9 +34,11 @@ if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
 	elif [ "$INSTALLATION_TYPE" = "DEVELOPER" ]; then
 	    if dpkg -l | grep -q ${package_sysname}-documentserver; then
 			apt-get remove -yq ${package_sysname}-documentserver
-			
 			apt-get install -yq ${package_sysname}-documentserver-de
-		fi    	
+		elif dpkg -l | grep -q ${package_sysname}-documentserver-ee; then
+			apt-get remove -yq ${package_sysname}-documentserver-ee
+			apt-get install -yq ${package_sysname}-documentserver-de
+		fi	
 		apt-get install -y --only-upgrade ${package_sysname}-documentserver-de
 		
 	fi
@@ -60,16 +66,19 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
 	echo ${package_sysname}-documentserver $DS_COMMON_NAME/db-pwd select $DS_DB_PWD | sudo debconf-set-selections
 	echo ${package_sysname}-documentserver $DS_COMMON_NAME/db-user $DS_DB_USER | sudo debconf-set-selections
 	echo ${package_sysname}-documentserver $DS_COMMON_NAME/db-name $DS_DB_NAME | sudo debconf-set-selections
+	echo ${package_sysname}-documentserver-de $DS_COMMON_NAME/jwt-enabled select ${DS_JWT_ENABLED} | sudo debconf-set-selections
+	echo ${package_sysname}-documentserver-de $DS_COMMON_NAME/jwt-secret select ${DS_JWT_SECRET} | sudo debconf-set-selections
+	echo ${package_sysname}-documentserver-de $DS_COMMON_NAME/jwt-header select ${DS_JWT_HEADER} | sudo debconf-set-selections
 	echo ${package_sysname}-documentserver-ee $DS_COMMON_NAME/jwt-enabled select ${DS_JWT_ENABLED} | sudo debconf-set-selections
 	echo ${package_sysname}-documentserver-ee $DS_COMMON_NAME/jwt-secret select ${DS_JWT_SECRET} | sudo debconf-set-selections
 	echo ${package_sysname}-documentserver-ee $DS_COMMON_NAME/jwt-header select ${DS_JWT_HEADER} | sudo debconf-set-selections
 
-	if [ "$INSTALLATION_TYPE" = "COMMUNITY" ]; then
-		apt-get install -yq ${package_sysname}-documentserver
+	if [ "$INSTALLATION_TYPE" = "ENTERPRISE" ]; then
+		apt-get install -yq ${package_sysname}-documentserver-ee
 	elif [ "$INSTALLATION_TYPE" = "DEVELOPER" ]; then
 		apt-get install -yq ${package_sysname}-documentserver-de
 	else
-		apt-get install -yq ${package_sysname}-documentserver-ee
+		apt-get install -yq ${package_sysname}-documentserver
 	fi
 fi
 NGINX_ROOT_DIR="/etc/nginx"

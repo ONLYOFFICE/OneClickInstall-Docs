@@ -12,7 +12,7 @@
 # You can contact Ascensio System SIA by email at sales@onlyoffice.com
 
 DISK_REQUIREMENTS=40960;
-MEMORY_REQUIREMENTS=5500;
+MEMORY_REQUIREMENTS=2048;
 CORE_REQUIREMENTS=2;
 
 PRODUCT="onlyoffice";
@@ -390,7 +390,7 @@ check_hardware () {
 }
 
 make_swap () {
-	DISK_REQUIREMENTS=6144; #6Gb free space
+	DISK_REQUIREMENTS=4096; #4Gb free space
 	MEMORY_REQUIREMENTS=11000; #RAM ~12Gb
 
 	AVAILABLE_DISK_SPACE=$(df -m /  | tail -1 | awk '{ print $4 }');
@@ -400,9 +400,9 @@ make_swap () {
 	if [[ -z $EXIST ]] && [ ${TOTAL_MEMORY} -lt ${MEMORY_REQUIREMENTS} ] && [ ${AVAILABLE_DISK_SPACE} -gt ${DISK_REQUIREMENTS} ]; then
 
 		if [ "${DIST}" == "Ubuntu" ] || [ "${DIST}" == "Debian" ]; then
-			fallocate -l 6G ${SWAPFILE}
+			fallocate -l 4G ${SWAPFILE}
 		else
-			dd if=/dev/zero of=${SWAPFILE} count=6144 bs=1MiB
+			dd if=/dev/zero of=${SWAPFILE} count=4096 bs=1MiB
 		fi
 
 		chmod 600 ${SWAPFILE}
