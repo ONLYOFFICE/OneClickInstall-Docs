@@ -77,7 +77,7 @@ gpgcheck=1
 enabled=1
 END
 
-DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/install/install-RedHat"
+DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/install-docs/install-RedHat"
 
 
 if [ "$LOCAL_SCRIPTS" == "true" ]; then
@@ -86,8 +86,8 @@ if [ "$LOCAL_SCRIPTS" == "true" ]; then
 	source install-RedHat/install-preq.sh
 	source install-RedHat/install-app.sh
 else
-	### source <(curl ${DOWNLOAD_URL_PREFIX}/bootstrap.sh)
-	### source <(curl ${DOWNLOAD_URL_PREFIX}/check-ports.sh)
-	### source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq.sh)
-	### source <(curl ${DOWNLOAD_URL_PREFIX}/install-app.sh)
+	source <(curl ${DOWNLOAD_URL_PREFIX}/bootstrap.sh)
+	source <(curl ${DOWNLOAD_URL_PREFIX}/check-ports.sh)
+	source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq.sh)
+	source <(curl ${DOWNLOAD_URL_PREFIX}/install-app.sh)
 fi

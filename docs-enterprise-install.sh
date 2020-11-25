@@ -103,9 +103,9 @@ if [ "$DOCKER" == "true" ]; then
 	if [ "$LOCAL_SCRIPTS" == "true" ]; then
 		bash install.sh ${PARAMETERS}
 	else
-		### curl -s -O http://download.onlyoffice.com/install/install.sh
+		curl -s -O http://download.onlyoffice.com/install-docs/install.sh
 		bash install.sh ${PARAMETERS}
-		### rm install.sh
+		rm install.sh
 	fi
 else
 	if [ -f /etc/redhat-release ] ; then
@@ -123,17 +123,17 @@ else
 		if [ "$LOCAL_SCRIPTS" == "true" ]; then
 			bash install-RedHat.sh ${PARAMETERS}
 		else
-			### curl -s -O http://download.onlyoffice.com/install/install-RedHat.sh
+			curl -s -O http://download.onlyoffice.com/install-docs/install-RedHat.sh
 			bash install-RedHat.sh ${PARAMETERS}
-			### rm install-RedHat.sh
+			rm install-RedHat.sh
 		fi
 	elif [ -f /etc/debian_version ] ; then
 		if [ "$LOCAL_SCRIPTS" == "true" ]; then
 			bash install-Debian.sh ${PARAMETERS}
 		else
-			### curl -s -O http://download.onlyoffice.com/install/install-Debian.sh
+			curl -s -O http://download.onlyoffice.com/install-docs/install-Debian.sh
 			bash install-Debian.sh ${PARAMETERS}
-			### rm install-Debian.sh
+			rm install-Debian.sh
 		fi
 	else
 		echo "Not supported OS";

@@ -66,11 +66,11 @@ if [ $(dpkg-query -W -f='${Status}' curl 2>/dev/null | grep -c "ok installed") -
   apt-get install -yq curl;
 fi
 
-DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/install/install-Debian"
+DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/install-docs/install-Debian"
 if [ "${LOCAL_SCRIPTS}" == "true" ]; then
 	source install-Debian/bootstrap.sh
 else
-	### source <(curl ${DOWNLOAD_URL_PREFIX}/bootstrap.sh)
+	source <(curl ${DOWNLOAD_URL_PREFIX}/bootstrap.sh)
 fi
 
 # add onlyoffice repo
@@ -87,8 +87,8 @@ if [ "${LOCAL_SCRIPTS}" == "true" ]; then
 	source install-Debian/install-preq.sh
 	source install-Debian/install-app.sh
 else
-	### source <(curl ${DOWNLOAD_URL_PREFIX}/tools.sh)
-	### source <(curl ${DOWNLOAD_URL_PREFIX}/check-ports.sh)
-	### source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq.sh)
-	### source <(curl ${DOWNLOAD_URL_PREFIX}/install-app.sh)
+	source <(curl ${DOWNLOAD_URL_PREFIX}/tools.sh)
+	source <(curl ${DOWNLOAD_URL_PREFIX}/check-ports.sh)
+	source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq.sh)
+	source <(curl ${DOWNLOAD_URL_PREFIX}/install-app.sh)
 fi
