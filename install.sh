@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# (c) Copyright Ascensio System Limited 2010-2016
+# (c) Copyright Ascensio System Limited 2010-2020
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -37,7 +37,7 @@ PASSWORD="";
 
 INSTALL_DOCUMENT_SERVER="true";
 
-USE_AS_EXTERNAL_SERVER="false";
+USE_AS_EXTERNAL_SERVER="true";
 
 INSTALLATION_TYPE="ENTERPRISE";
 

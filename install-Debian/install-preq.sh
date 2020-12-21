@@ -35,11 +35,6 @@ fi
 
 locale-gen en_US.UTF-8
 
-# add redis repo
-if [ "$DIST" = "ubuntu" ]; then	
-	add-apt-repository -y ppa:chris-lea/redis-server	
-fi
-
 #add nginx repo
 wget http://nginx.org/keys/nginx_signing.key
 apt-key add nginx_signing.key
