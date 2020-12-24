@@ -136,7 +136,7 @@ expect << EOF
 	expect -re "Password"
 	send "\025$DS_DB_PWD\r"
 	
-	if { "${INSTALLATION_TYPE}" == "ENTERPRISE" } {
+	if { "${INSTALLATION_TYPE}" == "ENTERPRISE" || "${INSTALLATION_TYPE}" == "DEVELOPER" } {
 		expect "Configuring redis access..."
 		send "\025$DS_REDIS_HOST\r"
 	}
