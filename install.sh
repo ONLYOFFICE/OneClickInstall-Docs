@@ -54,7 +54,7 @@ SKIP_HARDWARE_CHECK="false";
 SKIP_VERSION_CHECK="false";
 SKIP_DOMAIN_CHECK="false";
 
-COMMUNITY_PORT=80;
+DOCS_PORT=80;
 
 while [ "$1" != "" ]; do
 	case $1 in
@@ -157,9 +157,9 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 
-		-cp | --communityport )
+		-dp | --docsport )
 			if [ "$2" != "" ]; then
-				COMMUNITY_PORT=$2
+				DOCS_PORT=$2
 				shift
 			fi
 		;;
@@ -189,7 +189,7 @@ while [ "$1" != "" ]; do
 			echo "      -skiphc, --skiphardwarecheck      skip hardware check (true|false)"
 			echo "      -skipvc, --skipversioncheck       skip version check while update (true|false)"
 			echo "      -skipdc, --skipdomaincheck        skip domain check when installing mail server (true|false)"
-			echo "      -cp, --communityport              community port (default value 80)"
+			echo "      -dp, --docsport              	  docs port (default value 80)"
 			echo "      -ls, --local_scripts              use 'true' to run local scripts (true|false)"
 			echo "      -?, -h, --help                    this help"
 			exit 0
@@ -421,21 +421,21 @@ check_ports () {
 		install_netstat
 	fi
 
-	if [ "${COMMUNITY_PORT//[0-9]}" = "" ]; then
+	if [ "${DOCS_PORT//[0-9]}" = "" ]; then
 		for RESERVED_PORT in "${RESERVED_PORTS[@]}"
 		do
-			if [ "$RESERVED_PORT" -eq "$COMMUNITY_PORT" ] ; then
-				echo "Community port $COMMUNITY_PORT is reserved. Select another port"
+			if [ "$RESERVED_PORT" -eq "$DOCS_PORT" ] ; then
+				echo "Docs port $DOCS_PORT is reserved. Select another port"
 				exit 1;
 			fi
 		done
 	else
-		echo "Invalid community port $COMMUNITY_PORT"
+		echo "Invalid Docs port $DOCS_PORT"
 		exit 1;
 	fi
 
 	if [ "${USE_AS_EXTERNAL_SERVER}" == "true" ]; then
-		ARRAY_PORTS=(${ARRAY_PORTS[@]} "$COMMUNITY_PORT" "443");
+		ARRAY_PORTS=(${ARRAY_PORTS[@]} "$DOCS_PORT" "443");
 	fi
 
 	for PORT in "${ARRAY_PORTS[@]}"
@@ -739,7 +739,7 @@ install_document_server () {
 		args+=(--name "$DOCUMENT_CONTAINER_NAME");
 
 		if [ "${USE_AS_EXTERNAL_SERVER}" == "true" ]; then
-			args+=(-p 80:80);
+			args+=(-p $DOCS_PORT:80);
 			args+=(-p 443:443);
 		fi
 
