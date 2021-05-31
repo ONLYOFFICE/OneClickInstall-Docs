@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# (c) Copyright Ascensio System Limited 2010-2020
+# (c) Copyright Ascensio System Limited 2010-2021
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -40,8 +40,6 @@ INSTALL_DOCUMENT_SERVER="true";
 USE_AS_EXTERNAL_SERVER="true";
 
 INSTALLATION_TYPE="ENTERPRISE";
-
-MAKESWAP="true";
 
 ACTIVATE_COMMUNITY_SERVER_TRIAL="false";
 
@@ -122,13 +120,6 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 
-		-ms | --makeswap )
-			if [ "$2" != "" ]; then
-				MAKESWAP=$2
-				shift
-			fi
-		;;
-
 		-ht | --helptarget )
 			if [ "$2" != "" ]; then
 				HELP_TARGET=$2
@@ -185,7 +176,6 @@ while [ "$1" != "" ]; do
 			echo "      -es, --useasexternalserver        use as external server (true|false)"
 			echo "      -pdf, --partnerdatafile           partner data file"
 			echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
-			echo "      -ms, --makeswap                   make swap file (true|false)"
 			echo "      -skiphc, --skiphardwarecheck      skip hardware check (true|false)"
 			echo "      -skipvc, --skipversioncheck       skip version check while update (true|false)"
 			echo "      -skipdc, --skipdomaincheck        skip domain check when installing mail server (true|false)"
@@ -1002,10 +992,6 @@ start_installation () {
 
 	if [ "$UPDATE" != "true" ]; then
 		check_ports
-	fi
-
-	if [ "$MAKESWAP" == "true" ]; then
-		make_swap
 	fi
 
 	if command_exists docker ; then

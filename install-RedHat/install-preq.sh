@@ -44,6 +44,7 @@ rpm --import cs.key || true
 rm cs.key
 
 if [ "$REV" = "8" ]; then
+rabbitmq_version="-3.8.12"
 
 cat > /etc/yum.repos.d/rabbitmq-server.repo <<END
 [rabbitmq-server]
@@ -60,7 +61,7 @@ END
 
 fi
 
-yum -y install yum-plugin-versionlock
+yum -y install python3-dnf-plugin-versionlock || yum -y install yum-plugin-versionlock
 yum versionlock clear
 
 yum -y install epel-release \
@@ -69,9 +70,22 @@ yum -y install epel-release \
 			supervisor \
 			postgresql \
 			postgresql-server \
-			rabbitmq-server \
+			rabbitmq-server$rabbitmq_version \
 			redis --enablerepo=remi
 	
+if [ "$REV" = "7" ]; then
+	if ! rpm -q msttcore-fonts-installer; then
+	yum install -y xorg-x11-font-utils \
+				fontconfig \
+				cabextract
+
+	curl -O -L https://sourceforge.net/projects/mscorefonts2/files/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm
+
+	rpm -ivh msttcore-fonts-installer-2.6-1.noarch.rpm
+	rm msttcore-fonts-installer-2.6-1.noarch.rpm
+	fi
+fi
+
 postgresql-setup initdb	|| true
 
 semanage permissive -a httpd_t
