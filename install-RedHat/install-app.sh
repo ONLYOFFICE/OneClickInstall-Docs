@@ -25,42 +25,22 @@ for SVC in $package_services; do
 		systemctl enable $SVC
 done
 
+if [ "$INSTALLATION_TYPE" = "COMMUNITY" ]; then
+	ds_pkg_name="${package_sysname}-documentserver";
+elif [ "$INSTALLATION_TYPE" = "ENTERPRISE" ]; then
+	ds_pkg_name="${package_sysname}-documentserver-ee";
+elif [ "$INSTALLATION_TYPE" = "DEVELOPER" ]; then
+	ds_pkg_name="${package_sysname}-documentserver-de";
+fi
+
 if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
-        if [ "$INSTALLATION_TYPE" = "COMMUNITY" ]; then
-                if rpm -q ${package_sysname}-documentserver-ee; then
-                        ${package_manager} -y remove ${package_sysname}-documentserver-ee
-                        DOCUMENT_SERVER_INSTALLED="false"
-                elif rpm -q ${package_sysname}-documentserver-de; then
-                        ${package_manager} -y remove ${package_sysname}-documentserver-de
-                        DOCUMENT_SERVER_INSTALLED="false"
-				else
-                        ${package_manager} -y update ${package_sysname}-documentserver
-                fi
-        fi
-
-        if [ "$INSTALLATION_TYPE" = "ENTERPRISE" ]; then
-                if rpm -q ${package_sysname}-documentserver; then
-                        ${package_manager} -y remove ${package_sysname}-documentserver
-                        DOCUMENT_SERVER_INSTALLED="false"
-                elif rpm -q ${package_sysname}-documentserver-de; then
-                        ${package_manager} -y remove ${package_sysname}-documentserver-de
-                        DOCUMENT_SERVER_INSTALLED="false"
-				else
-                        ${package_manager} -y update ${package_sysname}-documentserver-ee
-                fi
-        fi
-
-        if [ "$INSTALLATION_TYPE" = "DEVELOPER" ]; then
-               if rpm -q ${package_sysname}-documentserver; then
-                        ${package_manager} -y remove ${package_sysname}-documentserver
-                        DOCUMENT_SERVER_INSTALLED="false"
-				elif rpm -q ${package_sysname}-documentserver-ee; then
-                        ${package_manager} -y remove ${package_sysname}-documentserver-ee
-                        DOCUMENT_SERVER_INSTALLED="false"
-                else
-                        ${package_manager} -y update ${package_sysname}-documentserver-de
-                fi
-        fi
+	ds_pkg_installed_name=$(rpm -qa --qf '%{NAME}\n' | grep ${package_sysname}-documentserver);
+	if [ ${ds_pkg_installed_name} != ${ds_pkg_name} ]; then
+		${package_manager} -y remove ${ds_pkg_installed_name}
+		DOCUMENT_SERVER_INSTALLED="false"
+	else
+		${package_manager} -y update ${ds_pkg_installed_name}
+	fi
 fi
 
 if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
@@ -89,13 +69,7 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
 		su - postgres -s /bin/bash -c "psql -c \"GRANT ALL privileges ON DATABASE ${DS_DB_NAME} TO ${DS_DB_USER};\""
 	fi
 	
-	if [ "$INSTALLATION_TYPE" = "ENTERPRISE" ]; then	
-		${package_manager} -y install ${package_sysname}-documentserver-ee
-	elif [ "$INSTALLATION_TYPE" = "DEVELOPER" ]; then
-		${package_manager} -y install ${package_sysname}-documentserver-de
-	else
-		${package_manager} -y install ${package_sysname}-documentserver
-	fi
+	${package_manager} -y install ${ds_pkg_name}
 
 	systemctl restart supervisord
 	
@@ -138,13 +112,13 @@ expect << EOF
 	expect eof
 	
 EOF
-	
 	systemctl restart nginx
 	systemctl enable supervisord
 	systemctl enable nginx
 
 	DOCUMENT_SERVER_INSTALLED="true";
 fi
+
 NGINX_ROOT_DIR="/etc/nginx"
 
 NGINX_WORKER_PROCESSES=${NGINX_WORKER_PROCESSES:-$(grep processor /proc/cpuinfo | wc -l)};
