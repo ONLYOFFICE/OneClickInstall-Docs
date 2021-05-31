@@ -26,7 +26,7 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 
-		-? | -h | --help )
+		"-?" | -h | --help )
 			HELP="true";
 			DOCKER="true";
 			PARAMETERS="$PARAMETERS -ht docs-developer-install.sh";
