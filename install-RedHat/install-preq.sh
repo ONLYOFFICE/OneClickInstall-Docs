@@ -73,6 +73,19 @@ yum -y install epel-release \
 			rabbitmq-server$rabbitmq_version \
 			redis --enablerepo=remi
 	
+if [ "$REV" = "7" ]; then
+	if ! rpm -q msttcore-fonts-installer; then
+	yum install -y xorg-x11-font-utils \
+				fontconfig \
+				cabextract
+
+	curl -O -L https://sourceforge.net/projects/mscorefonts2/files/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm
+
+	rpm -ivh msttcore-fonts-installer-2.6-1.noarch.rpm
+	rm msttcore-fonts-installer-2.6-1.noarch.rpm
+	fi
+fi
+
 postgresql-setup initdb	|| true
 
 semanage permissive -a httpd_t
