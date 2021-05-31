@@ -9,22 +9,6 @@ cat<<EOF
 #######################################
 
 EOF
-function make_swap () {
-	local DISK_REQUIREMENTS=4096; #4Gb free space
-	local MEMORY_REQUIREMENTS=4096; #RAM 4Gb
-
-	local AVAILABLE_DISK_SPACE=$(df -m /  | tail -1 | awk '{ print $4 }');
-	local TOTAL_MEMORY=$(free -m | grep -oP '\d+' | head -n 1);
-	local EXIST=$(swapon -s | awk '{ print $1 }' | { grep -x '/app_swapfile' || true; });
-
-	if [[ -z $EXIST ]] && [ ${TOTAL_MEMORY} -lt ${MEMORY_REQUIREMENTS} ] && [ ${AVAILABLE_DISK_SPACE} -gt ${DISK_REQUIREMENTS} ]; then
-		dd if=/dev/zero of=/app_swapfile count=4096 bs=1MiB
-		chmod 600 /app_swapfile
-		mkswap /app_swapfile
-		swapon /app_swapfile
-		echo "/app_swapfile none swap sw 0 0" >> /etc/fstab
-	fi
-}
 
 if [ -e /etc/redis.conf ]; then
  sed -i "s/bind .*/bind 127.0.0.1/g" /etc/redis.conf
@@ -168,8 +152,6 @@ NGINX_WORKER_CONNECTIONS=${NGINX_WORKER_CONNECTIONS:-$(ulimit -n)};
 
 sed 's/^worker_processes.*/'"worker_processes ${NGINX_WORKER_PROCESSES};"'/' -i ${NGINX_ROOT_DIR}/nginx.conf
 sed 's/worker_connections.*/'"worker_connections ${NGINX_WORKER_CONNECTIONS};"'/' -i ${NGINX_ROOT_DIR}/nginx.conf
-
-make_swap
 
 if rpm -q "firewalld"; then
 	firewall-cmd --permanent --zone=public --add-service=http
