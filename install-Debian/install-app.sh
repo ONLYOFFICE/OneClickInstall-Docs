@@ -83,8 +83,6 @@ else
 	systemctl reload nginx
 fi
 
-make_swap
-
 echo ""
 echo "$RES_INSTALL_SUCCESS"
 echo "$RES_QUESTIONS"

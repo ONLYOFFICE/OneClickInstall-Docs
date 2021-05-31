@@ -2,23 +2,6 @@
 
 set -e
 
-make_swap () {
-	DISK_REQUIREMENTS=4096; #4Gb free space
-	MEMORY_REQUIREMENTS=4096; #RAM 4Gb
-
-	AVAILABLE_DISK_SPACE=$(df -m /  | tail -1 | awk '{ print $4 }');
-	TOTAL_MEMORY=$(free -m | grep -oP '\d+' | head -n 1);
-	EXIST=$(swapon -s | awk '{ print $1 }' | { grep -x '/app_swapfile' || true; });
-
-	if [[ -z $EXIST ]] && [ ${TOTAL_MEMORY} -lt ${MEMORY_REQUIREMENTS} ] && [ ${AVAILABLE_DISK_SPACE} -gt ${DISK_REQUIREMENTS} ]; then
-		fallocate -l 4G /app_swapfile
-		chmod 600 /app_swapfile
-		mkswap /app_swapfile
-		swapon /app_swapfile
-		echo "/app_swapfile none swap sw 0 0" >> /etc/fstab
-	fi
-}
-
 vercomp () {
     if [[ $1 == $2 ]]
     then
