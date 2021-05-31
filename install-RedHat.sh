@@ -77,7 +77,7 @@ gpgcheck=1
 enabled=1
 END
 
-DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/install-docs/install-RedHat"
+DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs/install-RedHat"
 
 
 if [ "$LOCAL_SCRIPTS" == "true" ]; then
