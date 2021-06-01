@@ -38,7 +38,7 @@ The editors allow you to create, edit, save and export text, spreadsheet and pre
 **STEP 1**: Getting ONLYOFFICE Docs script
 
 ```bash
-wget http://download.onlyoffice.com/install-docs/docs-install.sh
+wget http://download.onlyoffice.com/docs/docs-install.sh
 ```
 
 **STEP 2**: Install ONLYOFFICE Docs executing the following command:
