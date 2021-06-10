@@ -2,13 +2,21 @@
 
 ## Overview
 
-ONLYOFFICE Document Server is a free collaborative online office suite comprising viewers and editors for texts, spreadsheets and presentations, fully compatible with Office Open XML formats: .docx, .xlsx, .pptx and enabling collaborative editing in real time.
+This repo contains scripts to quickly install ONLYOFFICE Document Server.
+
+ONLYOFFICE Document Server is a free collaborative online office suite comprising viewers and editors for texts, spreadsheets and presentations, fully compatible with Office Open XML formats: .docx, .xlsx, .pptx.
 
 Starting from version 6.0, Document Server is distributed under a new name - ONLYOFFICE Docs. 
 
 ONLYOFFICE Docs can be used as a part of [ONLYOFFICE Workspace](#onlyoffice-workspace) or with third-party sync&share solutions (e.g. Nextcloud, ownCloud, Seafile) to enable collaborative editing within their interface.
 
-It has three editions - [Community, Enterprise, and Developer](#onlyoffice-docs-editions). 
+It has three editions - [Community, Enterprise, and Developer](#onlyoffice-docs-editions).
+
+`docs-install.sh` is used to install ONLYOFFICE Docs Community Edition.
+
+`docs-enterprise-install.sh` installs ONLYOFFICE Docs Enterprise Edition.
+
+`docs-developer-install.sh` istalls ONLYOFFICE Docs Developer Edition. 
 
 ## Functionality
 
@@ -25,7 +33,7 @@ The editors allow you to create, edit, save and export text, spreadsheet and pre
 * Reviewing
 * Spell-checking
 
-## Recommended System Requirements
+## Recommended system requirements
 
 * **CPU**: dual-core 2 GHz or higher
 * **RAM**: 2 GB or more
@@ -35,7 +43,7 @@ The editors allow you to create, edit, save and export text, spreadsheet and pre
 
 ## Installing ONLYOFFICE Docs using the provided script
 
-**STEP 1**: Getting ONLYOFFICE Docs script
+**STEP 1**: Download ONLYOFFICE Docs Community Edition Docker script file:
 
 ```bash
 wget http://download.onlyoffice.com/docs/docs-install.sh
@@ -59,7 +67,7 @@ License: [GNU AGPL v3.0](https://onlyo.co/38YZGJh)
 
 ONLYOFFICE Docs on official website: [http://www.onlyoffice.com/office-suite.aspx](http://www.onlyoffice.com/office-suite.aspx?utm_source=github&utm_medium=cpc&utm_campaign=GitHubDS)
 
-## User Feedback and Support
+## User feedback and support
 
 If you have any problems with or questions about [ONLYOFFICE Document Server][2], please visit our official forum to find answers to your questions: [dev.onlyoffice.org][1] or you can ask and answer ONLYOFFICE development questions on [Stack Overflow][3].
 
