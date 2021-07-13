@@ -55,6 +55,10 @@ wget http://download.onlyoffice.com/docs/docs-install.sh
 bash docs-install.sh
 ```
 
+The detailed instruction is available in [ONLYOFFICE Help Center](https://helpcenter.onlyoffice.com/installation/docs-community-install-script.aspx). 
+
+To install Enterprise Edition, use [this instruction](https://helpcenter.onlyoffice.com/installation/docs-enterprise-install-script.aspx). For Developer Edition, use [this one](https://helpcenter.onlyoffice.com/installation/docs-developer-install-script.aspx).
+
 ## Project information
 
 Official website: [https://www.onlyoffice.com](https://www.onlyoffice.com/?utm_source=github&utm_medium=cpc&utm_campaign=GitHubDS)
