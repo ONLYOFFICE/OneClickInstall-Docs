@@ -61,9 +61,6 @@ END
 
 fi
 
-yum -y install python3-dnf-plugin-versionlock || yum -y install yum-plugin-versionlock
-yum versionlock clear
-
 yum -y install epel-release \
 			expect \
 			nano \

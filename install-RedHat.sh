@@ -30,7 +30,7 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 		
-		-ls | --local_scripts )
+		-ls | --localscripts )
 			if [ "$2" != "" ]; then
 				LOCAL_SCRIPTS=$2
 				shift
@@ -42,7 +42,7 @@ while [ "$1" != "" ]; do
 			echo "    Parameters:"
 			echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
 			echo "      -u, --update                      use to update existing components (true|false)"
-			echo "      -ls, --local_scripts              use 'true' to run local scripts (true|false)"
+			echo "      -ls, --localscripts              use 'true' to run local scripts (true|false)"
 			echo "      -?, -h, --help                    this help"
 			echo
 			exit 0
