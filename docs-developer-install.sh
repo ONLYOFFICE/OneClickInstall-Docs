@@ -38,7 +38,7 @@ HELP="false";
 
 while [ "$1" != "" ]; do
 	case $1 in
-		-ls | --local_scripts )
+		-ls | --localscripts )
 			if [ "$2" == "true" ] || [ "$2" == "false" ]; then
 				PARAMETERS="$PARAMETERS ${1}";
 				LOCAL_SCRIPTS=$2

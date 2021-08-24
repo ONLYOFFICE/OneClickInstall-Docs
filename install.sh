@@ -38,7 +38,6 @@ CORE_REQUIREMENTS=2;
 PRODUCT="onlyoffice";
 BASE_DIR="/app/$PRODUCT";
 NETWORK="$PRODUCT";
-SWAPFILE="/${PRODUCT}_swapfile";
 MACHINEKEY_PARAM=$(echo "${PRODUCT}_CORE_MACHINEKEY" | awk '{print toupper($0)}');
 
 DOCUMENT_CONTAINER_NAME="onlyoffice-document-server";
@@ -61,8 +60,6 @@ USE_AS_EXTERNAL_SERVER="true";
 
 INSTALLATION_TYPE="ENTERPRISE";
 
-ACTIVATE_COMMUNITY_SERVER_TRIAL="false";
-
 HELP_TARGET="install.sh";
 
 JWT_SECRET="";
@@ -70,7 +67,6 @@ CORE_MACHINEKEY="";
 
 SKIP_HARDWARE_CHECK="false";
 SKIP_VERSION_CHECK="false";
-SKIP_DOMAIN_CHECK="false";
 
 DOCS_PORT=80;
 
@@ -161,13 +157,6 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 
-		-skipdc | --skipdomaincheck )
-			if [ "$2" != "" ]; then
-				SKIP_DOMAIN_CHECK=$2
-				shift
-			fi
-		;;
-
 		-dp | --docsport )
 			if [ "$2" != "" ]; then
 				DOCS_PORT=$2
@@ -175,7 +164,7 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 		
-		-ls | --local_scripts )
+		-ls | --localscripts )
 			if [ "$2" != "" ]; then
 				LOCAL_SCRIPTS=$2
 				shift
@@ -194,13 +183,11 @@ while [ "$1" != "" ]; do
 			echo "      -un, --username                   dockerhub username"
 			echo "      -p, --password                    dockerhub password"
 			echo "      -es, --useasexternalserver        use as external server (true|false)"
-			echo "      -pdf, --partnerdatafile           partner data file"
 			echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
 			echo "      -skiphc, --skiphardwarecheck      skip hardware check (true|false)"
 			echo "      -skipvc, --skipversioncheck       skip version check while update (true|false)"
-			echo "      -skipdc, --skipdomaincheck        skip domain check when installing mail server (true|false)"
-			echo "      -dp, --docsport              	  docs port (default value 80)"
-			echo "      -ls, --local_scripts              use 'true' to run local scripts (true|false)"
+			echo "      -dp, --docsport              	  docs port (default value 8083)"
+			echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
 			echo "      -?, -h, --help                    this help"
 			exit 0
 		;;
@@ -396,29 +383,6 @@ check_hardware () {
 	if [ ${CPU_CORES_NUMBER} -lt ${CORE_REQUIREMENTS} ]; then
 		echo "The system does not meet the minimal hardware requirements. CPU with at least $CORE_REQUIREMENTS cores is required"
 		exit 1;
-	fi
-}
-
-make_swap () {
-	DISK_REQUIREMENTS=4096; #4Gb free space
-	MEMORY_REQUIREMENTS=4096; #RAM ~12Gb
-
-	AVAILABLE_DISK_SPACE=$(df -m /  | tail -1 | awk '{ print $4 }');
-	TOTAL_MEMORY=$(free -m | grep -oP '\d+' | head -n 1);
-	EXIST=$(swapon -s | awk '{ print $1 }' | { grep -x ${SWAPFILE} || true; });
-
-	if [[ -z $EXIST ]] && [ ${TOTAL_MEMORY} -lt ${MEMORY_REQUIREMENTS} ] && [ ${AVAILABLE_DISK_SPACE} -gt ${DISK_REQUIREMENTS} ]; then
-
-		if [ "${DIST}" == "Ubuntu" ] || [ "${DIST}" == "Debian" ]; then
-			fallocate -l 4G ${SWAPFILE}
-		else
-			dd if=/dev/zero of=${SWAPFILE} count=4096 bs=1MiB
-		fi
-
-		chmod 600 ${SWAPFILE}
-		mkswap ${SWAPFILE}
-		swapon ${SWAPFILE}
-		echo "$SWAPFILE none swap sw 0 0" >> /etc/fstab
 	fi
 }
 
@@ -724,10 +688,6 @@ install_document_server () {
 			CURRENT_IMAGE_NAME=$(get_current_image_name "$DOCUMENT_CONTAINER_NAME");
 			CURRENT_IMAGE_VERSION=$(get_current_image_version "$DOCUMENT_CONTAINER_NAME");
 
-			if [ "$CURRENT_IMAGE_NAME" == "onlyoffice/documentserver" ]; then
-				ACTIVATE_COMMUNITY_SERVER_TRIAL="true";
-			fi
-
 			if [ "$CURRENT_IMAGE_NAME" != "$DOCUMENT_IMAGE_NAME" ] || ([ "$CURRENT_IMAGE_VERSION" != "$DOCUMENT_VERSION" ] || [ "$SKIP_VERSION_CHECK" == "true" ]); then
 				check_bindings $DOCUMENT_SERVER_ID "/etc/$PRODUCT,/var/lib/$PRODUCT,/var/lib/postgresql,/usr/share/fonts/truetype/custom,/var/lib/rabbitmq,/var/lib/redis";
 				docker exec ${DOCUMENT_CONTAINER_NAME} bash /usr/bin/documentserver-prepare4shutdown.sh
@@ -855,15 +815,7 @@ set_core_machinekey () {
 	fi
 
 	if [[ -z ${CORE_MACHINEKEY} ]]; then
-		CURRENT_CORE_MACHINEKEY=$(get_container_env_parameter "$CONTROLPANEL_CONTAINER_NAME" "$MACHINEKEY_PARAM");
-
-		if [[ -n ${CURRENT_CORE_MACHINEKEY} ]]; then
-			CORE_MACHINEKEY="$CURRENT_CORE_MACHINEKEY";
-		fi
-	fi
-
-	if [[ -z ${CORE_MACHINEKEY} ]]; then
-		CURRENT_CORE_MACHINEKEY=$(get_container_env_parameter "$COMMUNITY_CONTAINER_NAME" "$MACHINEKEY_PARAM");
+		CURRENT_CORE_MACHINEKEY=$(get_container_env_parameter "$DOCUMENT_CONTAINER_NAME" "$MACHINEKEY_PARAM");
 
 		if [[ -n ${CURRENT_CORE_MACHINEKEY} ]]; then
 			CORE_MACHINEKEY="$CURRENT_CORE_MACHINEKEY";
@@ -977,18 +929,10 @@ create_network () {
 
 set_installation_type_data () {
 	if [ "$INSTALLATION_TYPE" == "COMMUNITY" ]; then
-		set_opensource_data
+		DOCUMENT_IMAGE_NAME="onlyoffice/documentserver";
 	elif [ "$INSTALLATION_TYPE" == "DEVELOPER" ]; then
 		DOCUMENT_IMAGE_NAME="onlyoffice/documentserver-de"
 	fi
-}
-
-set_opensource_data () {
-	DOCUMENT_IMAGE_NAME="onlyoffice/documentserver";
-
-	HUB="";
-	USERNAME="";
-	PASSWORD="";
 }
 
 start_installation () {
