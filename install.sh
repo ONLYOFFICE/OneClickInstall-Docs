@@ -31,7 +31,7 @@
  # terms at http://creativecommons.org/licenses/by-sa/4.0/legalcode
  #
 
-DISK_REQUIREMENTS=40960;
+DISK_REQUIREMENTS=10240;
 MEMORY_REQUIREMENTS=2048;
 CORE_REQUIREMENTS=2;
 
