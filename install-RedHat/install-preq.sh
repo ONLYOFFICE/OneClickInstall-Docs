@@ -40,6 +40,7 @@ read_unsupported_installation () {
 	esac
 }
 
+{ yum check-update postgresql; PSQLExitCode=$?; } || true 
 { yum check-update $DIST*-release; exitCode=$?; } || true #Checking for distribution update
 
 UPDATE_AVAILABLE_CODE=100
@@ -52,25 +53,24 @@ if [[ $exitCode -eq $UPDATE_AVAILABLE_CODE ]]; then
 	read_unsupported_installation
 fi
 
-# add epel repo
+#Add repositories: EPEL, REMI
 rpm -ivh https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
 rpm -ivh https://rpms.remirepo.net/enterprise/remi-release-$REV.rpm || true
 
-# add nginx repo
-cat > /etc/yum.repos.d/nginx.repo <<END
-[nginx-stable]
-name=nginx stable repo
-baseurl=https://nginx.org/packages/centos/$REV/\$basearch/
-gpgcheck=1
+if [[ $REV = "9" ]]; then
+	#Install packages from repo for Centos 8
+	REV="8"
+	curl -o /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8 "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-8"
+	cat << EOF > /etc/yum.repos.d/epel-centos-8.repo
+[epel-centos-8]
+name=Extra Packages for Enterprise Linux 8 - \$basearch
+baseurl=https://dl.fedoraproject.org/pub/epel/8/Everything/\$basearch/
 enabled=1
-gpgkey=https://nginx.org/keys/nginx_signing.key
-module_hotfixes=true
-END
-
-curl -o cs.key "http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x8320CA65CB2DE8E5"
-echo "" >> cs.key
-rpm --import cs.key || true
-rm cs.key
+gpgcheck=1
+countme=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
+EOF
+fi
 
 if [ "$REV" = "8" ]; then
 rabbitmq_version="-3.8.12"
@@ -90,20 +90,40 @@ END
 
 fi
 
+# add nginx repo
+cat > /etc/yum.repos.d/nginx.repo <<END
+[nginx-stable]
+name=nginx stable repo
+baseurl=https://nginx.org/packages/centos/$REV/\$basearch/
+gpgcheck=1
+enabled=1
+gpgkey=https://nginx.org/keys/nginx_signing.key
+module_hotfixes=true
+END
+
 yum -y install epel-release \
 			expect \
 			nano \
-			supervisor \
 			postgresql \
 			postgresql-server \
 			rabbitmq-server$rabbitmq_version \
 			redis --enablerepo=remi
 	
+if [[ $PSQLExitCode -eq $UPDATE_AVAILABLE_CODE ]]; then
+	yum -y install postgresql-upgrade
+	postgresql-setup --upgrade || true
+fi
+
+yum -y install supervisor || true
+if [[ -z $(rpm -qa supervisor) ]]; then
+	yum localinstall -y https://download-ib01.fedoraproject.org/pub/fedora/linux/releases/34/Everything/x86_64/os/Packages/s/supervisor-4.2.1-2.fc34.noarch.rpm
+fi
+
 if [ "$REV" = "7" ]; then
 	if ! rpm -q msttcore-fonts-installer; then
-	yum install -y xorg-x11-font-utils \
-				fontconfig \
-				cabextract
+		yum install -y xorg-x11-font-utils \
+					fontconfig \
+					cabextract
 
 	curl -O -L https://sourceforge.net/projects/mscorefonts2/files/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm
 
