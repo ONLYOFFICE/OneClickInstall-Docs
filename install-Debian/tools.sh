@@ -6,12 +6,6 @@ command_exists () {
 	type "$1" &> /dev/null;
 }
 
-ARCH="$(dpkg --print-architecture)"
-if [ "$ARCH" != "amd64" ]; then
-    echo "Onlyoffice Docs doesn't support architecture '$ARCH'"
-    exit;
-fi
-
 REV=`cat /etc/debian_version`
 DIST='Debian'
 if [ -f /etc/lsb-release ] ; then
