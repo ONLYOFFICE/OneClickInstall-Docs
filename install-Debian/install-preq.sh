@@ -38,7 +38,7 @@ locale-gen en_US.UTF-8
 #add nginx repo
 wget http://nginx.org/keys/nginx_signing.key
 apt-key add nginx_signing.key
-echo "deb [arch=$ARCH] http://nginx.org/packages/$DIST/ $DISTRIB_CODENAME nginx" | tee /etc/apt/sources.list.d/nginx.list
+echo "deb http://nginx.org/packages/$DIST/ $DISTRIB_CODENAME nginx" | tee /etc/apt/sources.list.d/nginx.list
 rm nginx_signing.key
 
 # setup msttcorefonts
