@@ -91,15 +91,15 @@ END
 fi
 
 # add nginx repo
-cat > /etc/yum.repos.d/nginx.repo <<END
-[nginx-stable]
-name=nginx stable repo
-baseurl=https://nginx.org/packages/centos/$REV/\$basearch/
-gpgcheck=1
-enabled=1
-gpgkey=https://nginx.org/keys/nginx_signing.key
-module_hotfixes=true
-END
+#cat > /etc/yum.repos.d/nginx.repo <<END
+#[nginx-stable]
+#name=nginx stable repo
+#baseurl=https://nginx.org/packages/centos/$REV/\$basearch/
+#gpgcheck=1
+#enabled=1
+#gpgkey=https://nginx.org/keys/nginx_signing.key
+#module_hotfixes=true
+#END
 
 yum -y install epel-release \
 			expect \
