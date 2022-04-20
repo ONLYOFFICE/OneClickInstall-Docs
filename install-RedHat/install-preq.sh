@@ -55,7 +55,7 @@ fi
 
 #Add repositories: EPEL, REMI
 rpm -ivh https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
-rpm -ivh https://rpms.remirepo.net/enterprise/remi-release-$REV.rpm || true
+#rpm -ivh https://rpms.remirepo.net/enterprise/remi-release-$REV.rpm || true
 
 if [[ $REV = "9" ]]; then
 	#Install packages from repo for Centos 8
@@ -101,13 +101,15 @@ fi
 #module_hotfixes=true
 #END
 
+yum -y install policycoreutils-python
+
 yum -y install epel-release \
 			expect \
 			nano \
 			postgresql \
 			postgresql-server \
 			rabbitmq-server$rabbitmq_version \
-			redis --enablerepo=remi
+			redis
 	
 if [[ $PSQLExitCode -eq $UPDATE_AVAILABLE_CODE ]]; then
 	yum -y install postgresql-upgrade

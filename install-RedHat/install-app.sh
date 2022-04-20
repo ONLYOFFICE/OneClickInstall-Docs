@@ -69,7 +69,10 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
 		su - postgres -s /bin/bash -c "psql -c \"GRANT ALL privileges ON DATABASE ${DS_DB_NAME} TO ${DS_DB_USER};\""
 	fi
 	
-	${package_manager} -y install ${ds_pkg_name}
+	#${package_manager} -y install ${ds_pkg_name}
+	yum install -y GConf2 libXScrnSaver msttcore-fonts-installer nginx pwgen xorg-x11-server-Xvfb
+	wget https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/onlyoffice/testing/centos/onlyoffice-documentserver-7.1.0-177.aarch64.rpm
+	rpm -i onlyoffice-documentserver-7.1.0-177.aarch64.rpm
 
 	systemctl restart supervisord
 	
