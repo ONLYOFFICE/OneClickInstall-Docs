@@ -36,10 +36,9 @@ fi
 locale-gen en_US.UTF-8
 
 #add nginx repo
-wget http://nginx.org/keys/nginx_signing.key
-apt-key add nginx_signing.key
+curl -s http://nginx.org/keys/nginx_signing.key | gpg --no-default-keyring --keyring gnupg-ring:/etc/apt/trusted.gpg.d/nginx.gpg --import
+chmod 644 /etc/apt/trusted.gpg.d/nginx.gpg
 echo "deb http://nginx.org/packages/$DIST/ $DISTRIB_CODENAME nginx" | tee /etc/apt/sources.list.d/nginx.list
-rm nginx_signing.key
 
 # setup msttcorefonts
 echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
