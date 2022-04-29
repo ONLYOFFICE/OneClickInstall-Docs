@@ -36,6 +36,7 @@ fi
 locale-gen en_US.UTF-8
 
 #add nginx repo
+mkdir -p $HOME/.gnupg
 curl -s http://nginx.org/keys/nginx_signing.key | gpg --no-default-keyring --keyring gnupg-ring:/etc/apt/trusted.gpg.d/nginx.gpg --import
 chmod 644 /etc/apt/trusted.gpg.d/nginx.gpg
 echo "deb http://nginx.org/packages/$DIST/ $DISTRIB_CODENAME nginx" | tee /etc/apt/sources.list.d/nginx.list
