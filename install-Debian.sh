@@ -75,7 +75,9 @@ fi
 
 # add onlyoffice repo
 echo "deb http://download.onlyoffice.com/repo/debian squeeze main" | tee /etc/apt/sources.list.d/onlyoffice.list
-apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys CB2DE8E5
+mkdir -p $HOME/.gnupg
+gpg --no-default-keyring --keyring gnupg-ring:/etc/apt/trusted.gpg.d/onlyoffice.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys CB2DE8E5
+chmod 644 /etc/apt/trusted.gpg.d/onlyoffice.gpg
 
 declare -x LANG="en_US.UTF-8"
 declare -x LANGUAGE="en_US:en"
