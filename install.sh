@@ -171,6 +171,13 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 
+		-ids | --installdocumentserver )
+			if [ "$2" != "" ]; then
+				INSTALL_DOCUMENT_SERVER=$2
+				shift
+			fi
+		;;
+
 		-? | -h | --help )
 			echo "  Usage: bash $HELP_TARGET [PARAMETER] [[PARAMETER], ...]"
 			echo
@@ -178,6 +185,7 @@ while [ "$1" != "" ]; do
 			echo "      -di, --documentimage              document image name or .tar.gz file path"
 			echo "      -dv, --documentversion            document version"
 			echo "      -dip, --documentserverip          document server ip"
+			echo "      -ids, --installdocumentserver     install or update document server (true|false|pull)"
 			echo "      -u, --update                      use to update existing components (true|false)"
 			echo "      -hub, --hub                       dockerhub name"
 			echo "      -un, --username                   dockerhub username"
