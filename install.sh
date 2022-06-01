@@ -247,10 +247,12 @@ install_curl () {
 }
 
 install_jq () {
-	curl -s -o jq http://stedolan.github.io/jq/download/linux64/jq
-	chmod +x jq
-	cp jq /usr/bin
-	rm jq
+	if command_exists apt-get; then
+		apt-get -y update
+		apt-get -y -q install jq
+	elif command_exists yum; then
+		yum -y install jq
+	fi
 
 	if ! command_exists jq; then
 		echo "command jq not found"
@@ -300,7 +302,7 @@ get_os_info () {
 		elif [ "${OS}" == "Linux" ] ; then
 			MACH=`uname -m`
 
-			if [ "${MACH}" != "x86_64" ]; then
+			if [[ "${MACH}" != "x86_64" && "${MACH}" != "aarch64" && "${MACH}" != "arm64" ]]; then
 				echo "Currently only supports 64bit OS's";
 				exit 1;
 			fi
