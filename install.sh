@@ -251,6 +251,7 @@ install_jq () {
 		apt-get -y update
 		apt-get -y -q install jq
 	elif command_exists yum; then
+		rpm -ivh https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
 		yum -y install jq
 	fi
 
@@ -318,6 +319,8 @@ get_os_info () {
 					DIST=`cat /etc/os-release | grep -sw 'ID' | awk -F=  '{ print $2 }' | sed -e 's/^"//' -e 's/"$//'`
 					REV=`cat /etc/os-release | grep -sw 'VERSION_ID' | awk -F=  '{ print $2 }' | sed -e 's/^"//' -e 's/"$//'`
 				fi
+				REV_PARTS=(${REV//\./ });
+				REV=${REV_PARTS[0]};
 			elif [ -f /etc/SuSE-release ] ; then
 				REV=`cat /etc/os-release  | grep '^VERSION_ID' | awk -F=  '{ print $2 }' |  sed -e 's/^"//'  -e 's/"$//'`
 				DIST='SuSe'
@@ -557,11 +560,11 @@ get_available_version () {
 	fi
 
 	if ! command_exists curl ; then
-		install_curl;
+		install_curl; >/dev/null 2>&1
 	fi
 
 	if ! command_exists jq ; then
-		install_jq
+		install_jq >/dev/null 2>&1
 	fi
 
 	CREDENTIALS="";
