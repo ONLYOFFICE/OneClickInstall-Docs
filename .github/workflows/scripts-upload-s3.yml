@@ -25,9 +25,9 @@ jobs:
        
       - name: Upload scripts
         run: | 
-          aws s3 cp . ${{ secrets.AWS_BUCKET_URL }}/install --acl public-read --recursive --exclude "*" --include "*.sh" 
-          aws s3 cp ./install-Debian ${{ secrets.AWS_BUCKET_URL }}/install/install-Debian --acl public-read --recursive --exclude "*" --include "*.sh" 
-          aws s3 cp ./install-RedHat ${{ secrets.AWS_BUCKET_URL }}/install/install-RedHat --acl public-read --recursive --exclude "*" --include "*.sh"
+          aws s3 cp . ${{ secrets.AWS_BUCKET_URL }}/docs --acl public-read --recursive --exclude "*" --include "*.sh" 
+          aws s3 cp ./install-Debian ${{ secrets.AWS_BUCKET_URL }}/docs/install-Debian --acl public-read --recursive --exclude "*" --include "*.sh" 
+          aws s3 cp ./install-RedHat ${{ secrets.AWS_BUCKET_URL }}/docs/install-RedHat --acl public-read --recursive --exclude "*" --include "*.sh"
       
       - name: Invalidate CLOUDFRONT cache
         run: aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_DISTRIBUTION_ID }} --paths "/install/*"
