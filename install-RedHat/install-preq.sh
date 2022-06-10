@@ -119,19 +119,6 @@ if [[ -z $(rpm -qa supervisor) ]]; then
 	yum localinstall -y https://download-ib01.fedoraproject.org/pub/fedora/linux/releases/34/Everything/x86_64/os/Packages/s/supervisor-4.2.1-2.fc34.noarch.rpm
 fi
 
-if [ "$REV" = "7" ]; then
-	if ! rpm -q msttcore-fonts-installer; then
-		yum install -y xorg-x11-font-utils \
-					fontconfig \
-					cabextract
-
-	curl -O -L https://sourceforge.net/projects/mscorefonts2/files/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm
-
-	rpm -ivh msttcore-fonts-installer-2.6-1.noarch.rpm
-	rm msttcore-fonts-installer-2.6-1.noarch.rpm
-	fi
-fi
-
 postgresql-setup initdb	|| true
 
 semanage permissive -a httpd_t
