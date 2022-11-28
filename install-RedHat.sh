@@ -21,12 +21,26 @@ res_unsupported_version () {
 	RES_ERROR_REMINDER="Please note, that if you continue with the installation, there may be errors"
 }
 
+res_rabbitmq_update () {
+	RES_RABBITMQ_VERSION="You have an old version of RabbitMQ installed. The update will cause the RabbitMQ database to be deleted."
+	RES_RABBITMQ_REMINDER="If you use the database only in the ONLYOFFICE configuration, then the update will be safe for you."
+	RES_RABBITMQ_INSTALLATION="Select 'Y' to install the new version of RabbitMQ (recommended). Select 'N' to keep the current version of RabbitMQ."
+	RES_CHOICE_RABBITMQ="Install a new version of RabbitMQ [Y/N]?"
+}
+
 while [ "$1" != "" ]; do
 	case $1 in
 
 		-it | --installation_type )
 			if [ "$2" != "" ]; then
 				INSTALLATION_TYPE=$(echo "$2" | awk '{print toupper($0)}');
+				shift
+			fi
+		;;
+
+		-skiphc | --skiphardwarecheck )
+			if [ "$2" != "" ]; then
+				SKIP_HARDWARE_CHECK=$2
 				shift
 			fi
 		;;
@@ -50,7 +64,8 @@ while [ "$1" != "" ]; do
 			echo "    Parameters:"
 			echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
 			echo "      -u, --update                      use to update existing components (true|false)"
-			echo "      -ls, --localscripts              use 'true' to run local scripts (true|false)"
+			echo "      -skiphc, --skiphardwarecheck      use to skip hardware check (true|false)"
+			echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
 			echo "      -?, -h, --help                    this help"
 			echo
 			exit 0
@@ -66,6 +81,10 @@ fi
 
 if [ -z "${UPDATE}" ]; then
    UPDATE="false";
+fi
+
+if [ -z "${SKIP_HARDWARE_CHECK}" ]; then
+   SKIP_HARDWARE_CHECK="false";
 fi
 
 if [ -z "${LOCAL_SCRIPTS}" ]; then
@@ -86,14 +105,14 @@ enabled=1
 END
 
 DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs/install-RedHat"
-
-
 if [ "$LOCAL_SCRIPTS" == "true" ]; then
+	source install-RedHat/tools.sh
 	source install-RedHat/bootstrap.sh
 	source install-RedHat/check-ports.sh
 	source install-RedHat/install-preq.sh
 	source install-RedHat/install-app.sh
 else
+	source <(curl ${DOWNLOAD_URL_PREFIX}/tools.sh)
 	source <(curl ${DOWNLOAD_URL_PREFIX}/bootstrap.sh)
 	source <(curl ${DOWNLOAD_URL_PREFIX}/check-ports.sh)
 	source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq.sh)

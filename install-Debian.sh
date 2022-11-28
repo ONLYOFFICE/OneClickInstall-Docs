@@ -20,6 +20,13 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 
+		-skiphc | --skiphardwarecheck )
+			if [ "$2" != "" ]; then
+				SKIP_HARDWARE_CHECK=$2
+				shift
+			fi
+		;;
+
 		-u | --update )
 			if [ "$2" != "" ]; then
 				UPDATE=$2
@@ -39,7 +46,8 @@ while [ "$1" != "" ]; do
 			echo "    Parameters:"
 			echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
 			echo "      -u, --update                      use to update existing components (true|false)"
-			echo "      -ls, --localscripts			  use 'true' to run local scripts (true|false)"
+			echo "      -skiphc, --skiphardwarecheck      use to skip hardware check (true|false)"
+			echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
 			echo "      -?, -h, --help                    this help"
 			echo
 			exit 0
@@ -57,12 +65,15 @@ if [ -z "${UPDATE}" ]; then
    UPDATE="false";
 fi
 
+if [ -z "${SKIP_HARDWARE_CHECK}" ]; then
+   SKIP_HARDWARE_CHECK="false";
+fi
+
 if [ -z "${LOCAL_SCRIPTS}" ]; then
    LOCAL_SCRIPTS="false";
 fi
 
 if [ $(dpkg-query -W -f='${Status}' curl 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
-  apt-get update;
   apt-get install -yq curl;
 fi
 
@@ -74,10 +85,10 @@ else
 fi
 
 # add onlyoffice repo
-echo "deb http://download.onlyoffice.com/repo/debian squeeze main" | tee /etc/apt/sources.list.d/onlyoffice.list
-mkdir -p $HOME/.gnupg
-gpg --no-default-keyring --keyring gnupg-ring:/etc/apt/trusted.gpg.d/onlyoffice.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys CB2DE8E5
-chmod 644 /etc/apt/trusted.gpg.d/onlyoffice.gpg
+mkdir -p -m 700 $HOME/.gnupg
+echo "deb [signed-by=/usr/share/keyrings/onlyoffice.gpg] http://download.onlyoffice.com/repo/debian squeeze main" | tee /etc/apt/sources.list.d/onlyoffice.list
+gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/onlyoffice.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys CB2DE8E5
+chmod 644 /usr/share/keyrings/onlyoffice.gpg
 
 declare -x LANG="en_US.UTF-8"
 declare -x LANGUAGE="en_US:en"
