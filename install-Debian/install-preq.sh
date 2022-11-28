@@ -17,7 +17,7 @@ fi
 
 apt-get -y update
 
-if ! dpkg -l | grep -q "locales"; then
+if ! command -v locale-gen &> /dev/null; then
 	apt-get install -yq locales
 fi
 
