@@ -21,6 +21,13 @@ res_unsupported_version () {
 	RES_ERROR_REMINDER="Please note, that if you continue with the installation, there may be errors"
 }
 
+res_rabbitmq_update () {
+	RES_RABBITMQ_VERSION="You have an old version of RabbitMQ installed. The update will cause the RabbitMQ database to be deleted."
+	RES_RABBITMQ_REMINDER="If you use the database only in the ONLYOFFICE configuration, then the update will be safe for you."
+	RES_RABBITMQ_INSTALLATION="Select 'Y' to install the new version of RabbitMQ (recommended). Select 'N' to keep the current version of RabbitMQ."
+	RES_CHOICE_RABBITMQ="Install a new version of RabbitMQ [Y/N]?"
+}
+
 while [ "$1" != "" ]; do
 	case $1 in
 

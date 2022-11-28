@@ -57,22 +57,21 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
 EOF
 fi
 
-if [ "$REV" = "8" ]; then
-rabbitmq_version="-3.8.12"
+#add rabbitmq & erlang repo
+wget https://packagecloud.io/install/repositories/rabbitmq/rabbitmq-server/script.rpm.sh -O rabbitmq_script.rpm.sh
+wget https://packagecloud.io/install/repositories/rabbitmq/erlang/script.rpm.sh -O erlang_script.rpm.sh
+chmod +x rabbitmq_script.rpm.sh erlang_script.rpm.sh
+os=centos dist=$MONOREV ./rabbitmq_script.rpm.sh && os=centos dist=$MONOREV ./erlang_script.rpm.sh
+rm -f rabbitmq_script.rpm.sh erlang_script.rpm.sh
 
-cat > /etc/yum.repos.d/rabbitmq-server.repo <<END
-[rabbitmq-server]
-name=rabbitmq-server
-baseurl=https://packagecloud.io/rabbitmq/rabbitmq-server/el/7/\$basearch
-repo_gpgcheck=1
-gpgcheck=0
-enabled=1
-gpgkey=https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey
-sslverify=0
-sslcacert=/etc/pki/tls/certs/ca-bundle.crt
-metadata_expire=300
-END
-
+if rpm -q rabbitmq-server; then
+	if [ "$(repoquery --installed rabbitmq-server --qf '%{ui_from_repo}' | sed 's/@//')" != "$(repoquery rabbitmq-server --qf='%{ui_from_repo}')" ]; then
+		res_rabbitmq_update
+		echo $RES_RABBITMQ_VERSION
+		echo $RES_RABBITMQ_REMINDER
+		echo $RES_RABBITMQ_INSTALLATION
+		read_rabbitmq_update
+	fi
 fi
 
 # add nginx repo
@@ -91,7 +90,7 @@ yum -y install epel-release \
 			nano \
 			postgresql \
 			postgresql-server \
-			rabbitmq-server$rabbitmq_version \
+			rabbitmq-server \
 			redis --enablerepo=remi
 	
 if [[ $PSQLExitCode -eq $UPDATE_AVAILABLE_CODE ]]; then

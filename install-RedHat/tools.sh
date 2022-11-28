@@ -51,3 +51,21 @@ read_unsupported_installation () {
 	esac
 }
 
+read_rabbitmq_update () {
+	read -p "$RES_CHOICE_RABBITMQ " CHOICE_INSTALLATION
+	case "$CHOICE_INSTALLATION" in
+		y|Y )
+			yum -y remove rabbitmq-server erlang* 
+			rm -rf /var/lib/rabbitmq/mnesia/*@localhost
+		;;
+
+		n|N )
+			rm -f /etc/yum.repos.d/rabbitmq_*
+		;;
+
+		* )
+			echo $RES_CHOICE;
+			read_rabbitmq_update
+		;;
+	esac
+}
