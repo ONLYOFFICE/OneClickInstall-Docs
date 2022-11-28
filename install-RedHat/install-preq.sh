@@ -25,21 +25,6 @@ if ! [[ "$REV" =~ ^[0-9]+$ ]]; then
 	REV=7;
 fi
 
-read_unsupported_installation () {
-	read -p "$RES_CHOICE_INSTALLATION " CHOICE_INSTALLATION
-	case "$CHOICE_INSTALLATION" in
-		y|Y ) yum -y install $DIST*-release
-		;;
-
-		n|N ) exit 0;
-		;;
-
-		* ) echo $RES_CHOICE;
-			read_unsupported_installation
-		;;
-	esac
-}
-
 { yum check-update postgresql; PSQLExitCode=$?; } || true 
 { yum check-update $DIST*-release; exitCode=$?; } || true #Checking for distribution update
 
