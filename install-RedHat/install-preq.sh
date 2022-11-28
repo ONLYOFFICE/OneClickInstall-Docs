@@ -42,20 +42,7 @@ fi
 rpm -ivh https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
 rpm -ivh https://rpms.remirepo.net/enterprise/remi-release-$REV.rpm || true
 
-if [[ $REV = "9" ]]; then
-	#Install packages from repo for Centos 8
-	REV="8"
-	curl -o /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8 "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-8"
-	cat << EOF > /etc/yum.repos.d/epel-centos-8.repo
-[epel-centos-8]
-name=Extra Packages for Enterprise Linux 8 - \$basearch
-baseurl=https://dl.fedoraproject.org/pub/epel/8/Everything/\$basearch/
-enabled=1
-gpgcheck=1
-countme=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8
-EOF
-fi
+[ "$REV" = "9" ] && yum localinstall -y --nogpgcheck https://vault.centos.org/centos/8/AppStream/x86_64/os/Packages/xorg-x11-font-utils-7.5-41.el8.x86_64.rpm
 
 #add rabbitmq & erlang repo
 wget https://packagecloud.io/install/repositories/rabbitmq/rabbitmq-server/script.rpm.sh -O rabbitmq_script.rpm.sh
