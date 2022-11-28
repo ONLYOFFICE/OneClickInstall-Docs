@@ -70,7 +70,6 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
 	fi
 	
 	${package_manager} -y install ${ds_pkg_name}
-
 	
 expect << EOF
 	
@@ -118,7 +117,6 @@ EOF
 fi
 
 NGINX_ROOT_DIR="/etc/nginx"
-
 NGINX_WORKER_PROCESSES=${NGINX_WORKER_PROCESSES:-$(grep processor /proc/cpuinfo | wc -l)};
 NGINX_WORKER_CONNECTIONS=${NGINX_WORKER_CONNECTIONS:-$(ulimit -n)};
 
