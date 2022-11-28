@@ -71,7 +71,6 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
 	
 	${package_manager} -y install ${ds_pkg_name}
 
-	systemctl restart supervisord
 	
 expect << EOF
 	
@@ -113,7 +112,6 @@ expect << EOF
 	
 EOF
 	systemctl restart nginx
-	systemctl enable supervisord
 	systemctl enable nginx
 
 	DOCUMENT_SERVER_INSTALLED="true";

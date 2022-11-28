@@ -114,13 +114,8 @@ if [[ $PSQLExitCode -eq $UPDATE_AVAILABLE_CODE ]]; then
 	postgresql-setup --upgrade || true
 fi
 
-yum -y install supervisor || true
-if [[ -z $(rpm -qa supervisor) ]]; then
-	yum localinstall -y https://download-ib01.fedoraproject.org/pub/fedora/linux/releases/34/Everything/x86_64/os/Packages/s/supervisor-4.2.1-2.fc34.noarch.rpm
-fi
-
 postgresql-setup initdb	|| true
 
 semanage permissive -a httpd_t
 
-package_services="rabbitmq-server postgresql redis supervisord"
+package_services="rabbitmq-server postgresql redis"
