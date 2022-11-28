@@ -74,7 +74,6 @@ if [ -z "${LOCAL_SCRIPTS}" ]; then
 fi
 
 if [ $(dpkg-query -W -f='${Status}' curl 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
-  apt-get update;
   apt-get install -yq curl;
 fi
 
