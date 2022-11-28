@@ -64,6 +64,7 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
 fi
 
 NGINX_ROOT_DIR="/etc/nginx"
+
 NGINX_WORKER_PROCESSES=${NGINX_WORKER_PROCESSES:-$(grep processor /proc/cpuinfo | wc -l)};
 NGINX_WORKER_CONNECTIONS=${NGINX_WORKER_CONNECTIONS:-$(ulimit -n)};
 
