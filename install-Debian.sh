@@ -20,6 +20,13 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 
+		-skiphc | --skiphardwarecheck )
+			if [ "$2" != "" ]; then
+				SKIP_HARDWARE_CHECK=$2
+				shift
+			fi
+		;;
+
 		-u | --update )
 			if [ "$2" != "" ]; then
 				UPDATE=$2
@@ -40,6 +47,7 @@ while [ "$1" != "" ]; do
 			echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
 			echo "      -u, --update                      use to update existing components (true|false)"
 			echo "      -ls, --localscripts			  use 'true' to run local scripts (true|false)"
+			echo "      -skiphc, --skiphardwarecheck      use to skip hardware check (true|false)"
 			echo "      -?, -h, --help                    this help"
 			echo
 			exit 0
@@ -55,6 +63,10 @@ fi
 
 if [ -z "${UPDATE}" ]; then
    UPDATE="false";
+fi
+
+if [ -z "${SKIP_HARDWARE_CHECK}" ]; then
+   SKIP_HARDWARE_CHECK="false";
 fi
 
 if [ -z "${LOCAL_SCRIPTS}" ]; then
