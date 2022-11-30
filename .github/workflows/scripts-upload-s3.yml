@@ -1,4 +1,4 @@
-name: Upload on S3 
+name: Upload scripts on S3
 
 on:    
   push:
@@ -7,10 +7,11 @@ on:
     paths-ignore:
       - '**/README.md'
       - '**/LICENSE'
+      - '.github/**'
 
 jobs:
-  build:
-    name: Chart release
+  release:
+    name: Scripts release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,4 +31,4 @@ jobs:
           aws s3 cp ./install-RedHat ${{ secrets.AWS_BUCKET_URL }}/docs/install-RedHat --acl public-read --recursive --exclude "*" --include "*.sh"
       
       - name: Invalidate CLOUDFRONT cache
-        run: aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_DISTRIBUTION_ID }} --paths "/install/*"
+        run: aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_DISTRIBUTION_ID }} --paths "/docs/*"
