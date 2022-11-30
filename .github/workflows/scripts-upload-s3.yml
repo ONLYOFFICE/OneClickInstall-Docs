@@ -1,4 +1,4 @@
-name: Upload on S3
+name: Upload on S3 
 
 on:    
   push:
