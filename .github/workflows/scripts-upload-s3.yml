@@ -1,4 +1,4 @@
-name: Upload scripts on S3
+name: Upload on S3
 
 on:    
   push:
@@ -10,8 +10,8 @@ on:
       - '.github/**'
 
 jobs:
-  release:
-    name: Scripts release
+  build:
+    name: Chart release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
