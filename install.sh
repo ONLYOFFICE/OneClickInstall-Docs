@@ -798,7 +798,7 @@ set_jwt_secret () {
 		fi
 	fi
 
-	if [[ -z ${JWT_SECRET} ]] && [[ "$UPDATE" != "true" ]] && [[ "$USE_AS_EXTERNAL_SERVER" != "true" ]]; then
+	if [[ -z ${JWT_SECRET} ]] && [[ "$UPDATE" != "true" ]]; then
 		JWT_SECRET=$(get_random_str 12);
 	fi
 }
