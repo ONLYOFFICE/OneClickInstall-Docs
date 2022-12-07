@@ -178,6 +178,20 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 
+		-led | --letsencryptdomain )
+			if [ "$2" != "" ]; then
+				LETS_ENCRYPT_DOMAIN=$2
+				shift
+			fi
+		;;
+
+		-lem | --letsencryptmail )
+			if [ "$2" != "" ]; then
+				LETS_ENCRYPT_MAIL=$2
+				shift
+			fi
+		;;
+
 		-? | -h | --help )
 			echo "  Usage: bash $HELP_TARGET [PARAMETER] [[PARAMETER], ...]"
 			echo
@@ -195,6 +209,8 @@ while [ "$1" != "" ]; do
 			echo "      -skiphc, --skiphardwarecheck      skip hardware check (true|false)"
 			echo "      -skipvc, --skipversioncheck       skip version check while update (true|false)"
 			echo "      -dp, --docsport              	  docs port (default value 8083)"
+			echo "      -led, --letsencryptdomain         defines the domain for Let's Encrypt certificate"
+			echo "      -lem, --letsencryptmail           defines the domain administator mail address for Let's Encrypt certificate"
 			echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
 			echo "      -?, -h, --help                    this help"
 			exit 0
@@ -546,7 +562,7 @@ docker_login () {
 }
 
 make_directories () {
-	mkdir -p "$BASE_DIR/DocumentServer/data";
+	mkdir -p "$BASE_DIR/DocumentServer/data/certs";
 	mkdir -p "$BASE_DIR/DocumentServer/logs";
 	mkdir -p "$BASE_DIR/DocumentServer/fonts";
 	mkdir -p "$BASE_DIR/DocumentServer/forgotten";
@@ -702,6 +718,16 @@ install_document_server () {
 			CURRENT_IMAGE_VERSION=$(get_current_image_version "$DOCUMENT_CONTAINER_NAME");
 
 			if [ "$CURRENT_IMAGE_NAME" != "$DOCUMENT_IMAGE_NAME" ] || ([ "$CURRENT_IMAGE_VERSION" != "$DOCUMENT_VERSION" ] || [ "$SKIP_VERSION_CHECK" == "true" ]); then
+				PARAMETER_VALUE=$(get_container_env_parameter "$DOCUMENT_CONTAINER_NAME" "LETS_ENCRYPT_DOMAIN");
+				if [[ -n ${PARAMETER_VALUE} ]]; then
+					LETS_ENCRYPT_DOMAIN="${LETS_ENCRYPT_DOMAIN:-$PARAMETER_VALUE}";
+				fi
+
+				PARAMETER_VALUE=$(get_container_env_parameter "$DOCUMENT_CONTAINER_NAME" "LETS_ENCRYPT_MAIL");
+				if [[ -n ${PARAMETER_VALUE} ]]; then
+					LETS_ENCRYPT_MAIL="${LETS_ENCRYPT_MAIL:-$PARAMETER_VALUE}";
+				fi
+
 				check_bindings $DOCUMENT_SERVER_ID "/etc/$PRODUCT,/var/lib/$PRODUCT,/var/lib/postgresql,/usr/share/fonts/truetype/custom,/var/lib/rabbitmq,/var/lib/redis";
 				docker exec ${DOCUMENT_CONTAINER_NAME} bash /usr/bin/documentserver-prepare4shutdown.sh
 				remove_container ${DOCUMENT_CONTAINER_NAME}
@@ -730,6 +756,14 @@ install_document_server () {
 			args+=(-e "JWT_ENABLED=true");
 			args+=(-e "JWT_HEADER=AuthorizationJwt");
 			args+=(-e "JWT_SECRET=$JWT_SECRET");
+		fi
+		
+		if [[ -n ${LETS_ENCRYPT_DOMAIN} ]]; then
+			args+=(-e "LETS_ENCRYPT_DOMAIN=$LETS_ENCRYPT_DOMAIN");
+		fi
+		
+		if [[ -n ${LETS_ENCRYPT_MAIL} ]]; then
+			args+=(-e "LETS_ENCRYPT_MAIL=$LETS_ENCRYPT_MAIL");
 		fi
 
 		args+=(-v "$BASE_DIR/DocumentServer/data:/var/www/$PRODUCT/Data");
