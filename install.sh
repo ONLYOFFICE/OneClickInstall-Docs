@@ -38,7 +38,6 @@ CORE_REQUIREMENTS=2;
 PRODUCT="onlyoffice";
 BASE_DIR="/app/$PRODUCT";
 NETWORK="$PRODUCT";
-MACHINEKEY_PARAM=$(echo "${PRODUCT}_CORE_MACHINEKEY" | awk '{print toupper($0)}');
 
 DOCUMENT_CONTAINER_NAME="onlyoffice-document-server";
 DOCUMENT_IMAGE_NAME="onlyoffice/documentserver-ee";
@@ -63,7 +62,6 @@ INSTALLATION_TYPE="ENTERPRISE";
 HELP_TARGET="install.sh";
 
 JWT_SECRET="";
-CORE_MACHINEKEY="";
 
 SKIP_HARDWARE_CHECK="false";
 SKIP_VERSION_CHECK="false";
@@ -550,7 +548,6 @@ make_directories () {
 	mkdir -p "$BASE_DIR/DocumentServer/logs";
 	mkdir -p "$BASE_DIR/DocumentServer/fonts";
 	mkdir -p "$BASE_DIR/DocumentServer/forgotten";
-	mkdir -p "$BASE_DIR/CommunityServer/data";
 }
 
 get_available_version () {
@@ -814,32 +811,6 @@ set_jwt_secret () {
 	fi
 }
 
-set_core_machinekey () {
-	CURRENT_CORE_MACHINEKEY="";
-
-	if [[ -z ${CORE_MACHINEKEY} ]]; then
-		if file_exists ${BASE_DIR}/CommunityServer/data/.private/machinekey; then
-			CURRENT_CORE_MACHINEKEY=$(cat ${BASE_DIR}/CommunityServer/data/.private/machinekey);
-
-			if [[ -n ${CURRENT_CORE_MACHINEKEY} ]]; then
-				CORE_MACHINEKEY="$CURRENT_CORE_MACHINEKEY";
-			fi
-		fi
-	fi
-
-	if [[ -z ${CORE_MACHINEKEY} ]]; then
-		CURRENT_CORE_MACHINEKEY=$(get_container_env_parameter "$DOCUMENT_CONTAINER_NAME" "$MACHINEKEY_PARAM");
-
-		if [[ -n ${CURRENT_CORE_MACHINEKEY} ]]; then
-			CORE_MACHINEKEY="$CURRENT_CORE_MACHINEKEY";
-		fi
-	fi
-
-	if [[ -z ${CORE_MACHINEKEY} ]] && [[ "$UPDATE" != "true" ]] && [[ "$USE_AS_EXTERNAL_SERVER" != "true" ]]; then
-		CORE_MACHINEKEY=$(get_random_str 12);
-	fi
-}
-
 get_container_env_parameter () {
 	CONTAINER_NAME=$1;
 	PARAMETER_NAME=$2;
@@ -954,8 +925,6 @@ start_installation () {
 	set_installation_type_data
 
 	set_jwt_secret
-
-	set_core_machinekey
 
 	get_os_info
 
