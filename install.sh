@@ -80,13 +80,6 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 
-		-dip | --documentserverip  )
-			if [ "$2" != "" ]; then
-				DOCUMENT_SERVER_HOST=$2
-				shift
-			fi
-		;;
-
 		-dv | --documentversion )
 			if [ "$2" != "" ]; then
 				DOCUMENT_VERSION=$2
@@ -198,7 +191,6 @@ while [ "$1" != "" ]; do
 			echo "    Parameters:"
 			echo "      -di, --documentimage              document image name or .tar.gz file path"
 			echo "      -dv, --documentversion            document version"
-			echo "      -dip, --documentserverip          document server ip"
 			echo "      -ids, --installdocumentserver     install or update document server (true|false|pull)"
 			echo "      -u, --update                      use to update existing components (true|false)"
 			echo "      -hub, --hub                       dockerhub name"
