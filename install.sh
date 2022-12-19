@@ -745,6 +745,8 @@ install_document_server () {
 			args+=(-e "JWT_ENABLED=true");
 			args+=(-e "JWT_HEADER=AuthorizationJwt");
 			args+=(-e "JWT_SECRET=$JWT_SECRET");
+		else
+			args+=(-e "JWT_ENABLED=false");
 		fi
 		
 		if [[ -n ${LETS_ENCRYPT_DOMAIN} ]]; then
