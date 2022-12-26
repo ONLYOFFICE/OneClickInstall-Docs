@@ -177,6 +177,13 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 
+		-jh | --jwtheader )
+			if [ "$2" != "" ]; then
+				JWT_HEADER=$2
+				shift
+			fi
+		;;
+
 		-js | --jwtsecret )
 			if [ "$2" != "" ]; then
 				JWT_SECRET=$2
@@ -206,6 +213,7 @@ while [ "$1" != "" ]; do
 			echo "      -dv, --documentversion            document version"
 			echo "      -ids, --installdocumentserver     install or update document server (true|false|pull)"
 			echo "      -je, --jwtenabled                 specifies the enabling the JWT validation (true|false)"
+			echo "      -jh, --jwtheader                  defines the http header that will be used to send the JWT"
 			echo "      -js, --jwtsecret                  defines the secret key to validate the JWT in the request"
 			echo "      -u, --update                      use to update existing components (true|false)"
 			echo "      -hub, --hub                       dockerhub name"
@@ -760,7 +768,7 @@ install_document_server () {
 
 		if [[ -n ${JWT_SECRET} ]]; then
 			args+=(-e "JWT_ENABLED=$JWT_ENABLED");
-			args+=(-e "JWT_HEADER=AuthorizationJwt");
+			args+=(-e "JWT_HEADER=$JWT_HEADER");
 			args+=(-e "JWT_SECRET=$JWT_SECRET");
 		else
 			args+=(-e "JWT_ENABLED=false");
@@ -870,6 +878,22 @@ set_jwt_enabled () {
 
 	if [[ -z ${JWT_ENABLED} ]]; then
 		JWT_ENABLED="true"
+	fi
+}
+
+set_jwt_header () {
+	CURRENT_JWT_HEADER="";
+
+	if [[ -z ${JWT_HEADER} ]]; then
+		CURRENT_JWT_HEADER=$(get_container_env_parameter "$DOCUMENT_CONTAINER_NAME" "JWT_HEADER");
+
+		if [[ -n ${CURRENT_JWT_HEADER} ]]; then
+			JWT_HEADER="$CURRENT_JWT_HEADER";
+		fi
+	fi
+
+	if [[ -z ${JWT_HEADER} ]]; then
+		JWT_HEADER="Authorization"
 	fi
 }
 
@@ -987,6 +1011,7 @@ start_installation () {
 	set_installation_type_data
 
 	set_jwt_enabled
+	set_jwt_header
 	set_jwt_secret
 
 	get_os_info
