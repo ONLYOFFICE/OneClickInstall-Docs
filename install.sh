@@ -853,6 +853,7 @@ set_jwt_secret () {
 
 	if [[ -z ${JWT_SECRET} ]] && [[ "$UPDATE" != "true" ]]; then
 		JWT_SECRET=$(get_random_str 12);
+		JWT_MESSAGE='JWT is enabled by default. A random secret is generated automatically. Run the command "docker exec $(sudo docker ps -q) sudo documentserver-jwt-status.sh" to get information about JWT.'
 	fi
 }
 
@@ -1022,6 +1023,7 @@ start_installation () {
 		pull_document_server
 	fi
 
+	[ -n "$JWT_MESSAGE" ] && [ -n "$DOCUMENT_SERVER_ID" ] && JWT_MESSAGE=$(echo "$JWT_MESSAGE" | sed 's/$(sudo docker ps -q)/'"${DOCUMENT_SERVER_ID::12}"'/') && echo -e "\n$JWT_MESSAGE"
 	echo ""
 	echo "Thank you for installing ONLYOFFICE Docs."
 	echo "In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://dev.onlyoffice.org"
