@@ -61,6 +61,7 @@ INSTALLATION_TYPE="ENTERPRISE";
 
 HELP_TARGET="install.sh";
 
+JWT_ENABLED="";
 JWT_SECRET="";
 
 SKIP_HARDWARE_CHECK="false";
@@ -169,6 +170,20 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 
+		-je | --jwtenabled )
+			if [ "$2" != "" ]; then
+				JWT_ENABLED=$2
+				shift
+			fi
+		;;
+
+		-js | --jwtsecret )
+			if [ "$2" != "" ]; then
+				JWT_SECRET=$2
+				shift
+			fi
+		;;
+
 		-led | --letsencryptdomain )
 			if [ "$2" != "" ]; then
 				LETS_ENCRYPT_DOMAIN=$2
@@ -190,6 +205,8 @@ while [ "$1" != "" ]; do
 			echo "      -di, --documentimage              document image name or .tar.gz file path"
 			echo "      -dv, --documentversion            document version"
 			echo "      -ids, --installdocumentserver     install or update document server (true|false|pull)"
+			echo "      -je, --jwtenabled                 specifies the enabling the JWT validation (true|false)"
+			echo "      -js, --jwtsecret                  defines the secret key to validate the JWT in the request"
 			echo "      -u, --update                      use to update existing components (true|false)"
 			echo "      -hub, --hub                       dockerhub name"
 			echo "      -un, --username                   dockerhub username"
@@ -742,7 +759,7 @@ install_document_server () {
 		fi
 
 		if [[ -n ${JWT_SECRET} ]]; then
-			args+=(-e "JWT_ENABLED=true");
+			args+=(-e "JWT_ENABLED=$JWT_ENABLED");
 			args+=(-e "JWT_HEADER=AuthorizationJwt");
 			args+=(-e "JWT_SECRET=$JWT_SECRET");
 		else
@@ -836,6 +853,22 @@ set_jwt_secret () {
 
 	if [[ -z ${JWT_SECRET} ]] && [[ "$UPDATE" != "true" ]]; then
 		JWT_SECRET=$(get_random_str 12);
+	fi
+}
+
+set_jwt_enabled () {
+	CURRENT_JWT_ENABLED="";
+
+	if [[ -z ${JWT_ENABLED} ]]; then
+		CURRENT_JWT_ENABLED=$(get_container_env_parameter "$DOCUMENT_CONTAINER_NAME" "JWT_ENABLED");
+
+		if [[ -n ${CURRENT_JWT_ENABLED} ]]; then
+			JWT_ENABLED="$CURRENT_JWT_ENABLED";
+		fi
+	fi
+
+	if [[ -z ${JWT_ENABLED} ]]; then
+		JWT_ENABLED="true"
 	fi
 }
 
@@ -952,6 +985,7 @@ start_installation () {
 
 	set_installation_type_data
 
+	set_jwt_enabled
 	set_jwt_secret
 
 	get_os_info
