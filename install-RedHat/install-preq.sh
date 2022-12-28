@@ -25,6 +25,8 @@ if ! [[ "$REV" =~ ^[0-9]+$ ]]; then
 	REV=7;
 fi
 
+MONOREV=$REV
+
 { yum check-update postgresql; PSQLExitCode=$?; } || true 
 { yum check-update $DIST*-release; exitCode=$?; } || true #Checking for distribution update
 
@@ -42,7 +44,10 @@ fi
 rpm -ivh https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
 rpm -ivh https://rpms.remirepo.net/enterprise/remi-release-$REV.rpm || true
 
-[ "$REV" = "9" ] && yum localinstall -y --nogpgcheck https://vault.centos.org/centos/8/AppStream/x86_64/os/Packages/xorg-x11-font-utils-7.5-41.el8.x86_64.rpm
+if [ "$REV" = "9" ]; then
+	MONOREV="8";
+	yum localinstall -y --nogpgcheck https://vault.centos.org/centos/8/AppStream/x86_64/os/Packages/xorg-x11-font-utils-7.5-41.el8.x86_64.rpm
+fi
 
 #add rabbitmq & erlang repo
 wget https://packagecloud.io/install/repositories/rabbitmq/rabbitmq-server/script.rpm.sh -O rabbitmq_script.rpm.sh
