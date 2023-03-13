@@ -41,7 +41,7 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
 
 	DS_JWT_ENABLED=${DS_JWT_ENABLED:-true};
 	DS_JWT_SECRET=${DS_JWT_SECRET:-$(cat /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)};
-	DS_JWT_HEADER=${DS_JWT_ENABLED:-AuthorizationJwt};
+	DS_JWT_HEADER=${DS_JWT_HEADER:-AuthorizationJwt};
 	
 	if ! su - postgres -s /bin/bash -c "psql -lqt" | cut -d \| -f 1 | grep -q ${DS_DB_NAME}; then
 		su - postgres -s /bin/bash -c "psql -c \"CREATE USER ${DS_DB_USER} WITH password '${DS_DB_PWD}';\""
