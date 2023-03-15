@@ -51,6 +51,27 @@ while [ "$1" != "" ]; do
 				shift
 			fi
 		;;
+
+		-je | --jwtenabled )
+			if [ "$2" != "" ]; then
+				JWT_ENABLED=$2
+				shift
+			fi
+		;;
+
+		-jh | --jwtheader )
+			if [ "$2" != "" ]; then
+				JWT_HEADER=$2
+				shift
+			fi
+		;;
+
+		-js | --jwtsecret )
+			if [ "$2" != "" ]; then
+				JWT_SECRET=$2
+				shift
+			fi
+		;;
 		
 		-ls | --localscripts )
 			if [ "$2" != "" ]; then
@@ -65,6 +86,9 @@ while [ "$1" != "" ]; do
 			echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
 			echo "      -u, --update                      use to update existing components (true|false)"
 			echo "      -skiphc, --skiphardwarecheck      use to skip hardware check (true|false)"
+			echo "      -je, --jwtenabled                 specifies the enabling the JWT validation (true|false)"
+			echo "      -jh, --jwtheader                  defines the http header that will be used to send the JWT"
+			echo "      -js, --jwtsecret                  defines the secret key to validate the JWT in the request"
 			echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
 			echo "      -?, -h, --help                    this help"
 			echo
@@ -91,16 +115,12 @@ if [ -z "${LOCAL_SCRIPTS}" ]; then
    LOCAL_SCRIPTS="false";
 fi
 
-curl -o cs.key "http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x8320CA65CB2DE8E5"
-echo "" >> cs.key
-rpm --import cs.key
-rm cs.key
-
 cat > /etc/yum.repos.d/onlyoffice.repo <<END
 [onlyoffice]
 name=onlyoffice repo
 baseurl=http://download.onlyoffice.com/repo/centos/main/noarch/
 gpgcheck=1
+gpgkey=https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE
 enabled=1
 END
 

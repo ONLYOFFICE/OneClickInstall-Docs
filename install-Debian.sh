@@ -34,6 +34,27 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 
+		-je | --jwtenabled )
+			if [ "$2" != "" ]; then
+				DS_JWT_ENABLED=$2
+				shift
+			fi
+		;;
+
+		-jh | --jwtheader )
+			if [ "$2" != "" ]; then
+				DS_JWT_HEADER=$2
+				shift
+			fi
+		;;
+
+		-js | --jwtsecret )
+			if [ "$2" != "" ]; then
+				DS_JWT_SECRET=$2
+				shift
+			fi
+		;;
+
 		-ls | --localscripts )
 			if [ "$2" != "" ]; then
 				LOCAL_SCRIPTS=$2
@@ -47,6 +68,9 @@ while [ "$1" != "" ]; do
 			echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
 			echo "      -u, --update                      use to update existing components (true|false)"
 			echo "      -skiphc, --skiphardwarecheck      use to skip hardware check (true|false)"
+			echo "      -je, --jwtenabled                 specifies the enabling the JWT validation (true|false)"
+			echo "      -jh, --jwtheader                  defines the http header that will be used to send the JWT"
+			echo "      -js, --jwtsecret                  defines the secret key to validate the JWT in the request"
 			echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
 			echo "      -?, -h, --help                    this help"
 			echo
@@ -87,7 +111,7 @@ fi
 # add onlyoffice repo
 mkdir -p -m 700 $HOME/.gnupg
 echo "deb [signed-by=/usr/share/keyrings/onlyoffice.gpg] http://download.onlyoffice.com/repo/debian squeeze main" | tee /etc/apt/sources.list.d/onlyoffice.list
-gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/onlyoffice.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys CB2DE8E5
+curl -fsSL https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/onlyoffice.gpg --import
 chmod 644 /usr/share/keyrings/onlyoffice.gpg
 
 declare -x LANG="en_US.UTF-8"

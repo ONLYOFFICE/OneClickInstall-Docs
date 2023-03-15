@@ -32,13 +32,12 @@
  #
 
 DISK_REQUIREMENTS=10240;
-MEMORY_REQUIREMENTS=2048;
+MEMORY_REQUIREMENTS=4096;
 CORE_REQUIREMENTS=2;
 
 PRODUCT="onlyoffice";
 BASE_DIR="/app/$PRODUCT";
 NETWORK="$PRODUCT";
-MACHINEKEY_PARAM=$(echo "${PRODUCT}_CORE_MACHINEKEY" | awk '{print toupper($0)}');
 
 DOCUMENT_CONTAINER_NAME="onlyoffice-document-server";
 DOCUMENT_IMAGE_NAME="onlyoffice/documentserver-ee";
@@ -62,8 +61,8 @@ INSTALLATION_TYPE="ENTERPRISE";
 
 HELP_TARGET="install.sh";
 
+JWT_ENABLED="";
 JWT_SECRET="";
-CORE_MACHINEKEY="";
 
 SKIP_HARDWARE_CHECK="false";
 SKIP_VERSION_CHECK="false";
@@ -76,13 +75,6 @@ while [ "$1" != "" ]; do
 		-di | --documentimage )
 			if [ "$2" != "" ]; then
 				DOCUMENT_IMAGE_NAME=$2
-				shift
-			fi
-		;;
-
-		-dip | --documentserverip  )
-			if [ "$2" != "" ]; then
-				DOCUMENT_SERVER_HOST=$2
 				shift
 			fi
 		;;
@@ -178,14 +170,51 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 
+		-je | --jwtenabled )
+			if [ "$2" != "" ]; then
+				JWT_ENABLED=$2
+				shift
+			fi
+		;;
+
+		-jh | --jwtheader )
+			if [ "$2" != "" ]; then
+				JWT_HEADER=$2
+				shift
+			fi
+		;;
+
+		-js | --jwtsecret )
+			if [ "$2" != "" ]; then
+				JWT_SECRET=$2
+				shift
+			fi
+		;;
+
+		-led | --letsencryptdomain )
+			if [ "$2" != "" ]; then
+				LETS_ENCRYPT_DOMAIN=$2
+				shift
+			fi
+		;;
+
+		-lem | --letsencryptmail )
+			if [ "$2" != "" ]; then
+				LETS_ENCRYPT_MAIL=$2
+				shift
+			fi
+		;;
+
 		-? | -h | --help )
 			echo "  Usage: bash $HELP_TARGET [PARAMETER] [[PARAMETER], ...]"
 			echo
 			echo "    Parameters:"
 			echo "      -di, --documentimage              document image name or .tar.gz file path"
 			echo "      -dv, --documentversion            document version"
-			echo "      -dip, --documentserverip          document server ip"
 			echo "      -ids, --installdocumentserver     install or update document server (true|false|pull)"
+			echo "      -je, --jwtenabled                 specifies the enabling the JWT validation (true|false)"
+			echo "      -jh, --jwtheader                  defines the http header that will be used to send the JWT"
+			echo "      -js, --jwtsecret                  defines the secret key to validate the JWT in the request"
 			echo "      -u, --update                      use to update existing components (true|false)"
 			echo "      -hub, --hub                       dockerhub name"
 			echo "      -un, --username                   dockerhub username"
@@ -194,7 +223,9 @@ while [ "$1" != "" ]; do
 			echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
 			echo "      -skiphc, --skiphardwarecheck      skip hardware check (true|false)"
 			echo "      -skipvc, --skipversioncheck       skip version check while update (true|false)"
-			echo "      -dp, --docsport              	  docs port (default value 8083)"
+			echo "      -dp, --docsport                   docs port (default value 8083)"
+			echo "      -led, --letsencryptdomain         defines the domain for Let's Encrypt certificate"
+			echo "      -lem, --letsencryptmail           defines the domain administator mail address for Let's Encrypt certificate"
 			echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
 			echo "      -?, -h, --help                    this help"
 			exit 0
@@ -546,11 +577,10 @@ docker_login () {
 }
 
 make_directories () {
-	mkdir -p "$BASE_DIR/DocumentServer/data";
+	mkdir -p "$BASE_DIR/DocumentServer/data/certs";
 	mkdir -p "$BASE_DIR/DocumentServer/logs";
 	mkdir -p "$BASE_DIR/DocumentServer/fonts";
 	mkdir -p "$BASE_DIR/DocumentServer/forgotten";
-	mkdir -p "$BASE_DIR/CommunityServer/data";
 }
 
 get_available_version () {
@@ -702,6 +732,16 @@ install_document_server () {
 			CURRENT_IMAGE_VERSION=$(get_current_image_version "$DOCUMENT_CONTAINER_NAME");
 
 			if [ "$CURRENT_IMAGE_NAME" != "$DOCUMENT_IMAGE_NAME" ] || ([ "$CURRENT_IMAGE_VERSION" != "$DOCUMENT_VERSION" ] || [ "$SKIP_VERSION_CHECK" == "true" ]); then
+				PARAMETER_VALUE=$(get_container_env_parameter "$DOCUMENT_CONTAINER_NAME" "LETS_ENCRYPT_DOMAIN");
+				if [[ -n ${PARAMETER_VALUE} ]]; then
+					LETS_ENCRYPT_DOMAIN="${LETS_ENCRYPT_DOMAIN:-$PARAMETER_VALUE}";
+				fi
+
+				PARAMETER_VALUE=$(get_container_env_parameter "$DOCUMENT_CONTAINER_NAME" "LETS_ENCRYPT_MAIL");
+				if [[ -n ${PARAMETER_VALUE} ]]; then
+					LETS_ENCRYPT_MAIL="${LETS_ENCRYPT_MAIL:-$PARAMETER_VALUE}";
+				fi
+
 				check_bindings $DOCUMENT_SERVER_ID "/etc/$PRODUCT,/var/lib/$PRODUCT,/var/lib/postgresql,/usr/share/fonts/truetype/custom,/var/lib/rabbitmq,/var/lib/redis";
 				docker exec ${DOCUMENT_CONTAINER_NAME} bash /usr/bin/documentserver-prepare4shutdown.sh
 				remove_container ${DOCUMENT_CONTAINER_NAME}
@@ -727,9 +767,19 @@ install_document_server () {
 		fi
 
 		if [[ -n ${JWT_SECRET} ]]; then
-			args+=(-e "JWT_ENABLED=true");
-			args+=(-e "JWT_HEADER=AuthorizationJwt");
+			args+=(-e "JWT_ENABLED=$JWT_ENABLED");
+			args+=(-e "JWT_HEADER=$JWT_HEADER");
 			args+=(-e "JWT_SECRET=$JWT_SECRET");
+		else
+			args+=(-e "JWT_ENABLED=false");
+		fi
+		
+		if [[ -n ${LETS_ENCRYPT_DOMAIN} ]]; then
+			args+=(-e "LETS_ENCRYPT_DOMAIN=$LETS_ENCRYPT_DOMAIN");
+		fi
+		
+		if [[ -n ${LETS_ENCRYPT_MAIL} ]]; then
+			args+=(-e "LETS_ENCRYPT_MAIL=$LETS_ENCRYPT_MAIL");
 		fi
 
 		args+=(-v "$BASE_DIR/DocumentServer/data:/var/www/$PRODUCT/Data");
@@ -809,34 +859,41 @@ set_jwt_secret () {
 		fi
 	fi
 
-	if [[ -z ${JWT_SECRET} ]] && [[ "$UPDATE" != "true" ]] && [[ "$USE_AS_EXTERNAL_SERVER" != "true" ]]; then
-		JWT_SECRET=$(get_random_str 12);
+	if [[ -z ${JWT_SECRET} ]] && [[ "$UPDATE" != "true" ]]; then
+		JWT_SECRET=$(get_random_str 32);
+		[ $JWT_ENABLED = "true" ] && JWT_MESSAGE='JWT is enabled by default. A random secret is generated automatically. Run the command "docker exec $(sudo docker ps -q) sudo documentserver-jwt-status.sh" to get information about JWT.'
 	fi
 }
 
-set_core_machinekey () {
-	CURRENT_CORE_MACHINEKEY="";
+set_jwt_enabled () {
+	CURRENT_JWT_ENABLED="";
 
-	if [[ -z ${CORE_MACHINEKEY} ]]; then
-		if file_exists ${BASE_DIR}/CommunityServer/data/.private/machinekey; then
-			CURRENT_CORE_MACHINEKEY=$(cat ${BASE_DIR}/CommunityServer/data/.private/machinekey);
+	if [[ -z ${JWT_ENABLED} ]]; then
+		CURRENT_JWT_ENABLED=$(get_container_env_parameter "$DOCUMENT_CONTAINER_NAME" "JWT_ENABLED");
 
-			if [[ -n ${CURRENT_CORE_MACHINEKEY} ]]; then
-				CORE_MACHINEKEY="$CURRENT_CORE_MACHINEKEY";
-			fi
+		if [[ -n ${CURRENT_JWT_ENABLED} ]]; then
+			JWT_ENABLED="$CURRENT_JWT_ENABLED";
 		fi
 	fi
 
-	if [[ -z ${CORE_MACHINEKEY} ]]; then
-		CURRENT_CORE_MACHINEKEY=$(get_container_env_parameter "$DOCUMENT_CONTAINER_NAME" "$MACHINEKEY_PARAM");
+	if [[ -z ${JWT_ENABLED} ]]; then
+		JWT_ENABLED="true"
+	fi
+}
 
-		if [[ -n ${CURRENT_CORE_MACHINEKEY} ]]; then
-			CORE_MACHINEKEY="$CURRENT_CORE_MACHINEKEY";
+set_jwt_header () {
+	CURRENT_JWT_HEADER="";
+
+	if [[ -z ${JWT_HEADER} ]]; then
+		CURRENT_JWT_HEADER=$(get_container_env_parameter "$DOCUMENT_CONTAINER_NAME" "JWT_HEADER");
+
+		if [[ -n ${CURRENT_JWT_HEADER} ]]; then
+			JWT_HEADER="$CURRENT_JWT_HEADER";
 		fi
 	fi
 
-	if [[ -z ${CORE_MACHINEKEY} ]] && [[ "$UPDATE" != "true" ]] && [[ "$USE_AS_EXTERNAL_SERVER" != "true" ]]; then
-		CORE_MACHINEKEY=$(get_random_str 12);
+	if [[ -z ${JWT_HEADER} ]]; then
+		JWT_HEADER="Authorization"
 	fi
 }
 
@@ -953,9 +1010,9 @@ start_installation () {
 
 	set_installation_type_data
 
+	set_jwt_enabled
+	set_jwt_header
 	set_jwt_secret
-
-	set_core_machinekey
 
 	get_os_info
 
@@ -991,6 +1048,7 @@ start_installation () {
 		pull_document_server
 	fi
 
+	[ -n "$JWT_MESSAGE" ] && [ -n "$DOCUMENT_SERVER_ID" ] && JWT_MESSAGE=$(echo "$JWT_MESSAGE" | sed 's/$(sudo docker ps -q)/'"${DOCUMENT_SERVER_ID::12}"'/') && echo -e "\n$JWT_MESSAGE"
 	echo ""
 	echo "Thank you for installing ONLYOFFICE Docs."
 	echo "In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://dev.onlyoffice.org"
