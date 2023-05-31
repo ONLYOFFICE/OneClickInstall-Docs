@@ -345,7 +345,7 @@ get_os_info () {
 				CONTAINS=$(cat /etc/redhat-release | { grep -sw release || true; });
 				if [[ -n ${CONTAINS} ]]; then
 					DIST=`cat /etc/redhat-release |sed s/\ release.*//`
-					REV=`cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//`
+					REV=`cat /etc/redhat-release | grep -oP '(?<=release )\d+'`
 				else
 					DIST=`cat /etc/os-release | grep -sw 'ID' | awk -F=  '{ print $2 }' | sed -e 's/^"//' -e 's/"$//'`
 					REV=`cat /etc/os-release | grep -sw 'VERSION_ID' | awk -F=  '{ print $2 }' | sed -e 's/^"//' -e 's/"$//'`
