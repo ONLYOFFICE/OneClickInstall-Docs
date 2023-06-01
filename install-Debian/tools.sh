@@ -57,4 +57,4 @@ fi
 DIST=`echo "$DIST" | tr '[:upper:]' '[:lower:]' | xargs`;
 DISTRIB_CODENAME=`echo "$DISTRIB_CODENAME" | tr '[:upper:]' '[:lower:]' | xargs`;
 
-if [ "$DISTRIB_CODENAME" = "kinetic" ]; then DISTRIB_CODENAME="jammy" && REV="22.04"; fi
+[ "$DISTRIB_CODENAME" = "kinetic" ] || [ "$DISTRIB_CODENAME" = "lunar" ] && { DISTRIB_CODENAME="jammy"; REV="22.04"; } || true
