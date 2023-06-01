@@ -47,6 +47,15 @@ rpm -ivh https://rpms.remirepo.net/enterprise/remi-release-$REV.rpm || true
 if [ "$REV" = "9" ]; then
 	MONOREV="8";
 	yum localinstall -y --nogpgcheck https://vault.centos.org/centos/8/AppStream/x86_64/os/Packages/xorg-x11-font-utils-7.5-41.el8.x86_64.rpm
+elif [ "$REV" = "7" ] && [ "$DIST" = "redhat" ]; then
+	# add centos repo
+cat > /etc/yum.repos.d/centos.repo <<END
+[nginx-stable]
+name=CentOS \$releasever – Base
+baseurl=http://mirror.centos.org/centos/$REV/os/\$basearch/
+gpgcheck=0
+enabled=1
+END
 fi
 
 #add rabbitmq & erlang repo
@@ -80,7 +89,8 @@ yum -y install epel-release \
 			postgresql \
 			postgresql-server \
 			rabbitmq-server \
-			redis --enablerepo=remi
+			redis --enablerepo=remi \
+			policycoreutils-python*
 	
 if [[ $PSQLExitCode -eq $UPDATE_AVAILABLE_CODE ]]; then
 	yum -y install postgresql-upgrade
