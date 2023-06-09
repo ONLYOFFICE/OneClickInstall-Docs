@@ -1,0 +1,118 @@
+name: Boxes
+
+run-name: Test Boxes
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths-ignore:
+      - '.github/**'
+      - 'tests/**'
+      - '**/README.md'
+
+  schedule:
+    - cron: '0 21 * * *'  # At 21:00 on Saturday.
+
+defaults:
+  run:
+    working-directory: 'tests/vagrant'    
+
+jobs:
+  vagrant-up:
+    name: "Test box with ${{matrix.name}}"
+    runs-on: macos-12
+    strategy:
+      fail-fast: false
+      matrix:
+        include:          
+          - distr: generic
+            os: centos7
+            name: "CentOS 7"
+
+          - distr: generic
+            os: centos8s
+            name: "CentOS 8 Stream"         
+
+          - distr: generic
+            os: centos9s
+            name: "CentOS 9 Stream"               
+
+          - distr: generic
+            os: debian10
+            name: "Debian 10"
+
+          - distr: generic
+            os: debian11
+            name: "Debian 11"
+
+          - distr: ubuntu
+            os: bionic64
+            name: "Ubuntu 18.04"            
+
+          - distr: generic
+            os: ubuntu2004
+            name: "Ubuntu 20.04"
+
+          - distr: generic
+            os: ubuntu2204
+            name: "Ubuntu 22.04"
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python 3.
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'      
+
+    - name: Test production scripts
+      if: ${{ github.event_name == 'schedule' }}
+      uses: nick-fields/retry@v2
+      with:
+        max_attempts: 3
+        timeout_minutes: 240
+        retry_on: error
+        command: |
+                set -eux
+                
+                cd tests/vagrant
+                   TEST_CASE='--production-install' \
+                   DISTR='${{ matrix.distr }}' \
+                   OS='${{ matrix.os }}' \
+                   DOWNLOAD_SCRIPT='-ds true' \
+                   RAM='9100' \
+                   CPU='3' \
+                   ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false'" \
+                   vagrant up
+        on_retry_command: |
+              echo "RUN CLEAN UP: Destroy vagrant and one more try"
+              cd tests/vagrant
+              sleep 10
+              vagrant destroy --force
+
+    - name: Test Local scripts
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: nick-fields/retry@v2
+      with:
+         max_attempts: 3
+         timeout_minutes: 240
+         retry_on: error
+         command: |
+                  set -eux
+                      
+                  cd tests/vagrant
+                    TEST_CASE='--local-install' \
+                    DISTR='${{ matrix.distr }}' \
+                    OS='${{ matrix.os }}' \
+                    RAM='9100' \
+                    CPU='3' \
+                    DOWNLOAD_SCRIPT='-ds false' \
+                    TEST_REPO='-tr true' \
+                    ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'" \
+                    vagrant up
+         on_retry_command: |
+                    echo "RUN CLEAN UP: Destroy vagrant and one more try"
+                    cd tests/vagrant
+                    sleep 10
+                    vagrant destroy --force
