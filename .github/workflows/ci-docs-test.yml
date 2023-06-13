@@ -19,7 +19,7 @@ defaults:
 
 jobs:
   vagrant-up:
-    name: "Test box with ${{matrix.name}}"
+    name: "Test Docs with ${{matrix.name}}"
     runs-on: macos-12
     strategy:
       fail-fast: false
@@ -70,8 +70,8 @@ jobs:
       if: ${{ github.event_name == 'schedule' }}
       uses: nick-fields/retry@v2
       with:
-        max_attempts: 3
-        timeout_minutes: 240
+        max_attempts: 2
+        timeout_minutes: 100
         retry_on: error
         command: |
                 set -eux
@@ -95,8 +95,8 @@ jobs:
       if: ${{ github.event_name == 'pull_request' }}
       uses: nick-fields/retry@v2
       with:
-         max_attempts: 3
-         timeout_minutes: 240
+         max_attempts: 2
+         timeout_minutes: 100
          retry_on: error
          command: |
                   set -eux

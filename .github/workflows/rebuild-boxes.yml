@@ -63,7 +63,7 @@ jobs:
       uses: nick-fields/retry@v2
       with:
         max_attempts: 2
-        timeout_minutes: 240
+        timeout_minutes: 100
         retry_on: error
         command: |
                 set -eux

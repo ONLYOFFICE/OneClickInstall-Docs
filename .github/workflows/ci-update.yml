@@ -4,12 +4,12 @@ run-name: >
   Update docs from old version test.
 
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
-    paths-ignore:
-      - '.github/**'
-      - 'tests/**'
-      - '**/README.md'
+  # pull_request:
+  #   types: [opened, reopened, synchronize]
+  #   paths-ignore:
+  #     - '.github/**'
+  #     - 'tests/**'
+  #     - '**/README.md'
 
   workflow_dispatch:
 
@@ -67,7 +67,7 @@ jobs:
       uses: nick-fields/retry@v2
       with:
         max_attempts: 1
-        timeout_minutes: 240
+        timeout_minutes: 80
         retry_on: error
         command: |
               cd ./tests/vagrant

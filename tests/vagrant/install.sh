@@ -112,10 +112,6 @@ function prepare_vm() {
   	echo "${COLOR_GREEN}☑ PREPAVE_VM: Postfix was removed${COLOR_RESET}"
   fi
 
-  if cat /etc/os-release | grep xenial; then
-	  curl -fsSL https://bootstrap.pypa.io/pip/3.5/get-pip.py | python3.5
-  fi
-
   if [ -f /etc/centos-release ]; then
 	  if [ "${TEST_REPO_ENABLE}" == 'true' ]; then
 	  cat > /etc/yum.repos.d/onlyoffice4testing.repo <<END
@@ -146,11 +142,6 @@ END
 
   echo '127.0.0.1 host4test' | sudo tee -a /etc/hosts   
   echo "${COLOR_GREEN}☑ PREPAVE_VM: Hostname was setting up${COLOR_RESET}"   
-
-  if cat /etc/os-release | grep "VERSION_ID=\18.04"; then
-    sudo apt-add-repository ppa:redislabs/redis
-    sudo apt-get update
-  fi
 
 }
 
@@ -249,17 +240,6 @@ function services_logs() {
   ARRAY_DOCSERVICE_LOGS=($(ls ${DOCSERVICE_LOGS_DIR}))
   ARRAY_CONVERTER_LOGS=($(ls ${CONVERTER_LOGS_DIR}))
   ARRAY_METRICS_LOGS=($(ls ${METRICS_LOGS_DIR}))
-
-
-  echo             "-----------------------------------"
-  echo "${COLOR_YELLOW} Check logs for main services ${COLOR_RESET}"
-  echo             "-----------------------------------"
-  for file in ${ARRAY_MAIN_SERVICES_LOGS[@]}; do
-    echo ---------------------------------------
-    echo "${COLOR_GREEN}logs from file: ${file}${COLOR_RESET}"
-    echo ---------------------------------------
-    cat ${MAIN_LOGS_DIR}/${file} || true
-  done
   
   echo             "-----------------------------------"
   echo "${COLOR_YELLOW} Check logs for Docservice ${COLOR_RESET}"
@@ -315,10 +295,10 @@ main() {
   check_hw
   install_docs
   sleep 120
+  healthcheck_curl
   services_logs
   healthcheck_systemd_services
   healthcheck_general_status
-  healthcheck_curl
 }
 
 main
