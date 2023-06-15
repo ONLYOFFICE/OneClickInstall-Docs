@@ -89,3 +89,4 @@ jobs:
              echo "Clean-up and one more try"
              cd ./tests/vagrant
              vagrant destroy --force
+             
