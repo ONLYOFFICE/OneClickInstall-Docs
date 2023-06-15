@@ -1,6 +1,6 @@
-name: Boxes
+name: OneClickDocs-Install
 
-run-name: Test Boxes
+run-name: OneClickDocs-Install
 
 on:
   pull_request:
@@ -92,7 +92,7 @@ jobs:
               vagrant destroy --force
 
     - name: Test Local scripts
-      if: ${{ github.event_name == 'pull_request' }}
+      if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
       uses: nick-fields/retry@v2
       with:
          max_attempts: 2
