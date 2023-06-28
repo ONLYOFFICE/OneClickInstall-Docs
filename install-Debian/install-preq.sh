@@ -40,6 +40,9 @@ curl -s http://nginx.org/keys/nginx_signing.key | gpg --no-default-keyring --key
 chmod 644 /usr/share/keyrings/nginx.gpg
 echo "deb [signed-by=/usr/share/keyrings/nginx.gpg] http://nginx.org/packages/$DIST/ $DISTRIB_CODENAME nginx" | tee /etc/apt/sources.list.d/nginx.list
 
+#Temporary fix for missing nginx repository for debian bookworm
+[ "$DISTRIB_CODENAME" = "bookworm" ] && sed -i "s/$DISTRIB_CODENAME/buster/g" /etc/apt/sources.list.d/nginx.list
+
 # setup msttcorefonts
 echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
 
