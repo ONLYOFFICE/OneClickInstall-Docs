@@ -1,6 +1,6 @@
 name: OneClickDocs-Install
 
-run-name: Installation test Onlyoffice-Docs
+run-name: Install Docs on pure environment
 
 on:
   pull_request:

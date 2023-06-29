@@ -1,7 +1,7 @@
 name: OneClickDocs-Update
   
 run-name: >
-  Update docs from old version test.
+  Update Docs from older versions.
 
 on:
   # pull_request:
