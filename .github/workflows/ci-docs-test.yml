@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     
   schedule:
-    - cron: '0 21 * * *'  # At 21:00 on Saturday.
+    - cron: '0 21 * * 6'  # At 21:00 on Saturday.
 
 defaults:
   run:
