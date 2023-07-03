@@ -15,7 +15,7 @@ Vagrant.configure("2") do |config|
        config.vm.provision "file", source: "../../../OneClickInstall-Docs/.", destination: "/tmp/docs/"
     end
 
-    config.vm.provision "shell", path: './install.sh', :args => "#{ENV['DOWNLOAD_SCRIPT']} #{ENV['TEST_REPO']} #{ENV['ARGUMENTS']}"
+    config.vm.provision "shell", path: './install.sh', :args => "#{ENV['DOWNLOAD_SCRIPT']} #{ENV['VER']} #{ENV['TEST_REPO']} #{ENV['ARGUMENTS']}"
 
     # Prevent SharedFoldersEnableSymlinksCreate errors
     config.vm.synced_folder ".", "/vagrant", disabled: true

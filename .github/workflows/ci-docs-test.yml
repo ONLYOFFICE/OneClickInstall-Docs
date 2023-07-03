@@ -3,6 +3,7 @@ name: OneClickDocs-Install
 run-name: Install Docs on pure environment
 
 on:
+  push:
   pull_request:
     types: [opened, reopened, synchronize]
     paths-ignore:
@@ -15,14 +16,37 @@ on:
   schedule:
     - cron: '0 21 * * 6'  # At 21:00 on Saturday.
 
-defaults:
-  run:
-    working-directory: 'tests/vagrant'    
-
 jobs:
+  get-version:
+    name: "Get ds version for test"
+    runs-on: ubuntu-latest
+    outputs:
+      ds-ver: ${{ steps.get-version.outputs.ds-ver }}
+    steps:
+    - name: get-version
+      id: get-version
+      shell: bash
+      run: |
+          HOTFIX=$(curl -L -H "Accept: application/vnd.github+json" https://api.github.com/repos/ONLYOFFICE/document-server-package/branches | jq -r '.[] | .name | select(.|test("hotfix/*"))' || true)
+          RELEASE=$(curl -L -H "Accept: application/vnd.github+json" https://api.github.com/repos/ONLYOFFICE/document-server-package/branches | jq -r '.[] | .name | select(.|test("release/*"))' || true)
+          if [ "${HOTFIX}" != "" ]; then
+             echo "Hotfix branch exist, use package version from it.."
+             VER="${HOTFIX#*/v}"
+          elif [ "${RELEASE}" != "" ]; then
+             echo "Release branch exist, use package version from it.."
+             VER="${RELEASE#*/v}"
+          else
+             VER="99.99.99"
+          fi
+
+          echo "ds-ver=${VER}" >> "$GITHUB_OUTPUT"
+
   vagrant-up:
     name: "Test Docs with ${{matrix.name}}"
+    needs: [get-version]
     runs-on: macos-12
+    env:
+      VER: ${{ needs.get-version.outputs.ds-ver }}
     strategy:
       fail-fast: false
       matrix:
@@ -97,8 +121,8 @@ jobs:
               sleep 10
               vagrant destroy --force
 
-    - name: Test Local scripts
-      if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+    - name: Test Local scripts with ver: ${{ needs.get-version.outputs.ds-ver }}
+      if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
       uses: nick-fields/retry@v2
       with:
          max_attempts: 2
@@ -113,6 +137,7 @@ jobs:
                     OS='${{ matrix.os }}' \
                     RAM='9100' \
                     CPU='3' \
+                    VER='-v ${{ env.VER }}' \
                     DOWNLOAD_SCRIPT='-ds false' \
                     TEST_REPO='-tr true' \
                     ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'" \
