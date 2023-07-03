@@ -121,7 +121,7 @@ jobs:
               sleep 10
               vagrant destroy --force
 
-    - name: Test Local scripts with ver: ${{ needs.get-version.outputs.ds-ver }}
+    - name: "Test Local scripts with ver: ${{ needs.get-version.outputs.ds-ver }}"
       if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
       uses: nick-fields/retry@v2
       with:
