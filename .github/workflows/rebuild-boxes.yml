@@ -35,6 +35,10 @@ jobs:
             os: debian11
             name: "Debian 11"
 
+          - distr: debian
+            os: bookworm64
+            name: "Debian 12"
+
           - distr: ubuntu
             os: bionic64
             name: "Ubuntu 18.04"
@@ -63,7 +67,7 @@ jobs:
       uses: nick-fields/retry@v2
       with:
         max_attempts: 2
-        timeout_minutes: 100
+        timeout_minutes: 40
         retry_on: error
         command: |
                 set -eux

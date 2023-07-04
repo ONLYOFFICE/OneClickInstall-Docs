@@ -1,6 +1,6 @@
 name: OneClickDocs-Install
 
-run-name: OneClickDocs-Install
+run-name: Install Docs on pure environment
 
 on:
   pull_request:
@@ -13,16 +13,28 @@ on:
   workflow_dispatch:
     
   schedule:
-    - cron: '0 21 * * *'  # At 21:00 on Saturday.
-
-defaults:
-  run:
-    working-directory: 'tests/vagrant'    
+    - cron: '0 21 * * 6'  # At 21:00 on Saturday.
 
 jobs:
+  get-version:
+    name: "Get ds version for test"
+    runs-on: ubuntu-latest
+    outputs:
+      ds-ver: ${{ steps.get-version.outputs.ds-ver }}
+    steps:
+    - name: get-version
+      id: get-version
+      shell: bash
+      run: |
+          VERSION=$(curl -s -L -H "Accept: application/vnd.github+json" https://api.github.com/repos/ONLYOFFICE/document-server-package/branches | jq -r '.[] | .name | select(.|test("hotfix/*") or test("release/*"))' | awk -F '/v' '{print $2}')
+          echo "ds-ver=${VERSION:-99.99.99}" >> "$GITHUB_OUTPUT"
+
   vagrant-up:
     name: "Test Docs with ${{matrix.name}}"
+    needs: [get-version]
     runs-on: macos-12
+    env:
+      VER: ${{ needs.get-version.outputs.ds-ver }}
     strategy:
       fail-fast: false
       matrix:
@@ -46,6 +58,10 @@ jobs:
           - distr: generic
             os: debian11
             name: "Debian 11"
+
+          - distr: debian
+            os: bookworm64
+            name: "Debian 12"
 
           - distr: ubuntu
             os: bionic64
@@ -73,7 +89,7 @@ jobs:
       uses: nick-fields/retry@v2
       with:
         max_attempts: 2
-        timeout_minutes: 100
+        timeout_minutes: 40
         retry_on: error
         command: |
                 set -eux
@@ -93,12 +109,12 @@ jobs:
               sleep 10
               vagrant destroy --force
 
-    - name: Test Local scripts
+    - name: "Test Local scripts with ver: ${{ needs.get-version.outputs.ds-ver }}"
       if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
       uses: nick-fields/retry@v2
       with:
          max_attempts: 2
-         timeout_minutes: 100
+         timeout_minutes: 40
          retry_on: error
          command: |
                   set -eux
@@ -109,6 +125,7 @@ jobs:
                     OS='${{ matrix.os }}' \
                     RAM='9100' \
                     CPU='3' \
+                    VER='-v ${{ env.VER }}' \
                     DOWNLOAD_SCRIPT='-ds false' \
                     TEST_REPO='-tr true' \
                     ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'" \
