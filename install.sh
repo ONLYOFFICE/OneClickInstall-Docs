@@ -223,7 +223,7 @@ while [ "$1" != "" ]; do
 			echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
 			echo "      -skiphc, --skiphardwarecheck      skip hardware check (true|false)"
 			echo "      -skipvc, --skipversioncheck       skip version check while update (true|false)"
-			echo "      -dp, --docsport                   docs port (default value 8083)"
+			echo "      -dp, --docsport                   docs port (default value 80)"
 			echo "      -led, --letsencryptdomain         defines the domain for Let's Encrypt certificate"
 			echo "      -lem, --letsencryptmail           defines the domain administator mail address for Let's Encrypt certificate"
 			echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
