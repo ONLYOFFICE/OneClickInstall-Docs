@@ -80,6 +80,13 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 
+		-dp | --docsport )
+			if [ "$2" != "" ]; then
+				DS_PORT=$2
+				shift
+			fi
+		;;
+
 		-? | -h | --help )
 			echo "  Usage $0 [PARAMETER] [[PARAMETER], ...]"
 			echo "    Parameters:"
@@ -90,6 +97,7 @@ while [ "$1" != "" ]; do
 			echo "      -jh, --jwtheader                  defines the http header that will be used to send the JWT"
 			echo "      -js, --jwtsecret                  defines the secret key to validate the JWT in the request"
 			echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
+			echo "      -dp, --docsport                   docs port (default value 80)"
 			echo "      -?, -h, --help                    this help"
 			echo
 			exit 0

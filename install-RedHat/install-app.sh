@@ -44,7 +44,7 @@ if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
 fi
 
 if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
-	declare -x DS_PORT=80
+	declare -x DS_PORT=${DS_PORT:-80}
 
 	DS_RABBITMQ_HOST=localhost;
 	DS_RABBITMQ_USER=guest;
