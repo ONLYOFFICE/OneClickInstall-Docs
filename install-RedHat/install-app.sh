@@ -125,6 +125,7 @@ sed 's/worker_connections.*/'"worker_connections ${NGINX_WORKER_CONNECTIONS};"'/
 if rpm -q "firewalld"; then
 	firewall-cmd --permanent --zone=public --add-service=http
 	firewall-cmd --permanent --zone=public --add-service=https
+	firewall-cmd --permanent --zone=public --add-port=${DS_PORT:-80}/tcp
 	systemctl restart firewalld.service
 fi
 
