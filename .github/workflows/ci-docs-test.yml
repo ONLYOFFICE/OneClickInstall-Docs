@@ -63,8 +63,8 @@ jobs:
             os: debian11
             name: "Debian 11"
 
-          - distr: debian
-            os: bookworm64
+          - distr: generic
+            os: debian12
             name: "Debian 12"
 
           - distr: ubuntu
@@ -108,7 +108,7 @@ jobs:
                    DISTR='${{ matrix.distr }}' \
                    OS='${{ matrix.os }}' \
                    DOWNLOAD_SCRIPT='-ds true' \
-                   RAM='9100' \
+                   RAM='6000' \
                    CPU='3' \
                    ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false'" \
                    vagrant up
