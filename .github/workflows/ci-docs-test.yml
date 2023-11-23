@@ -90,6 +90,7 @@ jobs:
 
     - name: Set up vagrant and virtualbox
       run: |
+           sudo apt update -y 
            sudo apt install vagrant virtualbox -y
 
     - name: Test production scripts
