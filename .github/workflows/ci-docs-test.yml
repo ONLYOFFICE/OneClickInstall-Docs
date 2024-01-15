@@ -67,8 +67,8 @@ jobs:
             os: debian12
             name: "Debian 12"
 
-          - distr: ubuntu
-            os: bionic64
+          - distr: generic
+            os: ubuntu1804
             name: "Ubuntu 18.04"            
 
           - distr: generic
