@@ -67,8 +67,8 @@ jobs:
             os: debian12
             name: "Debian 12"
 
-          - distr: generic
-            os: ubuntu1804
+          - distr: ubuntu
+            os: bionic64
             name: "Ubuntu 18.04"            
 
           - distr: generic
@@ -109,7 +109,7 @@ jobs:
                    OS='${{ matrix.os }}' \
                    DOWNLOAD_SCRIPT='-ds true' \
                    RAM='6000' \
-                   CPU='3' \
+                   CPU='2' \
                    ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false'" \
                    vagrant up
         on_retry_command: |
@@ -132,8 +132,8 @@ jobs:
                     TEST_CASE='--local-install' \
                     DISTR='${{ matrix.distr }}' \
                     OS='${{ matrix.os }}' \
-                    RAM='9100' \
-                    CPU='3' \
+                    RAM='6000' \
+                    CPU='2' \
                     VER='-v ${{ env.VER }}' \
                     DOWNLOAD_SCRIPT='-ds false' \
                     TEST_REPO='-tr true' \
