@@ -763,7 +763,6 @@ install_document_server () {
 
 		if [ "${USE_AS_EXTERNAL_SERVER}" == "true" ]; then
 			args+=(-p $DOCS_PORT:80);
-			args+=(-p 443:443);
 		fi
 
 		if [[ -n ${JWT_SECRET} ]]; then
@@ -776,6 +775,7 @@ install_document_server () {
 		
 		if [[ -n ${LETS_ENCRYPT_DOMAIN} ]]; then
 			args+=(-e "LETS_ENCRYPT_DOMAIN=$LETS_ENCRYPT_DOMAIN");
+			args+=(-p 443:443);
 		fi
 		
 		if [[ -n ${LETS_ENCRYPT_MAIL} ]]; then
