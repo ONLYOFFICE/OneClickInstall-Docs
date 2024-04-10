@@ -431,12 +431,16 @@ check_hardware () {
 }
 
 check_ports () {
-	RESERVED_PORTS=(443);
+	RESERVED_PORTS=();
 	ARRAY_PORTS=();
 	USED_PORTS="";
 
 	if ! command_exists netstat; then
 		install_netstat
+	fi
+
+	if [[ ! -z "${LETS_ENCRYPT_DOMAIN}" ]]; then
+		RESERVED_PORTS+=(443) && ARRAY_PORTS+=(443)
 	fi
 
 	if [ "${DOCS_PORT//[0-9]}" = "" ]; then
@@ -453,7 +457,7 @@ check_ports () {
 	fi
 
 	if [ "${USE_AS_EXTERNAL_SERVER}" == "true" ]; then
-		ARRAY_PORTS=(${ARRAY_PORTS[@]} "$DOCS_PORT" "443");
+		ARRAY_PORTS=(${ARRAY_PORTS[@]} "$DOCS_PORT");
 	fi
 
 	for PORT in "${ARRAY_PORTS[@]}"
