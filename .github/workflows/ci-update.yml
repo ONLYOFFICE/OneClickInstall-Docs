@@ -1,0 +1,95 @@
+name: OneClickDocs-Update
+  
+run-name: >
+  Update Docs from older versions.
+
+on:
+  # pull_request:
+  #   types: [opened, reopened, synchronize]
+  #   paths-ignore:
+  #     - '.github/**'
+  #     - 'tests/**'
+  #     - '**/README.md'
+
+  workflow_dispatch:
+
+
+jobs:
+  update-test:
+    name: "Update test on ${{ matrix.name }}"
+    runs-on: macos-12
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:         
+          - distr: onlyoffice
+            os: centos7
+            name: "CentOS 7"
+
+          - distr: onlyoffice
+            os: centos8s
+            name: "CentOS 8 Stream"         
+
+          - distr: onlyoffice
+            os: centos9s
+            name: "CentOS 9 Stream"               
+
+          - distr: onlyoffice
+            os: debian10
+            name: "Debian 10"
+
+          - distr: onlyoffice
+            os: debian11
+            name: "Debian 11"
+
+         #- distr: onlyoffice
+         #  os: bookworm64
+         #  name: "Debian 12"
+
+          - distr: onlyoffice
+            os: bionic64
+            name: "Ubuntu 18.04"            
+
+          - distr: onlyoffice
+            os: ubuntu2004
+            name: "Ubuntu 20.04"
+
+          - distr: onlyoffice
+            os: ubuntu2204
+            name: "Ubuntu 22.04"
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python 3.
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Testing with update
+      uses: nick-fields/retry@v2
+      with:
+        max_attempts: 1
+        timeout_minutes: 35
+        retry_on: error
+        command: |
+              cd ./tests/vagrant
+              set -eux
+
+              TEST_CASE='--local-install' \
+              DISTR='${{matrix.distr}}' \
+              RAM='9100' \
+              CPU='3' \
+              OS='docs-${{ matrix.os }}' \
+              DOWNLOAD_SCRIPT='-ds false' \
+              TEST_REPO='-tr true' \
+              ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true --update true'" \
+              vagrant up
+              sleep 10
+              vagrant destroy --force
+        on_retry_command: |
+             set -eux
+             echo "Clean-up and one more try"
+             cd ./tests/vagrant
+             vagrant destroy --force
