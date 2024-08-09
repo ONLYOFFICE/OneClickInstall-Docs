@@ -39,6 +39,8 @@ if [[ $exitCode -eq $UPDATE_AVAILABLE_CODE ]]; then
 	read_unsupported_installation
 fi
 
+[ "$REV" = "9" ] && update-crypto-policies --set DEFAULT:SHA1 && yum -y install xorg-x11-font-utils
+
 #Add repositories: EPEL, REMI
 rpm -ivh https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
 rpm -ivh https://rpms.remirepo.net/enterprise/remi-release-$REV.rpm || true
