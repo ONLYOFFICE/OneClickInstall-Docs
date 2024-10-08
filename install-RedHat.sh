@@ -108,7 +108,7 @@ while [ "$1" != "" ]; do
 done
 
 if [ -z "${INSTALLATION_TYPE}" ]; then
-   INSTALLATION_TYPE="ENTERPRISE";
+   INSTALLATION_TYPE=${INSTALLATION_TYPE:-ENTERPRISE}
 fi
 
 if [ -z "${UPDATE}" ]; then
