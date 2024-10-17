@@ -56,7 +56,7 @@ while [ "$1" != "" ]; do
 	shift
 done
 
-PARAMETERS="$PARAMETERS -it COMMUNITY";
+PARAMETERS="-it COMMUNITY $PARAMETERS";
 
 root_checking () {
 	if [ ! $( id -u ) -eq 0 ]; then
