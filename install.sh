@@ -223,7 +223,7 @@ while [ "$1" != "" ]; do
 			echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
 			echo "      -skiphc, --skiphardwarecheck      skip hardware check (true|false)"
 			echo "      -skipvc, --skipversioncheck       skip version check while update (true|false)"
-			echo "      -dp, --docsport                   docs port (default value 8083)"
+			echo "      -dp, --docsport                   docs port (default value 80)"
 			echo "      -led, --letsencryptdomain         defines the domain for Let's Encrypt certificate"
 			echo "      -lem, --letsencryptmail           defines the domain administator mail address for Let's Encrypt certificate"
 			echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
@@ -415,7 +415,7 @@ check_hardware () {
 		exit 1;
 	fi
 
-	TOTAL_MEMORY=$(free -m | grep -oP '\d+' | head -n 1);
+	TOTAL_MEMORY=$(free --mega | grep -oP '\d+' | head -n 1);
 
 	if [ ${TOTAL_MEMORY} -lt ${MEMORY_REQUIREMENTS} ]; then
 		echo "Minimal requirements are not met: need at least $MEMORY_REQUIREMENTS MB of RAM"
@@ -431,12 +431,16 @@ check_hardware () {
 }
 
 check_ports () {
-	RESERVED_PORTS=(443);
+	RESERVED_PORTS=();
 	ARRAY_PORTS=();
 	USED_PORTS="";
 
 	if ! command_exists netstat; then
 		install_netstat
+	fi
+
+	if [[ ! -z "${LETS_ENCRYPT_DOMAIN}" ]]; then
+		RESERVED_PORTS+=(443) && ARRAY_PORTS+=(443)
 	fi
 
 	if [ "${DOCS_PORT//[0-9]}" = "" ]; then
@@ -453,7 +457,7 @@ check_ports () {
 	fi
 
 	if [ "${USE_AS_EXTERNAL_SERVER}" == "true" ]; then
-		ARRAY_PORTS=(${ARRAY_PORTS[@]} "$DOCS_PORT" "443");
+		ARRAY_PORTS=(${ARRAY_PORTS[@]} "$DOCS_PORT");
 	fi
 
 	for PORT in "${ARRAY_PORTS[@]}"
@@ -763,7 +767,6 @@ install_document_server () {
 
 		if [ "${USE_AS_EXTERNAL_SERVER}" == "true" ]; then
 			args+=(-p $DOCS_PORT:80);
-			args+=(-p 443:443);
 		fi
 
 		if [[ -n ${JWT_SECRET} ]]; then
@@ -776,6 +779,7 @@ install_document_server () {
 		
 		if [[ -n ${LETS_ENCRYPT_DOMAIN} ]]; then
 			args+=(-e "LETS_ENCRYPT_DOMAIN=$LETS_ENCRYPT_DOMAIN");
+			args+=(-p 443:443);
 		fi
 		
 		if [[ -n ${LETS_ENCRYPT_MAIL} ]]; then
@@ -1051,7 +1055,7 @@ start_installation () {
 	[ -n "$JWT_MESSAGE" ] && [ -n "$DOCUMENT_SERVER_ID" ] && JWT_MESSAGE=$(echo "$JWT_MESSAGE" | sed 's/$(sudo docker ps -q)/'"${DOCUMENT_SERVER_ID::12}"'/') && echo -e "\n$JWT_MESSAGE"
 	echo ""
 	echo "Thank you for installing ONLYOFFICE Docs."
-	echo "In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://dev.onlyoffice.org"
+	echo "In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://forum.onlyoffice.com"
 	echo ""
 
 	exit 0;

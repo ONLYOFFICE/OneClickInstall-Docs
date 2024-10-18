@@ -116,14 +116,16 @@ function prepare_vm() {
   fi
 
   if [ -f /etc/centos-release ]; then
-	  if [ "${TEST_REPO_ENABLE}" == 'true' ]; then
-               yum-config-manager --add-repo https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/repo/centos/onlyoffice-dev-${VER}.repo
-	  fi
-
 	  local REV=$(cat /etc/redhat-release | sed 's/[^0-9.]*//g')
 	  if [[ "${REV}" =~ ^9 ]]; then
 		  update-crypto-policies --set LEGACY
 		  echo "${COLOR_GREEN}☑ PREPAVE_VM: sha1 gpg key chek enabled${COLOR_RESET}"
+	  else
+		  sudo sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-*
+	  fi
+
+	  if [ "${TEST_REPO_ENABLE}" == 'true' ]; then
+               yum-config-manager --add-repo https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/repo/centos/onlyoffice-dev-${VER}.repo
 	  fi
   fi
 

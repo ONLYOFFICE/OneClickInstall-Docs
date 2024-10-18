@@ -44,7 +44,7 @@ if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
 fi
 
 if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
-	declare -x DS_PORT=80
+	declare -x DS_PORT=${DS_PORT:-80}
 
 	DS_RABBITMQ_HOST=localhost;
 	DS_RABBITMQ_USER=guest;
@@ -125,6 +125,7 @@ sed 's/worker_connections.*/'"worker_connections ${NGINX_WORKER_CONNECTIONS};"'/
 if rpm -q "firewalld"; then
 	firewall-cmd --permanent --zone=public --add-service=http
 	firewall-cmd --permanent --zone=public --add-service=https
+	firewall-cmd --permanent --zone=public --add-port=${DS_PORT:-80}/tcp
 	systemctl restart firewalld.service
 fi
 

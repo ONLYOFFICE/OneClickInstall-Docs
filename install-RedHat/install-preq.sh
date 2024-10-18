@@ -25,7 +25,6 @@ if ! [[ "$REV" =~ ^[0-9]+$ ]]; then
 	REV=7;
 fi
 
-MONOREV=$REV
 
 { yum check-update postgresql; PSQLExitCode=$?; } || true 
 { yum check-update $DIST*-release; exitCode=$?; } || true #Checking for distribution update
@@ -40,14 +39,13 @@ if [[ $exitCode -eq $UPDATE_AVAILABLE_CODE ]]; then
 	read_unsupported_installation
 fi
 
+[ "$REV" = "9" ] && update-crypto-policies --set DEFAULT:SHA1 && yum -y install xorg-x11-font-utils
+
 #Add repositories: EPEL, REMI
 rpm -ivh https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
 rpm -ivh https://rpms.remirepo.net/enterprise/remi-release-$REV.rpm || true
 
-if [ "$REV" = "9" ]; then
-	MONOREV="8";
-	yum localinstall -y --nogpgcheck https://vault.centos.org/centos/8/AppStream/x86_64/os/Packages/xorg-x11-font-utils-7.5-41.el8.x86_64.rpm
-elif [ "$REV" = "7" ] && [ "$DIST" = "redhat" ]; then
+if [ "$REV" = "7" ] && [ "$DIST" = "redhat" ]; then
 	# add centos repo
 cat > /etc/yum.repos.d/centos.repo <<END
 [nginx-stable]
@@ -58,9 +56,17 @@ enabled=1
 END
 fi
 
-#add rabbitmq & erlang repo
-curl -s https://packagecloud.io/install/repositories/rabbitmq/rabbitmq-server/script.rpm.sh | os=centos dist=$MONOREV bash
-curl -s https://packagecloud.io/install/repositories/rabbitmq/erlang/script.rpm.sh | os=centos dist=$MONOREV bash
+#add rabbitmq repo
+curl -s https://packagecloud.io/install/repositories/rabbitmq/rabbitmq-server/script.rpm.sh | bash
+
+#add erlang repo
+#or download the RPM package for the latest erlang release
+if [[ "$(uname -m)" =~ (arm|aarch) ]] && [[ $REV -gt 7 ]]; then
+	ERLANG_LATEST_VERSION=$(curl -s https://api.github.com/repos/rabbitmq/erlang-rpm/releases | sed -n 's/.*"tag_name":\s*"v\([^"]*\)".*/\1/p' | head -1)
+	rpm -ivh https://github.com/rabbitmq/erlang-rpm/releases/latest/download/erlang-${ERLANG_LATEST_VERSION}-1.el${REV}.aarch64.rpm
+else
+	curl -s https://packagecloud.io/install/repositories/rabbitmq/erlang/script.rpm.sh | bash
+fi
 
 if rpm -q rabbitmq-server; then
 	if [ "$(repoquery --installed rabbitmq-server --qf '%{ui_from_repo}' | sed 's/@//')" != "$(repoquery rabbitmq-server --qf='%{ui_from_repo}')" ]; then

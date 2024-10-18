@@ -11,7 +11,7 @@ RES_APP_INSTALLED="is already installed";
 RES_APP_CHECK_PORTS="uses ports"
 RES_CHECK_PORTS="please, make sure that the ports are free.";
 RES_INSTALL_SUCCESS="Thank you for installing ONLYOFFICE Docs.";
-RES_QUESTIONS="In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://dev.onlyoffice.org"
+RES_QUESTIONS="In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://forum.onlyoffice.com"
 
 res_unsupported_version () {
 	RES_CHOICE="Please, enter Y or N"
@@ -80,6 +80,13 @@ while [ "$1" != "" ]; do
 			fi
 		;;
 
+		-dp | --docsport )
+			if [ "$2" != "" ]; then
+				DS_PORT=$2
+				shift
+			fi
+		;;
+
 		-? | -h | --help )
 			echo "  Usage $0 [PARAMETER] [[PARAMETER], ...]"
 			echo "    Parameters:"
@@ -90,6 +97,7 @@ while [ "$1" != "" ]; do
 			echo "      -jh, --jwtheader                  defines the http header that will be used to send the JWT"
 			echo "      -js, --jwtsecret                  defines the secret key to validate the JWT in the request"
 			echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
+			echo "      -dp, --docsport                   docs port (default value 80)"
 			echo "      -?, -h, --help                    this help"
 			echo
 			exit 0
@@ -100,7 +108,7 @@ while [ "$1" != "" ]; do
 done
 
 if [ -z "${INSTALLATION_TYPE}" ]; then
-   INSTALLATION_TYPE="ENTERPRISE";
+   INSTALLATION_TYPE=${INSTALLATION_TYPE:-ENTERPRISE}
 fi
 
 if [ -z "${UPDATE}" ]; then
