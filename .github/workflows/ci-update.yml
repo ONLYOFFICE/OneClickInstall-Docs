@@ -13,9 +13,9 @@ on:
 
   workflow_dispatch:
 
-  push:
-    branches:
-      - feature/fix-ci-update
+  # push:
+  #   branches:
+  #     - feature/fix-ci-update
 
 
 jobs:
@@ -52,7 +52,7 @@ jobs:
          #  name: "Debian 12"
 
           - distr: onlyoffice
-            os: bionic64
+            os: ubuntu1804
             name: "Ubuntu 18.04"            
 
           - distr: onlyoffice
