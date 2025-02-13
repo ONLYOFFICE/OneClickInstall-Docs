@@ -17,9 +17,6 @@ if [ -e /etc/redis.conf ]; then
  systemctl restart redis
 fi
 
-sed "/host\s*all\s*all\s*127\.0\.0\.1\/32\s*ident$/s|ident$|trust|" -i /var/lib/pgsql/data/pg_hba.conf
-sed "/host\s*all\s*all\s*::1\/128\s*ident$/s|ident$|trust|" -i /var/lib/pgsql/data/pg_hba.conf
-
 for SVC in $package_services; do
 		systemctl start $SVC	
 		systemctl enable $SVC
@@ -122,11 +119,11 @@ NGINX_WORKER_CONNECTIONS=${NGINX_WORKER_CONNECTIONS:-$(ulimit -n)};
 sed 's/^worker_processes.*/'"worker_processes ${NGINX_WORKER_PROCESSES};"'/' -i ${NGINX_ROOT_DIR}/nginx.conf
 sed 's/worker_connections.*/'"worker_connections ${NGINX_WORKER_CONNECTIONS};"'/' -i ${NGINX_ROOT_DIR}/nginx.conf
 
-if rpm -q "firewalld"; then
+if systemctl is-active --quiet firewalld; then
 	firewall-cmd --permanent --zone=public --add-service=http
 	firewall-cmd --permanent --zone=public --add-service=https
 	firewall-cmd --permanent --zone=public --add-port=${DS_PORT:-80}/tcp
-	systemctl restart firewalld.service
+	firewall-cmd --reload
 fi
 
 systemctl restart nginx

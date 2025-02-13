@@ -41,9 +41,8 @@ fi
 
 [ "$REV" = "9" ] && update-crypto-policies --set DEFAULT:SHA1 && yum -y install xorg-x11-font-utils
 
-#Add repositories: EPEL, REMI
-rpm -ivh https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
-rpm -ivh https://rpms.remirepo.net/enterprise/remi-release-$REV.rpm || true
+#Add repo EPEL
+yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
 
 if [ "$REV" = "7" ] && [ "$DIST" = "redhat" ]; then
 	# add centos repo
@@ -95,7 +94,7 @@ yum -y install epel-release \
 			postgresql \
 			postgresql-server \
 			rabbitmq-server \
-			redis --enablerepo=remi \
+			redis \
 			policycoreutils-python*
 	
 if [[ $PSQLExitCode -eq $UPDATE_AVAILABLE_CODE ]]; then
@@ -104,6 +103,14 @@ if [[ $PSQLExitCode -eq $UPDATE_AVAILABLE_CODE ]]; then
 fi
 
 postgresql-setup initdb	|| true
+
+if [ "$REV" = "7" ]; then
+    sed "/host\s*all\s*all\s*127\.0\.0\.1\/32\s*ident$/s|ident$|trust|" -i /var/lib/pgsql/data/pg_hba.conf
+    sed "/host\s*all\s*all\s*::1\/128\s*ident$/s|ident$|trust|" -i /var/lib/pgsql/data/pg_hba.conf
+else
+    sed -E -i "s/(host\s+(all|replication)\s+all\s+(127\.0\.0\.1\/32|\:\:1\/128)\s+)(ident|trust|md5)/\1scram-sha-256/" /var/lib/pgsql/data/pg_hba.conf
+    sed -i "s/^#\?password_encryption = .*/password_encryption = 'scram-sha-256'/" /var/lib/pgsql/data/postgresql.conf
+fi
 
 semanage permissive -a httpd_t
 
