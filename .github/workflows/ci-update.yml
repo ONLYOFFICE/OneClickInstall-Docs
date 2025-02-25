@@ -13,11 +13,10 @@ on:
 
   workflow_dispatch:
 
-
 jobs:
   update-test:
     name: "Update test on ${{ matrix.name }}"
-    runs-on: macos-12
+    runs-on: ubuntu-latest
     if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
     strategy:
       fail-fast: false
@@ -43,12 +42,12 @@ jobs:
             os: debian11
             name: "Debian 11"
 
-         #- distr: onlyoffice
-         #  os: bookworm64
-         #  name: "Debian 12"
+          - distr: onlyoffice
+            os: debian12
+            name: "Debian 12"
 
           - distr: onlyoffice
-            os: bionic64
+            os: ubuntu1804
             name: "Ubuntu 18.04"            
 
           - distr: onlyoffice
@@ -67,6 +66,11 @@ jobs:
       with:
         python-version: '3.x'
 
+    - name: Set up vagrant and virtualbox
+      run: |
+           sudo apt update -y 
+           sudo apt install vagrant virtualbox -y
+
     - name: Testing with update
       uses: nick-fields/retry@v2
       with:
@@ -79,8 +83,8 @@ jobs:
 
               TEST_CASE='--local-install' \
               DISTR='${{matrix.distr}}' \
-              RAM='9100' \
-              CPU='3' \
+              RAM='6000' \
+              CPU='2' \
               OS='docs-${{ matrix.os }}' \
               DOWNLOAD_SCRIPT='-ds false' \
               TEST_REPO='-tr true' \
