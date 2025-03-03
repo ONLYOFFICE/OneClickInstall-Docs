@@ -1,55 +1,72 @@
-name: Rebuild boxes
+name: Rebuild vagrant Docs
+
+run-name: "Rebuild Docs vagrant boxes version: ${{ github.event.inputs.box-version }}"
 
 on:
   workflow_dispatch:
+    inputs:
+      box-version:
+        type: string
+        description: 'DocSpace version that will be installed inside box'
+        required: true
 
-env:
-    VAGRANT_TOKEN: ${{ secrets.VAGRANT_TOKEN }}
-    VAGRANT_ACCOUNT: ${{ secrets.VAGRANT_ACCOUNT }} 
-
+         
 jobs:
   vagrant-up:
-    name: "Rebuild box with ${{matrix.name}}"
-    runs-on: macos-12
+    name: "Rebbuild Docs ${{matrix.name}}"
+    runs-on: ubuntu-latest
+    env:
+      HCP_CLIENT_ID: ${{ secrets.HCP_CLIENT_ID }}
+      HCP_CLIENT_SECRET: ${{ secrets.HCP_CLIENT_SECRET }}
+      BOX_VERSION: ${{ github.event.inputs.box-version }}
+      VAGRANT_ORG: onlyoffice
+      PRODUCT: docs
+      OS_NAME: ${{ matrix.name }}
+      OS: ${{ matrix.os }}
+      DISTR: ${{ matrix.distr }}
     strategy:
       fail-fast: false
-      matrix:
+      matrix: 
         include:
-          - distr: generic
-            os: centos7
-            name: "CentOS 7"
+          - distr: onlyoffice
+            os: base-centos7
+            name: "centos7"
 
-          - distr: generic
-            os: centos8s
-            name: "CentOS 8 Stream"
+          - distr: onlyoffice
+            os: base-centos8s
+            name: "centos8s"
 
-          - distr: generic
-            os: centos9s
-            name: "CentOS 9 Stream"
+          - distr: onlyoffice
+            os: base-centos9s
+            name: "centos9s"
 
-          - distr: generic
-            os: debian10
-            name: "Debian 10"
+          - distr: onlyoffice
+            os: base-debian10
+            name: "debian10"
 
-          - distr: generic
-            os: debian11
-            name: "Debian 11"
+          - distr: onlyoffice
+            os: base-debian11
+            name: "debian11"
 
-          - distr: debian
-            os: bookworm64
-            name: "Debian 12"
+          - distr: onlyoffice
+            os: base-debian12
+            name: "debian12"
 
-          - distr: ubuntu
-            os: bionic64
-            name: "Ubuntu 18.04"
+          - distr: onlyoffice
+            os: base-ubuntu1804
+            name: "ubuntu1804"
 
-          - distr: generic
-            os: ubuntu2004
-            name: "Ubuntu 20.04"
+          - distr: onlyoffice
+            os: base-ubuntu2004
+            name: "ubuntu2004"
 
-          - distr: generic
-            os: ubuntu2204
-            name: "Ubuntu 22.04"
+          - distr: onlyoffice
+            os: base-ubuntu2204
+            name: "ubuntu2204"
+
+          - distr: onlyoffice
+            os: base-ubuntu2404
+            name: "ubuntu2404"
 
     steps:
     - name: Checkout code
@@ -60,10 +77,19 @@ jobs:
       with:
         python-version: '3.x'
 
-    - name: Login Vagrant cloud
-      run: vagrant cloud auth login --token ${VAGRANT_TOKEN}
+    - name: 'Download hcp CLI'
+      uses: 'hashicorp/hcp-setup-action@v0'
+      with:
+        version: 'latest'
 
-    - name: Rebuild boxes
+    - name: Set up vagrant and virtualbox
+      run: |
+           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+           echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com jammy main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+           sudo apt update -y 
+           sudo apt install vagrant virtualbox -y
+
+    - name: Test production scripts
       uses: nick-fields/retry@v2
       with:
         max_attempts: 2
@@ -73,29 +99,21 @@ jobs:
                 set -eux
                 
                 cd tests/vagrant
-                export date=$(date +%F)
                    TEST_CASE='--production-install' \
-                   DISTR='${{matrix.distr}}' \
+                   DISTR='${{ matrix.distr }}' \
                    OS='${{ matrix.os }}' \
                    DOWNLOAD_SCRIPT='-ds true' \
-                   RAM='9100' \
+                   RAM='6000' \
                    CPU='3' \
                    ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false'" \
                    vagrant up
-                sleep 300
-                vagrant package --output repacked_${{ matrix.os }}.box
-                vagrant cloud publish \
-                   ${VAGRANT_ACCOUNT}/docs-${{ matrix.os }} \
-                   $date virtualbox repacked_${{ matrix.os }}.box \
-                   -d "Box with pre-installed docs" \
-                   --version-description "Docs <version>" \
-                   --release --short-description "Boxes for update testing" \
-                   --force \
-                   --no-private
+                   sleep 100
+                   vagrant package --output ${PRODUCT}-${OS_NAME}.box
+                   wget https://raw.githubusercontent.com/ONLYOFFICE/ga-common/refs/heads/master/.github/scripts/vagrant_publish.sh
+                   bash ./vagrant_publish.sh
         on_retry_command: |
-               set -eux
-
-               echo "RUN CLEAN UP: Remove repacked box and destroy"
-               cd tests/vagrant
-               rm -rf repacked_${{ matrix.os }}.box
-               vagrant destroy --force
+              echo "RUN CLEAN UP: Destroy vagrant and one more try"
+              cd tests/vagrant
+              ${PRODUCT}-${OS_NAME}.box
+              sleep 10
+              vagrant destroy --force
