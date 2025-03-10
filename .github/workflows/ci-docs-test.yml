@@ -26,12 +26,9 @@ jobs:
       id: get-version
       shell: bash
       run: |
-          if curl -s -L -H "Accept: application/vnd.github+json" https://api.github.com/repos/ONLYOFFICE/document-server-package/branches | jq -r '.[].name' | grep -qE '^release/'; then
-            VERSION=$(curl -s -L -H "Accept: application/vnd.github+json" https://api.github.com/repos/ONLYOFFICE/document-server-package/branches | jq -r '.[] | select(.name|test("^release/")) | .name' | awk -F '/v' '{print $2}')  
-          else
-            VERSION=$(curl -s -L -H "Accept: application/vnd.github+json" https://api.github.com/repos/ONLYOFFICE/document-server-package/branches | jq -r '.[] | select(.name|test("^hotfix/")) | .name' | awk -F '/v' '{print $2}')
-          fi
-          echo "ds-ver=${VERSION:-99.99.99}" >> "$GITHUB_OUTPUT"
+        VERSION=$(curl -sL -H "Accept: application/vnd.github+json" https://api.github.com/repos/ONLYOFFICE/document-server-package/branches \
+          | jq -r '.[] | select(.name|test("^(release|hotfix)/")) | .name' | sort -Vr | head -n1 | awk -F '/' '{print $2}' | sed 's/^v//')
+        echo "ds-ver=${VERSION:-99.99.99}" >> "$GITHUB_OUTPUT"
 
   vagrant-up:
     name: "Test Docs with ${{matrix.name}}"
@@ -43,44 +40,44 @@ jobs:
       fail-fast: false
       matrix:
         include:          
-          - distr: generic
-            os: centos7
+          - distr: onlyoffice
+            os: base-centos7
             name: "CentOS 7"
 
-          - distr: generic
-            os: centos8s
+          - distr: onlyoffice
+            os: base-centos8s
             name: "CentOS 8 Stream"         
 
-          - distr: generic
-            os: centos9s
+          - distr: onlyoffice
+            os: base-centos9s
             name: "CentOS 9 Stream"               
 
-          - distr: generic
-            os: debian10
+          - distr: onlyoffice
+            os: base-debian10
             name: "Debian 10"
 
-          - distr: generic
-            os: debian11
+          - distr: onlyoffice
+            os: base-debian11
             name: "Debian 11"
 
-          - distr: generic
-            os: debian12
+          - distr: onlyoffice
+            os: base-debian12
             name: "Debian 12"
 
-          - distr: ubuntu
-            os: bionic64
+          - distr: onlyoffice
+            os: base-ubuntu1804
             name: "Ubuntu 18.04"            
 
-          - distr: generic
-            os: ubuntu2004
+          - distr: onlyoffice
+            os: base-ubuntu2004
             name: "Ubuntu 20.04"
 
-          - distr: generic
-            os: ubuntu2204
+          - distr: onlyoffice
+            os: base-ubuntu2204
             name: "Ubuntu 22.04"
 
-          - distr: bento
-            os: ubuntu-24.04
+          - distr: onlyoffice
+            os: base-ubuntu2404
             name: "Ubuntu 24.04"
     steps:
     - name: Checkout code

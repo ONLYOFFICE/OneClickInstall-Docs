@@ -111,8 +111,8 @@ function prepare_vm() {
 	    echo "deb [trusted=yes] https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/repo/debian stable ${VER}" | sudo tee /etc/apt/sources.list.d/onlyoffice-dev.list
 	fi
 
-  	apt-get remove postfix -y 
-  	echo "${COLOR_GREEN}☑ PREPAVE_VM: Postfix was removed${COLOR_RESET}"
+  	[ -f /etc/os-release ] && [ "$(awk -F= '/^ID=/ {print $2}' /etc/os-release | tr -d '"')" == "debian" ] &&
+  	{ apt-get remove postfix -y; echo "${COLOR_GREEN}☑ PREPAVE_VM: Postfix was removed${COLOR_RESET}"; }
   fi
 
   if [ -f /etc/centos-release ]; then
