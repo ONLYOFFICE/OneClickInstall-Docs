@@ -1,0 +1,52 @@
+name: OneClickDocs-Docker-Install
+
+on:
+  schedule:
+    - cron: '00 21 * * 0'
+  push:
+    branches:
+      - 'hotfix/**'
+      - 'release/**'
+      - 'develop'
+      - 'master'
+    paths:
+      - '.github/workflows/ci-docker-install.yml'
+      - 'install.sh'
+  workflow_dispatch:
+
+jobs:
+  Install-Docs-Docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Free Disk Space
+        run: |
+          sudo docker image prune --all --force
+
+      - name: Test Docs Docker scripts
+        run: |
+          [ "${{ github.ref }}" = "refs/heads/master" ] \
+            && { sudo bash -x install.sh -skiphc true </dev/null || exit $?; } \
+            || { sudo bash -x install.sh -skiphc true -di onlyoffice/4testing-documentserver </dev/null || exit $?; }
+          echo -n "Waiting for container startup..."
+          timeout 300 bash -c 'while docker ps | grep -q "starting"; do sleep 5; done' && echo "OK" || echo "container_status=timeout" >> $GITHUB_ENV
+
+      - name: Check container status
+        run: |
+          container=$(docker ps --all --format "{{.Names}}" | head -n1)
+          echo "container=$container" >> $GITHUB_ENV
+          status=$(docker inspect --format="{{.State.Status}}" "$container")
+          [ "$status" = "running" ] && echo -e "\033[0;32m$container is running.\033[0m" \
+            || { echo -e "\033[0;31m$container is NOT running. Status: $status.\033[0m"; exit 1; }
+
+      - name: Print logs for crashed container
+        if: failure()
+        run: |
+          docker logs --tail 30 "${{ env.container }}" | sed "s/^/\t/"
+          [[ "${{ env.container_status }}" == "timeout" ]] && echo "Timeout. Container failed" && exit 1
+
