@@ -2,12 +2,12 @@
 
 set -e
 
-package_sysname="onlyoffice";
-DS_COMMON_NAME="onlyoffice";
-RES_APP_INSTALLED="is already installed";
+package_sysname="onlyoffice"
+DS_COMMON_NAME="onlyoffice"
+RES_APP_INSTALLED="is already installed"
 RES_APP_CHECK_PORTS="uses ports"
-RES_CHECK_PORTS="please, make sure that the ports are free.";
-RES_INSTALL_SUCCESS="Thank you for installing ONLYOFFICE Docs.";
+RES_CHECK_PORTS="please, make sure that the ports are free."
+RES_INSTALL_SUCCESS="Thank you for installing ONLYOFFICE Docs."
 RES_QUESTIONS="In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://forum.onlyoffice.com"
 
 while [ "$1" != "" ]; do
@@ -15,7 +15,7 @@ while [ "$1" != "" ]; do
 
         -it | --installation_type )
             if [ "$2" != "" ]; then
-                INSTALLATION_TYPE=$(echo "$2" | awk '{print toupper($0)}');
+                INSTALLATION_TYPE=$(echo "$2" | awk '{print toupper($0)}')
                 shift
             fi
         ;;
@@ -94,19 +94,19 @@ if [ -z "${INSTALLATION_TYPE}" ]; then
 fi
 
 if [ -z "${UPDATE}" ]; then
-    UPDATE="false";
+    UPDATE="false"
 fi
 
 if [ -z "${SKIP_HARDWARE_CHECK}" ]; then
-    SKIP_HARDWARE_CHECK="false";
+    SKIP_HARDWARE_CHECK="false"
 fi
 
 if [ -z "${LOCAL_SCRIPTS}" ]; then
-    LOCAL_SCRIPTS="false";
+    LOCAL_SCRIPTS="false"
 fi
 
 if [ $(dpkg-query -W -f='${Status}' curl 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
-    apt-get install -yq curl;
+    apt-get install -yq curl
 fi
 
 DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs/install-Debian"

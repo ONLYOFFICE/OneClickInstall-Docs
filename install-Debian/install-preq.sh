@@ -30,7 +30,7 @@ if ! dpkg -l | grep -q "software-properties-common"; then
 fi
 
 if [ $(dpkg-query -W -f='${Status}' curl 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
-    apt-get install -yq curl;
+    apt-get install -yq curl
 fi
 
 locale-gen en_US.UTF-8

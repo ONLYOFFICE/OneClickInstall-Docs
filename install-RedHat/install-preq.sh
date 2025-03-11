@@ -15,14 +15,14 @@ yum clean all
 
 yum -y install yum-utils
 
-DIST=$(rpm -q --whatprovides redhat-release || rpm -q --whatprovides centos-release);
-DIST=$(echo $DIST | sed -n '/-.*/s///p');
-REV=$(cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//);
-REV_PARTS=(${REV//\./ });
-REV=${REV_PARTS[0]};
+DIST=$(rpm -q --whatprovides redhat-release || rpm -q --whatprovides centos-release)
+DIST=$(echo $DIST | sed -n '/-.*/s///p')
+REV=$(cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//)
+REV_PARTS=(${REV//\./ })
+REV=${REV_PARTS[0]}
 
 if ! [[ "$REV" =~ ^[0-9]+$ ]]; then
-    REV=7;
+    REV=7
 fi
 
 

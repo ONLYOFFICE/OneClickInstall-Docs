@@ -31,42 +31,42 @@
  # terms at http://creativecommons.org/licenses/by-sa/4.0/legalcode
  #
 
-PARAMETERS="";
-DOCKER="";
+PARAMETERS=""
+DOCKER=""
 LOCAL_SCRIPTS="false"
-HELP="false";
+HELP="false"
 
 while [ "$1" != "" ]; do
     case $1 in
         -ls | --localscripts )
             if [ "$2" == "true" ] || [ "$2" == "false" ]; then
-                PARAMETERS="$PARAMETERS ${1}";
+                PARAMETERS="$PARAMETERS ${1}"
                 LOCAL_SCRIPTS=$2
                 shift
            fi
         ;;
 
         "-?" | -h | --help )
-            HELP="true";
-            DOCKER="true";
-            PARAMETERS="$PARAMETERS -ht docs-enterprise-install.sh";
+            HELP="true"
+            DOCKER="true"
+            PARAMETERS="$PARAMETERS -ht docs-enterprise-install.sh"
         ;;
     esac
-    PARAMETERS="$PARAMETERS ${1}";
+    PARAMETERS="$PARAMETERS ${1}"
     shift
 done
 
-PARAMETERS="-it ENTERPRISE $PARAMETERS";
+PARAMETERS="-it ENTERPRISE $PARAMETERS"
 
 root_checking () {
     if [ ! $( id -u ) -eq 0 ]; then
         echo "To perform this action you must be logged in with root rights"
-        exit 1;
+        exit 1
     fi
 }
 
 command_exists () {
-    type "$1" &> /dev/null;
+    type "$1" &> /dev/null
 }
 
 install_curl () {
@@ -79,44 +79,44 @@ install_curl () {
 
     if ! command_exists curl; then
         echo "command curl not found"
-        exit 1;
+        exit 1
     fi
 }
 
 read_installation_method () {
-    echo "Select 'Y' to install ONLYOFFICE Docs using Docker (recommended). Select 'N' to install it using RPM/DEB packages.";
+    echo "Select 'Y' to install ONLYOFFICE Docs using Docker (recommended). Select 'N' to install it using RPM/DEB packages."
     read -p "Install with Docker [Y/N/C]? " choice
     case "$choice" in
         y|Y )
-            DOCKER="true";
+            DOCKER="true"
         ;;
 
         n|N )
-            DOCKER="false";
+            DOCKER="false"
         ;;
 
         c|C )
-            exit 0;
+            exit 0
         ;;
 
         * )
-            echo "Please, enter Y, N or C to cancel";
+            echo "Please, enter Y, N or C to cancel"
         ;;
     esac
 
     if [ "$DOCKER" == "" ]; then
-        read_installation_method;
+        read_installation_method
     fi
 }
 
 root_checking
 
 if ! command_exists curl ; then
-    install_curl;
+    install_curl
 fi
 
 if [ "$HELP" == "false" ]; then
-    read_installation_method;
+    read_installation_method
 fi
 
 if [ "$DOCKER" == "true" ]; then
@@ -129,15 +129,15 @@ if [ "$DOCKER" == "true" ]; then
     fi
 else
     if [ -f /etc/redhat-release ] ; then
-        DIST=$(cat /etc/redhat-release |sed s/\ release.*//);
-        REV=$(cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//);
+        DIST=$(cat /etc/redhat-release |sed s/\ release.*//)
+        REV=$(cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//)
 
-        REV_PARTS=(${REV//\./ });
-        REV=${REV_PARTS[0]};
+        REV_PARTS=(${REV//\./ })
+        REV=${REV_PARTS[0]}
 
         if [[ "${DIST}" == CentOS* ]] && [ ${REV} -lt 7 ]; then
-            echo "CentOS 7 or later is required";
-            exit 1;
+            echo "CentOS 7 or later is required"
+            exit 1
         fi
 
         if [ "$LOCAL_SCRIPTS" == "true" ]; then
@@ -156,7 +156,7 @@ else
             rm install-Debian.sh
         fi
     else
-        echo "Not supported OS";
-        exit 1;
+        echo "Not supported OS"
+        exit 1
     fi
 fi

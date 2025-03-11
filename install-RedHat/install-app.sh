@@ -22,15 +22,15 @@ for SVC in $package_services; do
 done
 
 if [ "$INSTALLATION_TYPE" = "COMMUNITY" ]; then
-    ds_pkg_name="${package_sysname}-documentserver";
+    ds_pkg_name="${package_sysname}-documentserver"
 elif [ "$INSTALLATION_TYPE" = "ENTERPRISE" ]; then
-    ds_pkg_name="${package_sysname}-documentserver-ee";
+    ds_pkg_name="${package_sysname}-documentserver-ee"
 elif [ "$INSTALLATION_TYPE" = "DEVELOPER" ]; then
-    ds_pkg_name="${package_sysname}-documentserver-de";
+    ds_pkg_name="${package_sysname}-documentserver-de"
 fi
 
 if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
-    ds_pkg_installed_name=$(rpm -qa --qf '%{NAME}\n' | grep ${package_sysname}-documentserver);
+    ds_pkg_installed_name=$(rpm -qa --qf '%{NAME}\n' | grep ${package_sysname}-documentserver)
     if [ ${ds_pkg_installed_name} != ${ds_pkg_name} ]; then
         ${package_manager} -y remove ${ds_pkg_installed_name}
         DOCUMENT_SERVER_INSTALLED="false"
@@ -42,22 +42,22 @@ fi
 if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
     declare -x DS_PORT=${DS_PORT:-80}
 
-    DS_RABBITMQ_HOST=localhost;
-    DS_RABBITMQ_USER=guest;
-    DS_RABBITMQ_PWD=guest;
+    DS_RABBITMQ_HOST=localhost
+    DS_RABBITMQ_USER=guest
+    DS_RABBITMQ_PWD=guest
 
-    DS_REDIS_HOST=localhost;
+    DS_REDIS_HOST=localhost
 
-    DS_COMMON_NAME=${DS_COMMON_NAME:-"ds"};
+    DS_COMMON_NAME=${DS_COMMON_NAME:-"ds"}
 
-    DS_DB_HOST=localhost;
-    DS_DB_NAME=$DS_COMMON_NAME;
-    DS_DB_USER=$DS_COMMON_NAME;
-    DS_DB_PWD=$DS_COMMON_NAME;
+    DS_DB_HOST=localhost
+    DS_DB_NAME=$DS_COMMON_NAME
+    DS_DB_USER=$DS_COMMON_NAME
+    DS_DB_PWD=$DS_COMMON_NAME
 
-    declare -x JWT_ENABLED=${JWT_ENABLED:-true};
-    declare -x JWT_SECRET=${JWT_SECRET:-$(cat /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)};
-    declare -x JWT_HEADER=${JWT_HEADER:-AuthorizationJwt};
+    declare -x JWT_ENABLED=${JWT_ENABLED:-true}
+    declare -x JWT_SECRET=${JWT_SECRET:-$(cat /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)}
+    declare -x JWT_HEADER=${JWT_HEADER:-AuthorizationJwt}
 
     if ! su - postgres -s /bin/bash -c "psql -lqt" | cut -d \| -f 1 | grep -q ${DS_DB_NAME}; then
         su - postgres -s /bin/bash -c "psql -c \"CREATE USER ${DS_DB_USER} WITH password '${DS_DB_PWD}';\""
@@ -108,12 +108,12 @@ EOF
     systemctl restart nginx
     systemctl enable nginx
 
-    DOCUMENT_SERVER_INSTALLED="true";
+    DOCUMENT_SERVER_INSTALLED="true"
 fi
 
 NGINX_ROOT_DIR="/etc/nginx"
-NGINX_WORKER_PROCESSES=${NGINX_WORKER_PROCESSES:-$(grep processor /proc/cpuinfo | wc -l)};
-NGINX_WORKER_CONNECTIONS=${NGINX_WORKER_CONNECTIONS:-$(ulimit -n)};
+NGINX_WORKER_PROCESSES=${NGINX_WORKER_PROCESSES:-$(grep processor /proc/cpuinfo | wc -l)}
+NGINX_WORKER_CONNECTIONS=${NGINX_WORKER_CONNECTIONS:-$(ulimit -n)}
 
 sed 's/^worker_processes.*/'"worker_processes ${NGINX_WORKER_PROCESSES};"'/' -i ${NGINX_ROOT_DIR}/nginx.conf
 sed 's/worker_connections.*/'"worker_connections ${NGINX_WORKER_CONNECTIONS};"'/' -i ${NGINX_ROOT_DIR}/nginx.conf
