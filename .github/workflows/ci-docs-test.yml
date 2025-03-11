@@ -11,7 +11,7 @@ on:
       - '**/README.md'
 
   workflow_dispatch:
-    
+
   schedule:
     - cron: '0 21 * * 6'  # At 21:00 on Saturday.
 
@@ -39,18 +39,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:          
+        include:
           - distr: onlyoffice
             os: base-centos7
             name: "CentOS 7"
 
           - distr: onlyoffice
             os: base-centos8s
-            name: "CentOS 8 Stream"         
+            name: "CentOS 8 Stream"
 
           - distr: onlyoffice
             os: base-centos9s
-            name: "CentOS 9 Stream"               
+            name: "CentOS 9 Stream"
 
           - distr: onlyoffice
             os: base-debian10
@@ -66,7 +66,7 @@ jobs:
 
           - distr: onlyoffice
             os: base-ubuntu1804
-            name: "Ubuntu 18.04"            
+            name: "Ubuntu 18.04"
 
           - distr: onlyoffice
             os: base-ubuntu2004
@@ -92,7 +92,7 @@ jobs:
       run: |
            curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
            echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com jammy main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-           sudo apt update -y 
+           sudo apt update -y
            sudo apt install vagrant virtualbox -y
 
     - name: Test production scripts
@@ -104,7 +104,6 @@ jobs:
         retry_on: error
         command: |
                 set -eux
-                
                 cd tests/vagrant
                    TEST_CASE='--production-install' \
                    DISTR='${{ matrix.distr }}' \
@@ -129,7 +128,6 @@ jobs:
          retry_on: error
          command: |
                   set -eux
-                      
                   cd tests/vagrant
                     TEST_CASE='--local-install' \
                     DISTR='${{ matrix.distr }}' \

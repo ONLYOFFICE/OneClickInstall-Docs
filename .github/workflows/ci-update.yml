@@ -1,5 +1,5 @@
 name: OneClickDocs-Update
-  
+
 on:
   schedule:
     - cron: '00 21 * * 0'
@@ -29,18 +29,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:         
+        include:
           - distr: onlyoffice
             os: centos7
             name: "CentOS 7"
 
           - distr: onlyoffice
             os: centos8s
-            name: "CentOS 8 Stream"         
+            name: "CentOS 8 Stream"
 
           - distr: onlyoffice
             os: centos9s
-            name: "CentOS 9 Stream"               
+            name: "CentOS 9 Stream"
 
           - distr: onlyoffice
             os: debian10
@@ -56,7 +56,7 @@ jobs:
 
           - distr: onlyoffice
             os: ubuntu1804
-            name: "Ubuntu 18.04"            
+            name: "Ubuntu 18.04"
 
           - distr: onlyoffice
             os: ubuntu2004
@@ -82,7 +82,7 @@ jobs:
       run: |
             curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
             echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com jammy main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-            sudo apt update -y 
+            sudo apt update -y
             sudo apt install vagrant virtualbox -y
 
     - name: Testing with update
@@ -94,7 +94,6 @@ jobs:
         command: |
               cd ./tests/vagrant
               set -eux
-
               TEST_CASE='--local-install' \
               DISTR='${{matrix.distr}}' \
               RAM='9100' \

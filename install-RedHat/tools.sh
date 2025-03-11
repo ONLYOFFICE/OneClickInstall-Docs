@@ -3,30 +3,30 @@
 set -e
 
 check_hardware () {
-	DISK_REQUIREMENTS=10240;
-	MEMORY_REQUIREMENTS=2048;
-	CORE_REQUIREMENTS=2;
+    DISK_REQUIREMENTS=10240
+    MEMORY_REQUIREMENTS=2048
+    CORE_REQUIREMENTS=2
 
-	AVAILABLE_DISK_SPACE=$(df -m /  | tail -1 | awk '{ print $4 }');
+    AVAILABLE_DISK_SPACE=$(df -m / | tail -1 | awk '{ print $4 }')
 
-	if [ ${AVAILABLE_DISK_SPACE} -lt ${DISK_REQUIREMENTS} ]; then
-		echo "Minimal requirements are not met: need at least $DISK_REQUIREMENTS MB of free HDD space"
-		exit 1;
-	fi
+    if [ ${AVAILABLE_DISK_SPACE} -lt ${DISK_REQUIREMENTS} ]; then
+        echo "Minimal requirements are not met: need at least $DISK_REQUIREMENTS MB of free HDD space"
+        exit 1
+    fi
 
-	TOTAL_MEMORY=$(free --mega | grep -oP '\d+' | head -n 1);
+    TOTAL_MEMORY=$(free --mega | grep -oP '\d+' | head -n 1);
 
-	if [ ${TOTAL_MEMORY} -lt ${MEMORY_REQUIREMENTS} ]; then
-		echo "Minimal requirements are not met: need at least $MEMORY_REQUIREMENTS MB of RAM"
-		exit 1;
-	fi
+    if [ ${TOTAL_MEMORY} -lt ${MEMORY_REQUIREMENTS} ]; then
+        echo "Minimal requirements are not met: need at least $MEMORY_REQUIREMENTS MB of RAM"
+        exit 1
+    fi
 
-	CPU_CORES_NUMBER=$(cat /proc/cpuinfo | grep processor | wc -l);
+    CPU_CORES_NUMBER=$(cat /proc/cpuinfo | grep processor | wc -l);
 
-	if [ ${CPU_CORES_NUMBER} -lt ${CORE_REQUIREMENTS} ]; then
-		echo "The system does not meet the minimal hardware requirements. CPU with at least $CORE_REQUIREMENTS cores is required"
-		exit 1;
-	fi
+    if [ ${CPU_CORES_NUMBER} -lt ${CORE_REQUIREMENTS} ]; then
+        echo "The system does not meet the minimal hardware requirements. CPU with at least $CORE_REQUIREMENTS cores is required"
+        exit 1
+    fi
 }
 
 if [ "$SKIP_HARDWARE_CHECK" != "true" ]; then
@@ -34,38 +34,38 @@ if [ "$SKIP_HARDWARE_CHECK" != "true" ]; then
 fi
 
 read_unsupported_installation () {
-	read -p "$RES_CHOICE_INSTALLATION " CHOICE_INSTALLATION
-	case "$CHOICE_INSTALLATION" in
-		y|Y )
-			yum -y install $DIST*-release
-		;;
+    read -p "$RES_CHOICE_INSTALLATION " CHOICE_INSTALLATION
+    case "$CHOICE_INSTALLATION" in
+        y|Y )
+            yum -y install $DIST*-release
+        ;;
 
-		n|N )
-			exit 0;
-		;;
+        n|N )
+            exit 0
+        ;;
 
-		* )
-			echo $RES_CHOICE;
-			read_unsupported_installation
-		;;
-	esac
+        * )
+            echo $RES_CHOICE
+            read_unsupported_installation
+        ;;
+    esac
 }
 
 read_rabbitmq_update () {
-	read -p "$RES_CHOICE_RABBITMQ " CHOICE_INSTALLATION
-	case "$CHOICE_INSTALLATION" in
-		y|Y )
-			yum -y remove rabbitmq-server erlang* 
-			rm -rf /var/lib/rabbitmq/mnesia/*@localhost
-		;;
+    read -p "$RES_CHOICE_RABBITMQ " CHOICE_INSTALLATION
+    case "$CHOICE_INSTALLATION" in
+        y|Y )
+            yum -y remove rabbitmq-server erlang*
+            rm -rf /var/lib/rabbitmq/mnesia/*@localhost
+        ;;
 
-		n|N )
-			rm -f /etc/yum.repos.d/rabbitmq_*
-		;;
+        n|N )
+            rm -f /etc/yum.repos.d/rabbitmq_*
+        ;;
 
-		* )
-			echo $RES_CHOICE;
-			read_rabbitmq_update
-		;;
-	esac
+        * )
+            echo $RES_CHOICE
+            read_rabbitmq_update
+        ;;
+    esac
 }
