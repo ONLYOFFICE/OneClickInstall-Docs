@@ -305,75 +305,46 @@ install_netstat () {
     fi
 }
 
-to_lowercase () {
-    echo "$1" | awk '{print tolower($0)}'
-}
-
-trim () {
-    echo -e "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
-}
-
 get_os_info () {
-    OS=`to_lowercase \`uname\``
+    OS=$(uname | tr '[:upper:]' '[:lower:]')
 
-    if [ "${OS}" == "windowsnt" ]; then
-        echo "Not supported OS";
-        exit 1
-    elif [ "${OS}" == "darwin" ]; then
-        echo "Not supported OS";
-        exit 1
-    else
-        OS=`uname`
-
-        if [ "${OS}" == "SunOS" ] ; then
-            echo "Not supported OS";
+    case "${OS}" in
+        windowsnt|darwin|sunos|aix)
+            echo "Not supported OS"
             exit 1
-        elif [ "${OS}" == "AIX" ] ; then
-            echo "Not supported OS";
-            exit 1
-        elif [ "${OS}" == "Linux" ] ; then
-            MACH=`uname -m`
+            ;;
+        linux)
+            MACH=$(uname -m)
 
             if [[ "${MACH}" != "x86_64" && "${MACH}" != "aarch64" && "${MACH}" != "arm64" ]]; then
                 echo "Currently only supports 64bit OS's"
                 exit 1
             fi
 
-            KERNEL=`uname -r`
+            KERNEL=$(uname -r)
 
-            if [ -f /etc/redhat-release ] ; then
-                CONTAINS=$(cat /etc/redhat-release | { grep -sw release || true; });
-                if [[ -n ${CONTAINS} ]]; then
-                    DIST=`cat /etc/redhat-release |sed s/\ release.*//`
-                    REV=`cat /etc/redhat-release | grep -oP '(?<=release )\d+'`
-                else
-                    DIST=`cat /etc/os-release | grep -sw 'ID' | awk -F=  '{ print $2 }' | sed -e 's/^"//' -e 's/"$//'`
-                    REV=`cat /etc/os-release | grep -sw 'VERSION_ID' | awk -F=  '{ print $2 }' | sed -e 's/^"//' -e 's/"$//'`
-                fi
-                REV_PARTS=(${REV//\./ });
-                REV=${REV_PARTS[0]};
-            elif [ -f /etc/SuSE-release ] ; then
-                REV=`cat /etc/os-release  | grep '^VERSION_ID' | awk -F=  '{ print $2 }' |  sed -e 's/^"//'  -e 's/"$//'`
-                DIST='SuSe'
-            elif [ -f /etc/debian_version ] ; then
-                REV=`cat /etc/debian_version`
-                DIST='Debian'
-                if [ -f /etc/lsb-release ] ; then
-                    DIST=`cat /etc/lsb-release | grep '^DISTRIB_ID' | awk -F=  '{ print $2 }'`
-                    REV=`cat /etc/lsb-release | grep '^DISTRIB_RELEASE' | awk -F=  '{ print $2 }'`
-                elif [ -f /etc/lsb_release ] || [ -f /usr/bin/lsb_release ] ; then
-                    DIST=`lsb_release -a 2>&1 | grep 'Distributor ID:' | awk -F ":" '{print $2 }'`
-                    REV=`lsb_release -a 2>&1 | grep 'Release:' | awk -F ":" '{print $2 }'`
-                fi
-            elif [ -f /etc/os-release ] ; then
-                DIST=`cat /etc/os-release | grep -sw 'ID' | awk -F=  '{ print $2 }' | sed -e 's/^"//' -e 's/"$//'`
-                REV=`cat /etc/os-release | grep -sw 'VERSION_ID' | awk -F=  '{ print $2 }' | sed -e 's/^"//' -e 's/"$//'`
+            if [ -f /etc/redhat-release ]; then
+                DIST=$(sed 's/ release.*//' /etc/redhat-release)
+                REV=$(grep -oP '(?<=release )\d+' /etc/redhat-release || awk -F= '/VERSION_ID/{gsub(/"/,"");print $2}' /etc/os-release)
+            elif [ -f /etc/SuSE-release ]; then
+                DIST="SuSe"
+                REV=$(awk -F= '/^VERSION_ID/{gsub(/"/,"");print $2}' /etc/os-release)
+            elif [ -f /etc/debian_version ]; then
+                DIST="Debian"
+                REV=$(cat /etc/debian_version)
+                [ -f /etc/lsb-release ] && {
+                    DIST=$(awk -F= '/^DISTRIB_ID/{print $2}' /etc/lsb-release)
+                    REV=$(awk -F= '/^DISTRIB_RELEASE/{print $2}' /etc/lsb-release)
+                }
+            elif [ -f /etc/os-release ]; then
+                DIST=$(awk -F= '/^ID/{gsub(/"/,"");print $2}' /etc/os-release)
+                REV=$(awk -F= '/^VERSION_ID/{gsub(/"/,"");print $2}' /etc/os-release)
             fi
-        fi
+            ;;
+    esac
 
-        DIST=$(trim "$DIST")
-        REV=$(trim $REV)
-    fi
+    DIST=$(echo "${DIST}" | xargs)
+    REV=$(echo "${REV}" | xargs)
 }
 
 check_os_info () {
@@ -820,25 +791,6 @@ get_container_id () {
     fi
 
     echo "$CONTAINER_ID"
-}
-
-get_container_ip () {
-    CONTAINER_NAME=$1
-
-    if [[ -z ${CONTAINER_NAME} ]]; then
-        echo "Empty container name"
-        exit 1
-    fi
-
-    CONTAINER_IP=""
-
-    CONTAINER_EXIST=$(docker ps -aqf "name=$CONTAINER_NAME")
-
-    if [[ -n ${CONTAINER_EXIST} ]]; then
-        CONTAINER_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${CONTAINER_NAME})
-    fi
-
-    echo "$CONTAINER_IP"
 }
 
 get_random_str () {
