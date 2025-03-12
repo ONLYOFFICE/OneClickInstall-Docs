@@ -305,14 +305,6 @@ install_netstat () {
     fi
 }
 
-to_lowercase () {
-    echo "$1" | awk '{print tolower($0)}'
-}
-
-trim () {
-    echo -e "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
-}
-
 get_os_info () {
     OS=$(uname | tr '[:upper:]' '[:lower:]')
 
@@ -799,25 +791,6 @@ get_container_id () {
     fi
 
     echo "$CONTAINER_ID"
-}
-
-get_container_ip () {
-    CONTAINER_NAME=$1
-
-    if [[ -z ${CONTAINER_NAME} ]]; then
-        echo "Empty container name"
-        exit 1
-    fi
-
-    CONTAINER_IP=""
-
-    CONTAINER_EXIST=$(docker ps -aqf "name=$CONTAINER_NAME")
-
-    if [[ -n ${CONTAINER_EXIST} ]]; then
-        CONTAINER_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${CONTAINER_NAME})
-    fi
-
-    echo "$CONTAINER_IP"
 }
 
 get_random_str () {
