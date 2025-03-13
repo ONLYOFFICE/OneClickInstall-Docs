@@ -240,10 +240,7 @@ while [ "$1" != "" ]; do
 done
 
 root_checking () {
-    if [ ! $( id -u ) -eq 0 ]; then
-        echo "To perform this action you must be logged in with root rights"
-        exit 1
-    fi
+    [[ ${EUID} -eq 0 ]] || { echo "To perform this action you must be logged in with root rights"; exit 1; }
 }
 
 command_exists () {
@@ -251,16 +248,8 @@ command_exists () {
 }
 
 file_exists () {
-    if [ -z "$1" ]; then
-        echo "file path is empty"
-        exit 1
-    fi
-
-    if [ -f "$1" ]; then
-        return 0 #true
-    else
-        return 1 #false
-    fi
+    [[ -z "$1" ]] && { echo "file path is empty"; exit 1; }
+    [[ -f "$1" ]]
 }
 
 install_curl () {
@@ -393,7 +382,7 @@ check_hardware () {
         exit 1
     fi
 
-    CPU_CORES_NUMBER=$(cat /proc/cpuinfo | grep processor | wc -l)
+    CPU_CORES_NUMBER=$(grep -c '^processor' /proc/cpuinfo)
 
     if [ ${CPU_CORES_NUMBER} -lt ${CORE_REQUIREMENTS} ]; then
         echo "The system does not meet the minimal hardware requirements. CPU with at least $CORE_REQUIREMENTS cores is required"
@@ -493,9 +482,7 @@ install_docker_using_script () {
         install_curl
     fi
 
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sh get-docker.sh
-    rm get-docker.sh
+    curl -fsSL https://get.docker.com | sh
 }
 
 install_docker () {
@@ -946,11 +933,7 @@ pull_image () {
 }
 
 create_network () {
-    EXIST=$(docker network ls | awk '{print $2;}' | { grep -x ${NETWORK} || true; })
-
-    if [[ -z ${EXIST} ]]; then
-        docker network create --driver bridge ${NETWORK}
-    fi
+    docker network inspect "${NETWORK}" &>/dev/null || docker network create --driver bridge "${NETWORK}"
 }
 
 set_installation_type_data () {
