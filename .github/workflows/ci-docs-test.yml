@@ -1,19 +1,17 @@
 name: OneClickDocs-Install
 
-run-name: Install Docs on pure environment
-
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
-    paths-ignore:
-      - '.github/**'
-      - 'tests/**'
-      - '**/README.md'
+  push:
+    branches:
+      - 'hotfix/**'
+      - 'release/**'
+      - 'develop'
+      - 'master'
 
   workflow_dispatch:
 
   schedule:
-    - cron: '0 21 * * 6'  # At 21:00 on Saturday.
+    - cron: '0 21 * * 0'
 
 jobs:
   get-version:
@@ -120,7 +118,7 @@ jobs:
               vagrant destroy --force
 
     - name: "Test Local scripts with ver: ${{ needs.get-version.outputs.ds-ver }}"
-      if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+      if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
       uses: nick-fields/retry@v2
       with:
          max_attempts: 2
