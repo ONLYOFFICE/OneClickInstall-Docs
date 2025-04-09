@@ -2,9 +2,9 @@
 
 ## Overview
 
-This repo contains scripts to quickly install ONLYOFFICE Document Server.
+This repo contains scripts to quickly install ONLYOFFICE Docs.
 
-ONLYOFFICE Document Server is a free collaborative online office suite comprising viewers and editors for texts, spreadsheets and presentations, fully compatible with Office Open XML formats: .docx, .xlsx, .pptx.
+ONLYOFFICE Docs is an open-source office suite that comprises all the tools you need to work with documents, spreadsheets, presentations, PDFs, and PDF forms. The suite supports office files of all popular formats (DOCX, ODT, XLSX, ODS, CSV, PPTX, ODP, etc.) and enables collaborative editing in real time.
 
 Starting from version 6.0, Document Server is distributed under a new name - ONLYOFFICE Docs. 
 
