@@ -32,7 +32,7 @@ fi
 UPDATE_AVAILABLE_CODE=100
 if [[ $exitCode -eq $UPDATE_AVAILABLE_CODE ]]; then
     res_unsupported_version
-    echo $RES_UNSPPORTED_VERSION
+    echo $RES_UNSUPPORTED_VERSION
     echo $RES_SELECT_INSTALLATION
     echo $RES_ERROR_REMINDER
     echo $RES_QUESTIONS

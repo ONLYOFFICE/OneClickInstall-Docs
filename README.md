@@ -16,7 +16,7 @@ It has three editions - [Community, Enterprise, and Developer](#onlyoffice-docs-
 
 `docs-enterprise-install.sh` installs ONLYOFFICE Docs Enterprise Edition.
 
-`docs-developer-install.sh` istalls ONLYOFFICE Docs Developer Edition. 
+`docs-developer-install.sh` installs ONLYOFFICE Docs Developer Edition. 
 
 ## Functionality
 

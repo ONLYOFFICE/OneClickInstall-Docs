@@ -103,7 +103,7 @@ function check_hw() {
 # Arguments:
 #   None
 # Outputs:
-#   ☑ PREPAVE_VM: **<prepare_message>**
+#   ☑ PREPARE_VM: **<prepare_message>**
 #############################################################################################
 function prepare_vm() {
   if [ ! -f /etc/centos-release ]; then 
@@ -112,14 +112,14 @@ function prepare_vm() {
 	fi
 
   	[ -f /etc/os-release ] && [ "$(awk -F= '/^ID=/ {print $2}' /etc/os-release | tr -d '"')" == "debian" ] &&
-  	{ apt-get remove postfix -y; echo "${COLOR_GREEN}☑ PREPAVE_VM: Postfix was removed${COLOR_RESET}"; }
+  	{ apt-get remove postfix -y; echo "${COLOR_GREEN}☑ PREPARE_VM: Postfix was removed${COLOR_RESET}"; }
   fi
 
   if [ -f /etc/centos-release ]; then
 	  local REV=$(cat /etc/redhat-release | sed 's/[^0-9.]*//g')
 	  if [[ "${REV}" =~ ^9 ]]; then
 		  update-crypto-policies --set LEGACY
-		  echo "${COLOR_GREEN}☑ PREPAVE_VM: sha1 gpg key chek enabled${COLOR_RESET}"
+		  echo "${COLOR_GREEN}☑ PREPARE_VM: sha1 gpg key check enabled${COLOR_RESET}"
 	  else
 		  sudo sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-*
 	  fi
@@ -138,7 +138,7 @@ function prepare_vm() {
 
 
   echo '127.0.0.1 host4test' | sudo tee -a /etc/hosts   
-  echo "${COLOR_GREEN}☑ PREPAVE_VM: Hostname was setting up${COLOR_RESET}"   
+  echo "${COLOR_GREEN}☑ PREPARE_VM: Hostname was setting up${COLOR_RESET}"   
 
 }
 
@@ -200,7 +200,7 @@ function healthcheck_systemd_services() {
 #############################################################################################
 function healthcheck_general_status() {
   if [ ! -z "${SYSTEMD_SVC_FAILED}" ]; then
-    echo "${COLOR_YELLOW}⚠ ⚠  ATTENTION: Some sevices is not running ⚠ ⚠ ${COLOR_RESET}"
+    echo "${COLOR_YELLOW}⚠ ⚠  ATTENTION: Some services is not running ⚠ ⚠ ${COLOR_RESET}"
     exit 1
   fi
 }

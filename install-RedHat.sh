@@ -16,7 +16,7 @@ RES_QUESTIONS="In case you have any questions contact us via http://support.only
 res_unsupported_version () {
     RES_CHOICE="Please, enter Y or N"
     RES_CHOICE_INSTALLATION="Continue installation [Y/N]? "
-    RES_UNSPPORTED_VERSION="You have an unsupported version of $DIST installed"
+    RES_UNSUPPORTED_VERSION="You have an unsupported version of $DIST installed"
     RES_SELECT_INSTALLATION="Select 'N' to cancel the ONLYOFFICE installation (recommended). Select 'Y' to continue installing ONLYOFFICE"
     RES_ERROR_REMINDER="Please note, that if you continue with the installation, there may be errors"
 }
