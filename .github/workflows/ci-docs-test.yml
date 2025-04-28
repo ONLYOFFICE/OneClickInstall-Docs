@@ -33,7 +33,7 @@ jobs:
   vagrant-up:
     name: "Test Docs with ${{matrix.name}}"
     needs: [get-version]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       VER: ${{ needs.get-version.outputs.ds-ver }}
     strategy:
@@ -90,10 +90,12 @@ jobs:
 
     - name: Set up vagrant and virtualbox
       run: |
+           wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo gpg --dearmor -o /usr/share/keyrings/virtualbox.gpg
+           echo "deb [arch=amd64 signed-by=/usr/share/keyrings/virtualbox.gpg] https://download.virtualbox.org/virtualbox/debian $(. /etc/os-release && echo $UBUNTU_CODENAME) contrib" | sudo tee /etc/apt/sources.list.d/virtualbox.list
            curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-           echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com jammy main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+           echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
            sudo apt update -y 
-           sudo apt install vagrant virtualbox -y
+           sudo apt install vagrant virtualbox-7.0 -y
 
     - name: Test production scripts
       if: ${{ github.event_name == 'schedule' }}
@@ -134,8 +136,8 @@ jobs:
                     TEST_CASE='--local-install' \
                     DISTR='${{ matrix.distr }}' \
                     OS='${{ matrix.os }}' \
-                    RAM='9100' \
-                    CPU='3' \
+                    RAM='4096' \
+                    CPU='2' \
                     VER='-v ${{ env.VER }}' \
                     DOWNLOAD_SCRIPT='-ds false' \
                     TEST_REPO='-tr true' \
