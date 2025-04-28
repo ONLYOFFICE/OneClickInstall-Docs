@@ -106,7 +106,7 @@ function check_hw() {
 #   ☑ PREPARE_VM: **<prepare_message>**
 #############################################################################################
 function prepare_vm() {
-  if [ ! -f /etc/centos-release ]; then 
+  if grep -qi 'debian\|ubuntu' /etc/os-release; then
 	if [ "${TEST_REPO_ENABLE}" == 'true' ]; then
 	    echo "deb [trusted=yes] https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/repo/debian stable ${VER}" | sudo tee /etc/apt/sources.list.d/onlyoffice-dev.list
 	fi
@@ -115,15 +115,62 @@ function prepare_vm() {
   	{ apt-get remove postfix -y; echo "${COLOR_GREEN}☑ PREPARE_VM: Postfix was removed${COLOR_RESET}"; }
   fi
 
-  if [ -f /etc/centos-release ]; then
-	  local REV=$(cat /etc/redhat-release | sed 's/[^0-9.]*//g')
+  if [ -f /etc/redhat-release ]; then
+	  local REV=$(sed -E 's/[^0-9]+([0-9]+).*/\1/' /etc/redhat-release)
 	  if [[ "${REV}" =~ ^9 ]]; then
 		  update-crypto-policies --set LEGACY
 		  echo "${COLOR_GREEN}☑ PREPARE_VM: sha1 gpg key check enabled${COLOR_RESET}"
-	  else
-		  sudo sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-*
-	  fi
+      cat <<EOF | sudo tee /etc/yum.repos.d/centos-stream-9.repo
+[centos9s-baseos]
+name=CentOS Stream 9 - BaseOS
+baseurl=http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/
+enabled=1
+gpgcheck=0
 
+[centos9s-appstream]
+name=CentOS Stream 9 - AppStream
+baseurl=http://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/
+enabled=1
+gpgcheck=0
+EOF
+    else
+      if grep -qi 'centos' /etc/redhat-release; then
+          sudo sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-*
+      else
+          if [ "$REV" == "7" ]; then
+            cat <<EOF | sudo tee /etc/yum.repos.d/CentOS-Vault.repo
+[base]
+name=CentOS-7 - Base
+baseurl=http://vault.centos.org/7.9.2009/os/x86_64/
+gpgcheck=0
+enabled=1
+[updates]
+name=CentOS-7 - Updates
+baseurl=http://vault.centos.org/7.9.2009/updates/x86_64/
+gpgcheck=0
+enabled=1
+[extras]
+name=CentOS-7 - Extras
+baseurl=http://vault.centos.org/7.9.2009/extras/x86_64/
+gpgcheck=0
+enabled=1
+EOF
+          elif [ "$REV" == "8" ]; then
+            cat <<EOF | sudo tee /etc/yum.repos.d/CentOS-Vault.repo
+[BaseOS]
+name=CentOS-8 - Base
+baseurl=http://vault.centos.org/8.5.2111/BaseOS/x86_64/os/
+gpgcheck=0
+enabled=1
+[AppStream]
+name=CentOS-8 - AppStream
+baseurl=http://vault.centos.org/8.5.2111/AppStream/x86_64/os/
+gpgcheck=0
+enabled=1
+EOF
+          fi
+      fi
+    fi
 	  if [ "${TEST_REPO_ENABLE}" == 'true' ]; then
                yum-config-manager --add-repo https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/repo/centos/onlyoffice-dev-${VER}.repo
 	  fi

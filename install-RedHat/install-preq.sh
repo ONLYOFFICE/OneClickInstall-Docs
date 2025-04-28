@@ -44,17 +44,6 @@ fi
 #Add repo EPEL
 yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
 
-if [ "$REV" = "7" ] && [ "$DIST" = "redhat" ]; then
-    # add centos repo
-cat > /etc/yum.repos.d/centos.repo <<END
-[nginx-stable]
-name=CentOS \$releasever – Base
-baseurl=http://mirror.centos.org/centos/$REV/os/\$basearch/
-gpgcheck=0
-enabled=1
-END
-fi
-
 #add rabbitmq repo
 curl -s https://packagecloud.io/install/repositories/rabbitmq/rabbitmq-server/script.rpm.sh | bash
 

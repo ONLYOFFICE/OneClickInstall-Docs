@@ -38,6 +38,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - distr: generic
+            os: rhel7
+            name: "RHEL 7"
+
+          - distr: generic
+            os: rhel8
+            name: "RHEL 8"
+
+          - distr: generic
+            os: rhel9
+            name: "RHEL 9"
+
           - distr: onlyoffice
             os: base-centos7
             name: "CentOS 7"
