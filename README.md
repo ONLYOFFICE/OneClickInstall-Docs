@@ -62,7 +62,7 @@ The installation scripts support the following operating systems, which are **re
 
 ## Installing ONLYOFFICE Docs using the provided script
 
-**STEP 1**: Download ONLYOFFICE Docs Community Edition Docker script file:
+**STEP 1**: Download ONLYOFFICE Docs Community Edition Docker script file:
 
 ```bash
 wget http://download.onlyoffice.com/docs/docs-install.sh

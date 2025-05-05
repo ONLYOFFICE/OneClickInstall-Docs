@@ -59,7 +59,7 @@ while [ "$1" != "" ]; do
 	shift
 done
 
-export TERM=xterm-256color^M
+export TERM=xterm-256color
 
 SERVICES_SYSTEMD=(
         "ds-converter.service"
@@ -103,7 +103,7 @@ function check_hw() {
 # Arguments:
 #   None
 # Outputs:
-#   ☑ PREPARE_VM: **<prepare_message>**
+#   [OK] PREPARE_VM: **<prepare_message>**
 #############################################################################################
 function prepare_vm() {
   if grep -qi 'debian\|ubuntu' /etc/os-release; then
@@ -112,14 +112,14 @@ function prepare_vm() {
 	fi
 
   	[ -f /etc/os-release ] && [ "$(awk -F= '/^ID=/ {print $2}' /etc/os-release | tr -d '"')" == "debian" ] &&
-  	{ apt-get remove postfix -y; echo "${COLOR_GREEN}☑ PREPARE_VM: Postfix was removed${COLOR_RESET}"; }
+  	{ apt-get remove postfix -y; echo "${COLOR_GREEN}[OK] PREPARE_VM: Postfix was removed${COLOR_RESET}"; }
   fi
 
   if [ -f /etc/redhat-release ]; then
 	  local REV=$(sed -E 's/[^0-9]+([0-9]+).*/\1/' /etc/redhat-release)
 	  if [[ "${REV}" =~ ^9 ]]; then
 		  update-crypto-policies --set LEGACY
-		  echo "${COLOR_GREEN}☑ PREPARE_VM: sha1 gpg key check enabled${COLOR_RESET}"
+		  echo "${COLOR_GREEN}[OK] PREPARE_VM: sha1 gpg key check enabled${COLOR_RESET}"
       cat <<EOF | sudo tee /etc/yum.repos.d/centos-stream-9.repo
 [centos9s-baseos]
 name=CentOS Stream 9 - BaseOS
@@ -185,7 +185,7 @@ EOF
 
 
   echo '127.0.0.1 host4test' | sudo tee -a /etc/hosts   
-  echo "${COLOR_GREEN}☑ PREPARE_VM: Hostname was setting up${COLOR_RESET}"   
+  echo "${COLOR_GREEN}[OK] PREPARE_VM: Hostname was setting up${COLOR_RESET}"   
 
 }
 
@@ -226,9 +226,9 @@ function healthcheck_systemd_services() {
   for service in ${SERVICES_SYSTEMD[@]} 
   do 
     if systemctl is-active --quiet ${service}; then
-      echo "${COLOR_GREEN}☑ OK: Service ${service} is running${COLOR_RESET}"
+      echo "${COLOR_GREEN}[OK] Service ${service} is running${COLOR_RESET}"
     else 
-      echo "${COLOR_RED}⚠ FAILED: Service ${service} is not running${COLOR_RESET}"
+      echo "${COLOR_RED}[FAILED] Service ${service} is not running${COLOR_RESET}"
       SYSTEMD_SVC_FAILED="true"
     fi
   done
@@ -241,13 +241,13 @@ function healthcheck_systemd_services() {
 # Arguments:
 #   None
 # Outputs:
-#   ⚠ ⚠  ATTENTION: Some sevices is not running ⚠ ⚠ 
+#   [WARNING] ATTENTION: Some services is not running
 # Returns
 # 0 if all services is start correctly, non-zero if some failed
 #############################################################################################
 function healthcheck_general_status() {
   if [ ! -z "${SYSTEMD_SVC_FAILED}" ]; then
-    echo "${COLOR_YELLOW}⚠ ⚠  ATTENTION: Some services is not running ⚠ ⚠ ${COLOR_RESET}"
+    echo "${COLOR_YELLOW}[WARNING] ATTENTION: Some services is not running${COLOR_RESET}"
     exit 1
   fi
 }
