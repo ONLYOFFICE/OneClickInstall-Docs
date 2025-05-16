@@ -31,7 +31,7 @@
  # terms at http://creativecommons.org/licenses/by-sa/4.0/legalcode
  #
 
-PARAMETERS=""
+PARAMETERS="-it COMMUNITY $PARAMETERS"
 DOCKER=""
 LOCAL_SCRIPTS="false"
 HELP="false"
@@ -49,114 +49,64 @@ while [ "$1" != "" ]; do
         "-?" | -h | --help )
             HELP="true"
             DOCKER="true"
-            PARAMETERS="$PARAMETERS -ht docs-install.sh"
+            PARAMETERS="$PARAMETERS -ht $(basename "$0")"
         ;;
     esac
     PARAMETERS="$PARAMETERS ${1}"
     shift
 done
 
-PARAMETERS="-it COMMUNITY $PARAMETERS"
-
 root_checking () {
-    if [ ! $( id -u ) -eq 0 ]; then
-        echo "To perform this action you must be logged in with root rights"
-        exit 1
-    fi
+	[[ $EUID -eq 0 ]] || { echo "To perform this action you must be logged in with root rights"; exit 1; }
 }
 
-command_exists () {
+is_command_exists () {
     type "$1" &> /dev/null
 }
 
 install_curl () {
-    if command_exists apt-get; then
-        apt-get -y update
-        apt-get -y -q install curl
-    elif command_exists yum; then
-        yum -y install curl
-    fi
+	if is_command_exists apt-get; then
+		apt-get -y update
+		apt-get -y -q install curl
+	elif is_command_exists yum; then
+		yum -y install curl
+	fi
 
-    if ! command_exists curl; then
-        echo "command curl not found"
-        exit 1
-    fi
+	is_command_exists curl || { echo "Command curl not found."; exit 1; }
 }
 
-read_installation_method () {
-    echo "Select 'Y' to install ONLYOFFICE Docs using Docker (recommended). Select 'N' to install it using RPM/DEB packages."
-    read -p "Install with Docker [Y/N/C]? " choice
-    case "$choice" in
-        y|Y )
-            DOCKER="true"
-        ;;
-
-        n|N )
-            DOCKER="false"
-        ;;
-
-        c|C )
-            exit 0
-        ;;
-
-        * )
-            echo "Please, enter Y, N or C to cancel"
-        ;;
-    esac
-
-    if [ "$DOCKER" == "" ]; then
-        read_installation_method
-    fi
+read_installation_method() {
+    echo "Select 'Y' to install ONLYOFFICE Docs using Docker (recommended)."
+    echo "Select 'N' to install it using RPM/DEB packages."
+    while true; do
+        read -p "Install with Docker [Y/N/C]? " choice
+        case "$choice" in
+            [yY]) DOCKER="true"; break ;;
+            [nN]) DOCKER="false"; break ;;
+            [cC]) exit 0 ;;
+            *) echo "Please, enter Y, N, or C to cancel." ;;
+        esac
+    done
 }
 
 root_checking
 
-if ! command_exists curl ; then
-    install_curl
-fi
+is_command_exists curl || install_curl
 
-if [ "$HELP" == "false" ]; then
-    read_installation_method
-fi
+[ "$HELP" == "false" ] && read_installation_method
 
-if [ "$DOCKER" == "true" ]; then
-    if [ "$LOCAL_SCRIPTS" == "true" ]; then
-        bash install.sh ${PARAMETERS}
-    else
-        curl -s -O http://download.onlyoffice.com/docs/install.sh
-        bash install.sh ${PARAMETERS}
-        rm install.sh
-    fi
+if [ "$DOCKER" = "true" ]; then
+    SCRIPT="install.sh"
+elif [ -f /etc/redhat-release ]; then
+    SCRIPT="install-RedHat.sh"
+elif [ -f /etc/debian_version ]; then
+    SCRIPT="install-Debian.sh"
 else
-    if [ -f /etc/redhat-release ] ; then
-        DIST=$(cat /etc/redhat-release |sed s/\ release.*//)
-        REV=$(cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//)
-
-        REV_PARTS=(${REV//\./ })
-        REV=${REV_PARTS[0]}
-
-        if [[ "${DIST}" == CentOS* ]] && [ ${REV} -lt 7 ]; then
-            echo "CentOS 7 or later is required"
-            exit 1
-        fi
-
-        if [ "$LOCAL_SCRIPTS" == "true" ]; then
-            bash install-RedHat.sh ${PARAMETERS}
-        else
-            curl -s -O http://download.onlyoffice.com/docs/install-RedHat.sh
-            bash install-RedHat.sh ${PARAMETERS}
-            rm install-RedHat.sh
-        fi
-    elif [ -f /etc/debian_version ] ; then
-        if [ "$LOCAL_SCRIPTS" == "true" ]; then
-            bash install-Debian.sh ${PARAMETERS}
-        else
-            curl -s -O http://download.onlyoffice.com/docs/install-Debian.sh
-            bash install-Debian.sh ${PARAMETERS}
-            rm install-Debian.sh
-        fi
-    else
-        echo "Not supported OS"
-        exit 1
-    fi
+    echo "Not supported OS" >&2
+    exit 1
 fi
+
+[ "$LOCAL_SCRIPTS" != "true" ] && curl -s -O "http://download.onlyoffice.com/docs/${SCRIPT}"
+bash ${SCRIPT} ${PARAMETERS} || EXIT_CODE=$?
+[ "${LOCAL_SCRIPTS}" != "true" ] && rm -f "${SCRIPT}"
+exit ${EXIT_CODE:-0}
