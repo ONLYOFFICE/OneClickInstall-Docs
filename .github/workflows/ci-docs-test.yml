@@ -54,6 +54,10 @@ jobs:
             os: base-centos9s
             name: "CentOS 9 Stream"
 
+          - distr: bento
+            os: amazonlinux-2023
+            name: "Amazon Linux 2023"
+
           - distr: onlyoffice
             os: base-debian10
             name: "Debian 10"
