@@ -136,26 +136,7 @@ EOF
     else
       if grep -qi 'centos' /etc/redhat-release; then
           sudo sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-*
-      else
-          if [ "$REV" == "7" ]; then
-            cat <<EOF | sudo tee /etc/yum.repos.d/CentOS-Vault.repo
-[base]
-name=CentOS-7 - Base
-baseurl=http://vault.centos.org/7.9.2009/os/x86_64/
-gpgcheck=0
-enabled=1
-[updates]
-name=CentOS-7 - Updates
-baseurl=http://vault.centos.org/7.9.2009/updates/x86_64/
-gpgcheck=0
-enabled=1
-[extras]
-name=CentOS-7 - Extras
-baseurl=http://vault.centos.org/7.9.2009/extras/x86_64/
-gpgcheck=0
-enabled=1
-EOF
-          elif [ "$REV" == "8" ]; then
+      elif [ "$REV" == "8" ]; then
             cat <<EOF | sudo tee /etc/yum.repos.d/CentOS-Vault.repo
 [BaseOS]
 name=CentOS-8 - Base
@@ -168,7 +149,6 @@ baseurl=http://vault.centos.org/8.5.2111/AppStream/x86_64/os/
 gpgcheck=0
 enabled=1
 EOF
-          fi
       fi
     fi
 	  if [ "${TEST_REPO_ENABLE}" == 'true' ]; then

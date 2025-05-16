@@ -21,11 +21,6 @@ REV=$(cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//)
 REV_PARTS=(${REV//\./ })
 REV=${REV_PARTS[0]}
 
-if ! [[ "$REV" =~ ^[0-9]+$ ]]; then
-    REV=7
-fi
-
-
 { yum check-update postgresql; PSQLExitCode=$?; } || true 
 { yum check-update $DIST*-release; exitCode=$?; } || true #Checking for distribution update
 
@@ -94,13 +89,8 @@ fi
 
 postgresql-setup initdb	|| true
 
-if [ "$REV" = "7" ]; then
-    sed "/host\s*all\s*all\s*127\.0\.0\.1\/32\s*ident$/s|ident$|trust|" -i /var/lib/pgsql/data/pg_hba.conf
-    sed "/host\s*all\s*all\s*::1\/128\s*ident$/s|ident$|trust|" -i /var/lib/pgsql/data/pg_hba.conf
-else
-    sed -E -i "s/(host\s+(all|replication)\s+all\s+(127\.0\.0\.1\/32|\:\:1\/128)\s+)(ident|trust|md5)/\1scram-sha-256/" /var/lib/pgsql/data/pg_hba.conf
-    sed -i "s/^#\?password_encryption = .*/password_encryption = 'scram-sha-256'/" /var/lib/pgsql/data/postgresql.conf
-fi
+sed -E -i "s/(host\s+(all|replication)\s+all\s+(127\.0\.0\.1\/32|\:\:1\/128)\s+)(ident|trust|md5)/\1scram-sha-256/" /var/lib/pgsql/data/pg_hba.conf
+sed -i "s/^#\?password_encryption = .*/password_encryption = 'scram-sha-256'/" /var/lib/pgsql/data/postgresql.conf
 
 semanage permissive -a httpd_t
 

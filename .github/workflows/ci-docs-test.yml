@@ -39,20 +39,12 @@ jobs:
       matrix:
         include:
           - distr: generic
-            os: rhel7
-            name: "RHEL 7"
-
-          - distr: generic
             os: rhel8
             name: "RHEL 8"
 
           - distr: generic
             os: rhel9
             name: "RHEL 9"
-
-          - distr: onlyoffice
-            os: base-centos7
-            name: "CentOS 7"
 
           - distr: onlyoffice
             os: base-centos8s
@@ -73,10 +65,6 @@ jobs:
           - distr: onlyoffice
             os: base-debian12
             name: "Debian 12"
-
-          - distr: onlyoffice
-            os: base-ubuntu1804
-            name: "Ubuntu 18.04"
 
           - distr: onlyoffice
             os: base-ubuntu2004
