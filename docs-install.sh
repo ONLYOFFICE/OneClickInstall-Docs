@@ -108,7 +108,7 @@ fi
 
 if [ "$DOCKER" = "true" ]; then
     SCRIPT="install.sh"
-elif [ -f /etc/redhat-release ]; then
+elif [ -f /etc/redhat-release ] || [ -f /etc/amazon-linux-release ]; then
     SCRIPT="install-RedHat.sh"
 elif [ -f /etc/debian_version ]; then
     SCRIPT="install-Debian.sh"

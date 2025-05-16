@@ -15,12 +15,6 @@ yum clean all
 
 yum -y install yum-utils
 
-DIST=$(rpm -q --whatprovides redhat-release || rpm -q --whatprovides centos-release)
-DIST=$(echo $DIST | sed -n '/-.*/s///p')
-REV=$(cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//)
-REV_PARTS=(${REV//\./ })
-REV=${REV_PARTS[0]}
-
 { yum check-update postgresql; PSQLExitCode=$?; } || true 
 { yum check-update $DIST*-release; exitCode=$?; } || true #Checking for distribution update
 
@@ -93,5 +87,10 @@ sed -E -i "s/(host\s+(all|replication)\s+all\s+(127\.0\.0\.1\/32|\:\:1\/128)\s+)
 sed -i "s/^#\?password_encryption = .*/password_encryption = 'scram-sha-256'/" /var/lib/pgsql/data/postgresql.conf
 
 semanage permissive -a httpd_t
+
+if [ -e /etc/redis.conf ]; then
+    sed -i "s/bind .*/bind 127.0.0.1/g" /etc/redis.conf
+    sed -r "/^save\s[0-9]+/d" -i /etc/redis.conf
+fi
 
 package_services="rabbitmq-server postgresql redis"

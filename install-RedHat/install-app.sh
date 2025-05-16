@@ -10,12 +10,6 @@ cat<<EOF
 
 EOF
 
-if [ -e /etc/redis.conf ]; then
-    sed -i "s/bind .*/bind 127.0.0.1/g" /etc/redis.conf
-    sed -r "/^save\s[0-9]+/d" -i /etc/redis.conf
-    systemctl restart redis
-fi
-
 for SVC in $package_services; do
     systemctl start $SVC
     systemctl enable $SVC
