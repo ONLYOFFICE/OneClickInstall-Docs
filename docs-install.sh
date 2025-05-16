@@ -49,7 +49,7 @@ while [ "$1" != "" ]; do
         "-?" | -h | --help )
             HELP="true"
             DOCKER="true"
-            PARAMETERS="$PARAMETERS -ht docs-install.sh"
+            PARAMETERS="$PARAMETERS -ht $(basename "$0")"
         ;;
     esac
     PARAMETERS="$PARAMETERS ${1}"
@@ -83,30 +83,17 @@ install_curl () {
     fi
 }
 
-read_installation_method () {
-    echo "Select 'Y' to install ONLYOFFICE Docs using Docker (recommended). Select 'N' to install it using RPM/DEB packages."
-    read -p "Install with Docker [Y/N/C]? " choice
-    case "$choice" in
-        y|Y )
-            DOCKER="true"
-        ;;
-
-        n|N )
-            DOCKER="false"
-        ;;
-
-        c|C )
-            exit 0
-        ;;
-
-        * )
-            echo "Please, enter Y, N or C to cancel"
-        ;;
+read_installation_method() {
+  echo "Select 'Y' to install ONLYOFFICE Docs using Docker (recommended). Select 'N' to install it using RPM/DEB packages."
+  while true; do
+    read -p "Install ONLYOFFICE Docs with Docker? [Y/N/C]: " choice
+    case "${choice^^}" in
+      Y) DOCKER=true; break ;;
+      N) DOCKER=false; break ;;
+      C) exit 0 ;;
+      *) echo "Please enter Y, N or C." ;;
     esac
-
-    if [ "$DOCKER" == "" ]; then
-        read_installation_method
-    fi
+  done
 }
 
 root_checking
@@ -119,44 +106,20 @@ if [ "$HELP" == "false" ]; then
     read_installation_method
 fi
 
-if [ "$DOCKER" == "true" ]; then
-    if [ "$LOCAL_SCRIPTS" == "true" ]; then
-        bash install.sh ${PARAMETERS}
-    else
-        curl -s -O http://download.onlyoffice.com/docs/install.sh
-        bash install.sh ${PARAMETERS}
-        rm install.sh
-    fi
+if [ "$DOCKER" = "true" ]; then
+    SCRIPT="install.sh"
+elif [ -f /etc/redhat-release ]; then
+    SCRIPT="install-RedHat.sh"
+elif [ -f /etc/debian_version ]; then
+    SCRIPT="install-Debian.sh"
 else
-    if [ -f /etc/redhat-release ] ; then
-        DIST=$(cat /etc/redhat-release |sed s/\ release.*//)
-        REV=$(cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//)
-
-        REV_PARTS=(${REV//\./ })
-        REV=${REV_PARTS[0]}
-
-        if [[ "${DIST}" == CentOS* ]] && [ ${REV} -lt 7 ]; then
-            echo "CentOS 7 or later is required"
-            exit 1
-        fi
-
-        if [ "$LOCAL_SCRIPTS" == "true" ]; then
-            bash install-RedHat.sh ${PARAMETERS}
-        else
-            curl -s -O http://download.onlyoffice.com/docs/install-RedHat.sh
-            bash install-RedHat.sh ${PARAMETERS}
-            rm install-RedHat.sh
-        fi
-    elif [ -f /etc/debian_version ] ; then
-        if [ "$LOCAL_SCRIPTS" == "true" ]; then
-            bash install-Debian.sh ${PARAMETERS}
-        else
-            curl -s -O http://download.onlyoffice.com/docs/install-Debian.sh
-            bash install-Debian.sh ${PARAMETERS}
-            rm install-Debian.sh
-        fi
-    else
-        echo "Not supported OS"
-        exit 1
-    fi
+    echo "Not supported OS" >&2
+    exit 1
 fi
+
+if [ "$LOCAL_SCRIPTS" != "true" ]; then
+    curl -s -O "http://download.onlyoffice.com/docs/${SCRIPT}"
+fi
+
+bash "${SCRIPT}" ${PARAMETERS}
+[ "${LOCAL_SCRIPTS}" != "true" ] && rm -f "${SCRIPT}"

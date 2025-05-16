@@ -18,6 +18,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Creating additional scripts
+        run: |
+          for EDITION in ENTERPRISE DEVELOPER; do
+            cp -rf "./docs-install.sh" "./docs-${EDITION,,}-install.sh"
+            sed -i "/^PARAMETERS/s|\(-it\) [^\" ]\+|\1 ${EDITION}|g" "./docs-${EDITION,,}-install.sh"
+          done
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
