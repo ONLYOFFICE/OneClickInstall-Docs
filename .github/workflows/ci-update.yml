@@ -1,8 +1,6 @@
 name: OneClickDocs-Update
   
 on:
-  schedule:
-    - cron: '00 21 * * 0'
   workflow_dispatch:
 
 jobs:
@@ -31,10 +29,6 @@ jobs:
       matrix:
         include:         
           - distr: onlyoffice
-            os: centos7
-            name: "CentOS 7"
-
-          - distr: onlyoffice
             os: centos8s
             name: "CentOS 8 Stream"         
 
@@ -53,10 +47,6 @@ jobs:
           - distr: onlyoffice
             os: debian12
             name: "Debian 12"
-
-          - distr: onlyoffice
-            os: ubuntu1804
-            name: "Ubuntu 18.04"            
 
           - distr: onlyoffice
             os: ubuntu2004
