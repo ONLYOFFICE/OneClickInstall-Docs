@@ -49,7 +49,6 @@ KERNEL=""
 
 UPDATE="false"
 
-HUB=""
 USERNAME=""
 PASSWORD=""
 
@@ -93,9 +92,9 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
-        -hub | --hub )
+        -reg | --registry )
             if [ "$2" != "" ]; then
-                HUB=$2
+                REGISTRY_URL=$2
                 shift
             fi
         ;;
@@ -216,9 +215,9 @@ while [ "$1" != "" ]; do
             echo "      -jh, --jwtheader                  defines the http header that will be used to send the JWT"
             echo "      -js, --jwtsecret                  defines the secret key to validate the JWT in the request"
             echo "      -u, --update                      use to update existing components (true|false)"
-            echo "      -hub, --hub                       dockerhub name"
-            echo "      -un, --username                   dockerhub username"
-            echo "      -p, --password                    dockerhub password"
+            echo "      -reg, --registry                  docker registry URL (e.g., https://myregistry.com:5000)"
+            echo "      -un, --username                   docker registry login"
+            echo "      -p, --password                    docker registry password"
             echo "      -es, --useasexternalserver        use as external server (true|false)"
             echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
             echo "      -skiphc, --skiphardwarecheck      skip hardware check (true|false)"
@@ -543,7 +542,7 @@ install_docker () {
 
 docker_login () {
     if [[ -n ${USERNAME} && -n ${PASSWORD}  ]]; then
-        docker login ${HUB} --username ${USERNAME} --password ${PASSWORD}
+        docker login ${REGISTRY_URL} --username ${USERNAME} --password ${PASSWORD}
     fi
 }
 
@@ -572,11 +571,11 @@ get_available_version () {
     AUTH_HEADER=""
     TAGS_RESP=""
 
-    if [[ -n ${HUB} ]]; then
+    if [[ -n ${REGISTRY_URL} ]]; then
         DOCKER_CONFIG="$HOME/.docker/config.json"
 
         if [[ -f "$DOCKER_CONFIG" ]]; then
-            CREDENTIALS=$(jq -r '.auths."'$HUB'".auth' < "$DOCKER_CONFIG")
+            CREDENTIALS=$(jq -r '.auths."'$REGISTRY_URL'".auth' < "$DOCKER_CONFIG")
             if [ "$CREDENTIALS" == "null" ]; then
                 CREDENTIALS=""
             fi
@@ -590,8 +589,8 @@ get_available_version () {
             AUTH_HEADER="Authorization: Basic $CREDENTIALS"
         fi
 
-        REPO=$(echo $1 | sed "s/$HUB\///g");
-        TAGS_RESP=$(curl -s -H "$AUTH_HEADER" -X GET https://$HUB/v2/$REPO/tags/list)
+        REPO=$(echo $1 | sed "s/$REGISTRY_URL\///g");
+        TAGS_RESP=$(curl -s -H "$AUTH_HEADER" -X GET https://$REGISTRY_URL/v2/$REPO/tags/list)
         TAGS_RESP=$(echo $TAGS_RESP | jq -r '.tags')
     else
         if [[ -n ${USERNAME} && -n ${PASSWORD} ]]; then
