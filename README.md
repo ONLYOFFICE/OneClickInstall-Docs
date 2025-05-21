@@ -14,9 +14,9 @@ It has three editions - [Community, Enterprise, and Developer](#onlyoffice-docs-
 
 `docs-install.sh` is used to install ONLYOFFICE Docs Community Edition.
 
-`docs-enterprise-install.sh` installs ONLYOFFICE Docs Enterprise Edition.
+`docs-install.sh -it ENTERPRISE` installs ONLYOFFICE Docs Enterprise Edition.
 
-`docs-developer-install.sh` installs ONLYOFFICE Docs Developer Edition. 
+`docs-install.sh -it DEVELOPER` installs ONLYOFFICE Docs Developer Edition. 
 
 ## Functionality
 
@@ -59,16 +59,26 @@ The installation scripts support the following operating systems, which are **re
 
 ## Installing ONLYOFFICE Docs using the provided script
 
-**STEP 1**: Download ONLYOFFICE Docs Community Edition Docker script file:
+**STEP 1**: Download the Installation Script:
+Download the appropriate OneClickInstall script based on the version you want to install:
 
-```bash
-wget http://download.onlyoffice.com/docs/docs-install.sh
-```
+- **Enterprise**:
+    ```bash
+    wget https://download.onlyoffice.com/docs/docs-enterprise-install.sh
+    ```
+- **Developer**:
+    ```bash
+    wget https://download.onlyoffice.com/docs/docs-developer-install.sh
+    ```
+- **Community**:
+    ```bash
+    wget https://download.onlyoffice.com/docs/docs-install.sh
+    ```
 
 **STEP 2**: Install ONLYOFFICE Docs executing the following command:
 
 ```bash
-bash docs-install.sh
+bash <script-name>
 ```
 
 The detailed instruction is available in [ONLYOFFICE Help Center](https://helpcenter.onlyoffice.com/installation/docs-community-install-script.aspx). 
