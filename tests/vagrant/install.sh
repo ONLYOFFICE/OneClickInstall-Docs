@@ -183,7 +183,7 @@ function install_docs() {
             wget https://download.onlyoffice.com/install/docs-install.sh
         fi
         
-	printf "N\nY\nY" | bash docs-install.sh ${ARGUMENTS}
+	printf "N\nY\nY\nY" | bash docs-install.sh ${ARGUMENTS}
 
 	if [[ $? != 0 ]]; then
 	    echo "Exit code non-zero. Exit with 1."
