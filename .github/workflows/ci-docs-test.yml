@@ -9,6 +9,12 @@ on:
       - 'master'
 
   workflow_dispatch:
+    inputs:
+      target_os:
+        description: 'Target OS to test (use values like "all", "rhel8", "ubuntu2204", etc)'
+        required: false
+        default: all
+        type: string
 
   schedule:
     - cron: '0 21 * * 0'
@@ -41,46 +47,63 @@ jobs:
           - distr: generic
             os: rhel8
             name: "RHEL 8"
+            input_os: rhel8
 
           - distr: generic
             os: rhel9
             name: "RHEL 9"
+            input_os: rhel9
 
           - distr: onlyoffice
             os: base-centos8s
             name: "CentOS 8 Stream"
+            input_os: centos8s
 
           - distr: onlyoffice
             os: base-centos9s
             name: "CentOS 9 Stream"
+            input_os: centos9s
 
           - distr: bento
             os: amazonlinux-2023
             name: "Amazon Linux 2023"
+            input_os: amazonlinux-2023
 
           - distr: onlyoffice
             os: base-debian10
             name: "Debian 10"
+            input_os: debian10
 
           - distr: onlyoffice
             os: base-debian11
             name: "Debian 11"
+            input_os: debian11
 
           - distr: onlyoffice
             os: base-debian12
             name: "Debian 12"
+            input_os: debian12
 
           - distr: onlyoffice
             os: base-ubuntu2004
             name: "Ubuntu 20.04"
+            input_os: ubuntu2004
 
           - distr: onlyoffice
             os: base-ubuntu2204
             name: "Ubuntu 22.04"
+            input_os: ubuntu2204
 
           - distr: onlyoffice
             os: base-ubuntu2404
             name: "Ubuntu 24.04"
+            input_os: ubuntu2404
+
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.target_os == 'all' ||
+      github.event.inputs.target_os == matrix.input_os
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
