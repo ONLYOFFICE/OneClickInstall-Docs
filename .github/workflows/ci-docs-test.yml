@@ -24,7 +24,7 @@ jobs:
       id: get-version
       shell: bash
       run: |
-        VERSION=$(curl -sL -H "Accept: application/vnd.github+json" https://api.github.com/repos/ONLYOFFICE/document-server-package/branches \
+        VERSION=$(curl -sL -H "Accept: application/vnd.github+json" https://api.github.com/repos/ONLYOFFICE/document-server-package/branches?per_page=100 \
           | jq -r '.[] | select(.name|test("^(release|hotfix)/")) | .name' | sort -Vr | head -n1 | awk -F '/' '{print $2}' | sed 's/^v//')
         echo "ds-ver=${VERSION:-99.99.99}" >> "$GITHUB_OUTPUT"
 
