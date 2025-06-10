@@ -115,7 +115,7 @@ function prepare_vm() {
   	{ apt-get remove postfix -y; echo "${COLOR_GREEN}[OK] PREPARE_VM: Postfix was removed${COLOR_RESET}"; }
   fi
 
-  if [ -f /etc/redhat-release ]; then
+  if [ -f /etc/redhat-release ] || [ -f /etc/amazon-linux-release ]; then
 	  local REV=$(sed -E 's/[^0-9]+([0-9]+).*/\1/' /etc/redhat-release)
 	  if [[ "${REV}" =~ ^9 ]]; then
 		  update-crypto-policies --set LEGACY
