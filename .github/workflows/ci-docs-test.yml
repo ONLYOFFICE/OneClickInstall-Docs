@@ -1,19 +1,17 @@
 name: OneClickDocs-Install
 
-run-name: Install Docs on pure environment
-
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
-    paths-ignore:
-      - '.github/**'
-      - 'tests/**'
-      - '**/README.md'
+  push:
+    branches:
+      - 'hotfix/**'
+      - 'release/**'
+      - 'develop'
+      - 'master'
 
   workflow_dispatch:
 
   schedule:
-    - cron: '0 21 * * 6'  # At 21:00 on Saturday.
+    - cron: '0 21 * * 0'
 
 jobs:
   get-version:
@@ -26,23 +24,27 @@ jobs:
       id: get-version
       shell: bash
       run: |
-        VERSION=$(curl -sL -H "Accept: application/vnd.github+json" https://api.github.com/repos/ONLYOFFICE/document-server-package/branches \
+        VERSION=$(curl -sL -H "Accept: application/vnd.github+json" https://api.github.com/repos/ONLYOFFICE/document-server-package/branches?per_page=100 \
           | jq -r '.[] | select(.name|test("^(release|hotfix)/")) | .name' | sort -Vr | head -n1 | awk -F '/' '{print $2}' | sed 's/^v//')
         echo "ds-ver=${VERSION:-99.99.99}" >> "$GITHUB_OUTPUT"
 
   vagrant-up:
     name: "Test Docs with ${{matrix.name}}"
     needs: [get-version]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       VER: ${{ needs.get-version.outputs.ds-ver }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - distr: onlyoffice
-            os: base-centos7
-            name: "CentOS 7"
+          - distr: generic
+            os: rhel8
+            name: "RHEL 8"
+
+          - distr: generic
+            os: rhel9
+            name: "RHEL 9"
 
           - distr: onlyoffice
             os: base-centos8s
@@ -51,6 +53,10 @@ jobs:
           - distr: onlyoffice
             os: base-centos9s
             name: "CentOS 9 Stream"
+
+          - distr: bento
+            os: amazonlinux-2023
+            name: "Amazon Linux 2023"
 
           - distr: onlyoffice
             os: base-debian10
@@ -63,10 +69,6 @@ jobs:
           - distr: onlyoffice
             os: base-debian12
             name: "Debian 12"
-
-          - distr: onlyoffice
-            os: base-ubuntu1804
-            name: "Ubuntu 18.04"
 
           - distr: onlyoffice
             os: base-ubuntu2004
@@ -90,10 +92,12 @@ jobs:
 
     - name: Set up vagrant and virtualbox
       run: |
+           wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo gpg --dearmor -o /usr/share/keyrings/virtualbox.gpg
+           echo "deb [arch=amd64 signed-by=/usr/share/keyrings/virtualbox.gpg] https://download.virtualbox.org/virtualbox/debian $(. /etc/os-release && echo $UBUNTU_CODENAME) contrib" | sudo tee /etc/apt/sources.list.d/virtualbox.list
            curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-           echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com jammy main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+           echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
            sudo apt update -y
-           sudo apt install vagrant virtualbox -y
+           sudo apt install vagrant virtualbox-7.0 -y
 
     - name: Test production scripts
       if: ${{ github.event_name == 'schedule' }}
@@ -109,8 +113,8 @@ jobs:
                    DISTR='${{ matrix.distr }}' \
                    OS='${{ matrix.os }}' \
                    DOWNLOAD_SCRIPT='-ds true' \
-                   RAM='6000' \
-                   CPU='3' \
+                   RAM='4096' \
+                   CPU='2' \
                    ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false'" \
                    vagrant up
         on_retry_command: |
@@ -120,7 +124,7 @@ jobs:
               vagrant destroy --force
 
     - name: "Test Local scripts with ver: ${{ needs.get-version.outputs.ds-ver }}"
-      if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+      if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
       uses: nick-fields/retry@v2
       with:
          max_attempts: 2
@@ -132,8 +136,8 @@ jobs:
                     TEST_CASE='--local-install' \
                     DISTR='${{ matrix.distr }}' \
                     OS='${{ matrix.os }}' \
-                    RAM='9100' \
-                    CPU='3' \
+                    RAM='4096' \
+                    CPU='2' \
                     VER='-v ${{ env.VER }}' \
                     DOWNLOAD_SCRIPT='-ds false' \
                     TEST_REPO='-tr true' \

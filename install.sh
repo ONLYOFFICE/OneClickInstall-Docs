@@ -49,7 +49,6 @@ KERNEL=""
 
 UPDATE="false"
 
-HUB=""
 USERNAME=""
 PASSWORD=""
 
@@ -93,9 +92,9 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
-        -hub | --hub )
+        -reg | --registry )
             if [ "$2" != "" ]; then
-                HUB=$2
+                REGISTRY_URL=$2
                 shift
             fi
         ;;
@@ -212,20 +211,20 @@ while [ "$1" != "" ]; do
             echo "      -di, --documentimage              document image name or .tar.gz file path"
             echo "      -dv, --documentversion            document version"
             echo "      -ids, --installdocumentserver     install or update document server (true|false|pull)"
-            echo "      -je, --jwtenabled                 specifies the enabling the JWT validation (true|false)"
-            echo "      -jh, --jwtheader                  defines the http header that will be used to send the JWT"
+            echo "      -je, --jwtenabled                 specifies whether JWT validation is enabled (true|false)"
+            echo "      -jh, --jwtheader                  defines the HTTP header that will be used to send the JWT"
             echo "      -js, --jwtsecret                  defines the secret key to validate the JWT in the request"
             echo "      -u, --update                      use to update existing components (true|false)"
-            echo "      -hub, --hub                       dockerhub name"
-            echo "      -un, --username                   dockerhub username"
-            echo "      -p, --password                    dockerhub password"
+            echo "      -reg, --registry                  docker registry URL (e.g., https://myregistry.com:5000)"
+            echo "      -un, --username                   docker registry login"
+            echo "      -p, --password                    docker registry password"
             echo "      -es, --useasexternalserver        use as external server (true|false)"
             echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
             echo "      -skiphc, --skiphardwarecheck      skip hardware check (true|false)"
             echo "      -skipvc, --skipversioncheck       skip version check while update (true|false)"
             echo "      -dp, --docsport                   docs port (default value 80)"
             echo "      -led, --letsencryptdomain         defines the domain for Let's Encrypt certificate"
-            echo "      -lem, --letsencryptmail           defines the domain administator mail address for Let's Encrypt certificate"
+            echo "      -lem, --letsencryptmail           defines the domain administrator mail address for Let's Encrypt certificate"
             echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
             echo "      -?, -h, --help                    this help"
             exit 0
@@ -240,10 +239,7 @@ while [ "$1" != "" ]; do
 done
 
 root_checking () {
-    if [ ! $( id -u ) -eq 0 ]; then
-        echo "To perform this action you must be logged in with root rights"
-        exit 1
-    fi
+    [[ ${EUID} -eq 0 ]] || { echo "To perform this action you must be logged in with root rights"; exit 1; }
 }
 
 command_exists () {
@@ -251,16 +247,8 @@ command_exists () {
 }
 
 file_exists () {
-    if [ -z "$1" ]; then
-        echo "file path is empty"
-        exit 1
-    fi
-
-    if [ -f "$1" ]; then
-        return 0 #true
-    else
-        return 1 #false
-    fi
+    [[ -z "$1" ]] && { echo "file path is empty"; exit 1; }
+    [[ -f "$1" ]]
 }
 
 install_curl () {
@@ -393,7 +381,7 @@ check_hardware () {
         exit 1
     fi
 
-    CPU_CORES_NUMBER=$(cat /proc/cpuinfo | grep processor | wc -l)
+    CPU_CORES_NUMBER=$(grep -c '^processor' /proc/cpuinfo)
 
     if [ ${CPU_CORES_NUMBER} -lt ${CORE_REQUIREMENTS} ]; then
         echo "The system does not meet the minimal hardware requirements. CPU with at least $CORE_REQUIREMENTS cores is required"
@@ -493,9 +481,7 @@ install_docker_using_script () {
         install_curl
     fi
 
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sh get-docker.sh
-    rm get-docker.sh
+    curl -fsSL https://get.docker.com | sh
 }
 
 install_docker () {
@@ -506,13 +492,22 @@ install_docker () {
         systemctl start docker
         systemctl enable docker
 
-    elif [ "${DIST}" == "Red Hat Enterprise Linux Server" ]; then
+	elif [[ "${DIST}" == Red\ Hat\ Enterprise\ Linux* ]]; then
 
-        echo ""
-        echo "Your operating system does not allow Docker CE installation."
-        echo "You can install Docker EE using the manual here - https://docs.docker.com/engine/installation/linux/rhel/"
-        echo ""
-        exit 1
+		if [[ "${REV}" -gt "7" ]]; then
+			yum remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc > null
+			yum install -y yum-utils
+			yum-config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
+			yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin
+			systemctl start docker
+			systemctl enable docker
+		else
+			echo ""
+			echo "Your operating system does not allow Docker CE installation."
+			echo "You can install Docker EE using the manual here - https://docs.docker.com/engine/installation/linux/rhel/"
+			echo ""
+			exit 1
+		fi
 
     elif [ "${DIST}" == "SuSe" ]; then
 
@@ -547,7 +542,7 @@ install_docker () {
 
 docker_login () {
     if [[ -n ${USERNAME} && -n ${PASSWORD}  ]]; then
-        docker login ${HUB} --username ${USERNAME} --password ${PASSWORD}
+        docker login ${REGISTRY_URL} --username ${USERNAME} --password ${PASSWORD}
     fi
 }
 
@@ -576,11 +571,11 @@ get_available_version () {
     AUTH_HEADER=""
     TAGS_RESP=""
 
-    if [[ -n ${HUB} ]]; then
+    if [[ -n ${REGISTRY_URL} ]]; then
         DOCKER_CONFIG="$HOME/.docker/config.json"
 
         if [[ -f "$DOCKER_CONFIG" ]]; then
-            CREDENTIALS=$(jq -r '.auths."'$HUB'".auth' < "$DOCKER_CONFIG")
+            CREDENTIALS=$(jq -r '.auths."'$REGISTRY_URL'".auth' < "$DOCKER_CONFIG")
             if [ "$CREDENTIALS" == "null" ]; then
                 CREDENTIALS=""
             fi
@@ -594,8 +589,8 @@ get_available_version () {
             AUTH_HEADER="Authorization: Basic $CREDENTIALS"
         fi
 
-        REPO=$(echo $1 | sed "s/$HUB\///g");
-        TAGS_RESP=$(curl -s -H "$AUTH_HEADER" -X GET https://$HUB/v2/$REPO/tags/list)
+        REPO=$(echo $1 | sed "s/$REGISTRY_URL\///g");
+        TAGS_RESP=$(curl -s -H "$AUTH_HEADER" -X GET https://$REGISTRY_URL/v2/$REPO/tags/list)
         TAGS_RESP=$(echo $TAGS_RESP | jq -r '.tags')
     else
         if [[ -n ${USERNAME} && -n ${PASSWORD} ]]; then
@@ -946,11 +941,7 @@ pull_image () {
 }
 
 create_network () {
-    EXIST=$(docker network ls | awk '{print $2;}' | { grep -x ${NETWORK} || true; })
-
-    if [[ -z ${EXIST} ]]; then
-        docker network create --driver bridge ${NETWORK}
-    fi
+    docker network inspect "${NETWORK}" &>/dev/null || docker network create --driver bridge "${NETWORK}"
 }
 
 set_installation_type_data () {

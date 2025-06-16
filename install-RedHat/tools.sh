@@ -21,7 +21,7 @@ check_hardware () {
         exit 1
     fi
 
-    CPU_CORES_NUMBER=$(cat /proc/cpuinfo | grep processor | wc -l);
+    CPU_CORES_NUMBER=$(grep -c ^processor /proc/cpuinfo)
 
     if [ ${CPU_CORES_NUMBER} -lt ${CORE_REQUIREMENTS} ]; then
         echo "The system does not meet the minimal hardware requirements. CPU with at least $CORE_REQUIREMENTS cores is required"
@@ -69,3 +69,8 @@ read_rabbitmq_update () {
         ;;
     esac
 }
+
+DIST=$(rpm -qa --queryformat '%{NAME}\n' | grep -E 'centos-release|redhat-release|fedora-release' | awk -F '-' '{print $1}' | head -n 1)
+REV=$(sed -n 's/.*release\ \([0-9]*\).*/\1/p' /etc/redhat-release) || true
+DIST=${DIST:-$(awk -F= '/^ID=/ {gsub(/"/, "", $2); print tolower($2)}' /etc/os-release)}
+REV=${REV:-$(awk -F= '/^VERSION_ID=/ {gsub(/"/, "", $2); print tolower($2)}' /etc/os-release)}

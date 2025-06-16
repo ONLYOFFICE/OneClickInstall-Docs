@@ -59,7 +59,7 @@ while [ "$1" != "" ]; do
 	shift
 done
 
-export TERM=xterm-256color^M
+export TERM=xterm-256color
 
 SERVICES_SYSTEMD=(
         "ds-converter.service"
@@ -103,27 +103,54 @@ function check_hw() {
 # Arguments:
 #   None
 # Outputs:
-#   ☑ PREPAVE_VM: **<prepare_message>**
+#   [OK] PREPARE_VM: **<prepare_message>**
 #############################################################################################
 function prepare_vm() {
-  if [ ! -f /etc/centos-release ]; then 
+  if grep -qi 'debian\|ubuntu' /etc/os-release; then
 	if [ "${TEST_REPO_ENABLE}" == 'true' ]; then
 	    echo "deb [trusted=yes] https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/repo/debian stable ${VER}" | sudo tee /etc/apt/sources.list.d/onlyoffice-dev.list
 	fi
 
   	[ -f /etc/os-release ] && [ "$(awk -F= '/^ID=/ {print $2}' /etc/os-release | tr -d '"')" == "debian" ] &&
-  	{ apt-get remove postfix -y; echo "${COLOR_GREEN}☑ PREPAVE_VM: Postfix was removed${COLOR_RESET}"; }
+  	{ apt-get remove postfix -y; echo "${COLOR_GREEN}[OK] PREPARE_VM: Postfix was removed${COLOR_RESET}"; }
   fi
 
-  if [ -f /etc/centos-release ]; then
-	  local REV=$(cat /etc/redhat-release | sed 's/[^0-9.]*//g')
+  if [ -f /etc/redhat-release ] || [ -f /etc/amazon-linux-release ]; then
+	  local REV=$(sed -E 's/[^0-9]+([0-9]+).*/\1/' /etc/redhat-release)
 	  if [[ "${REV}" =~ ^9 ]]; then
 		  update-crypto-policies --set LEGACY
-		  echo "${COLOR_GREEN}☑ PREPAVE_VM: sha1 gpg key chek enabled${COLOR_RESET}"
-	  else
-		  sudo sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-*
-	  fi
+		  echo "${COLOR_GREEN}[OK] PREPARE_VM: sha1 gpg key check enabled${COLOR_RESET}"
+      cat <<EOF | sudo tee /etc/yum.repos.d/centos-stream-9.repo
+[centos9s-baseos]
+name=CentOS Stream 9 - BaseOS
+baseurl=http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/
+enabled=1
+gpgcheck=0
 
+[centos9s-appstream]
+name=CentOS Stream 9 - AppStream
+baseurl=http://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/
+enabled=1
+gpgcheck=0
+EOF
+    else
+      if grep -qi 'centos' /etc/redhat-release; then
+          sudo sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-*
+      elif [ "$REV" == "8" ]; then
+            cat <<EOF | sudo tee /etc/yum.repos.d/CentOS-Vault.repo
+[BaseOS]
+name=CentOS-8 - Base
+baseurl=http://vault.centos.org/8.5.2111/BaseOS/x86_64/os/
+gpgcheck=0
+enabled=1
+[AppStream]
+name=CentOS-8 - AppStream
+baseurl=http://vault.centos.org/8.5.2111/AppStream/x86_64/os/
+gpgcheck=0
+enabled=1
+EOF
+      fi
+    fi
 	  if [ "${TEST_REPO_ENABLE}" == 'true' ]; then
                yum-config-manager --add-repo https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/repo/centos/onlyoffice-dev-${VER}.repo
 	  fi
@@ -138,7 +165,7 @@ function prepare_vm() {
 
 
   echo '127.0.0.1 host4test' | sudo tee -a /etc/hosts   
-  echo "${COLOR_GREEN}☑ PREPAVE_VM: Hostname was setting up${COLOR_RESET}"   
+  echo "${COLOR_GREEN}[OK] PREPARE_VM: Hostname was setting up${COLOR_RESET}"   
 
 }
 
@@ -156,7 +183,7 @@ function install_docs() {
             wget https://download.onlyoffice.com/install/docs-install.sh
         fi
         
-	printf "N\nY\nY" | bash docs-install.sh ${ARGUMENTS}
+	printf "N\nY\nY\nY" | bash docs-install.sh ${ARGUMENTS}
 
 	if [[ $? != 0 ]]; then
 	    echo "Exit code non-zero. Exit with 1."
@@ -179,9 +206,9 @@ function healthcheck_systemd_services() {
   for service in ${SERVICES_SYSTEMD[@]} 
   do 
     if systemctl is-active --quiet ${service}; then
-      echo "${COLOR_GREEN}☑ OK: Service ${service} is running${COLOR_RESET}"
+      echo "${COLOR_GREEN}[OK] Service ${service} is running${COLOR_RESET}"
     else 
-      echo "${COLOR_RED}⚠ FAILED: Service ${service} is not running${COLOR_RESET}"
+      echo "${COLOR_RED}[FAILED] Service ${service} is not running${COLOR_RESET}"
       SYSTEMD_SVC_FAILED="true"
     fi
   done
@@ -194,13 +221,13 @@ function healthcheck_systemd_services() {
 # Arguments:
 #   None
 # Outputs:
-#   ⚠ ⚠  ATTENTION: Some sevices is not running ⚠ ⚠ 
+#   [WARNING] ATTENTION: Some services is not running
 # Returns
 # 0 if all services is start correctly, non-zero if some failed
 #############################################################################################
 function healthcheck_general_status() {
   if [ ! -z "${SYSTEMD_SVC_FAILED}" ]; then
-    echo "${COLOR_YELLOW}⚠ ⚠  ATTENTION: Some sevices is not running ⚠ ⚠ ${COLOR_RESET}"
+    echo "${COLOR_YELLOW}[WARNING] ATTENTION: Some services is not running${COLOR_RESET}"
     exit 1
   fi
 }

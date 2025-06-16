@@ -2,9 +2,9 @@
 
 ## Overview
 
-This repo contains scripts to quickly install ONLYOFFICE Document Server.
+This repo contains scripts to quickly install ONLYOFFICE Docs.
 
-ONLYOFFICE Document Server is a free collaborative online office suite comprising viewers and editors for texts, spreadsheets and presentations, fully compatible with Office Open XML formats: .docx, .xlsx, .pptx.
+ONLYOFFICE Docs is an open-source office suite that comprises all the tools you need to work with documents, spreadsheets, presentations, PDFs, and PDF forms. The suite supports office files of all popular formats (DOCX, ODT, XLSX, ODS, CSV, PPTX, ODP, etc.) and enables collaborative editing in real time.
 
 Starting from version 6.0, Document Server is distributed under a new name - ONLYOFFICE Docs. 
 
@@ -14,9 +14,9 @@ It has three editions - [Community, Enterprise, and Developer](#onlyoffice-docs-
 
 `docs-install.sh` is used to install ONLYOFFICE Docs Community Edition.
 
-`docs-enterprise-install.sh` installs ONLYOFFICE Docs Enterprise Edition.
+`docs-install.sh -it ENTERPRISE` installs ONLYOFFICE Docs Enterprise Edition.
 
-`docs-developer-install.sh` istalls ONLYOFFICE Docs Developer Edition. 
+`docs-install.sh -it DEVELOPER` installs ONLYOFFICE Docs Developer Edition. 
 
 ## Functionality
 
@@ -41,18 +41,44 @@ The editors allow you to create, edit, save and export text, spreadsheet and pre
 * **Swap file**: at least 4 GB
 * **OS**: amd64 Linux distribution with kernel version 3.10 or later
 
+## Supported Operating Systems
+
+The installation scripts support the following operating systems, which are **regularly tested** as part of our CI/CD pipelines:
+<!-- OS-SUPPORT-LIST-START -->
+- RHEL 8
+- RHEL 9
+- CentOS 8 Stream
+- CentOS 9 Stream
+- Debian 10
+- Debian 11
+- Debian 12
+- Ubuntu 20.04
+- Ubuntu 22.04
+- Ubuntu 24.04
+<!-- OS-SUPPORT-LIST-END -->
+
 ## Installing ONLYOFFICE Docs using the provided script
 
-**STEP 1**: Download ONLYOFFICE Docs Community Edition Docker script file:
+**STEP 1**: Download the Installation Script:
+Download the appropriate OneClickInstall script based on the version you want to install:
 
-```bash
-wget http://download.onlyoffice.com/docs/docs-install.sh
-```
+- **Enterprise**:
+    ```bash
+    wget https://download.onlyoffice.com/docs/docs-enterprise-install.sh
+    ```
+- **Developer**:
+    ```bash
+    wget https://download.onlyoffice.com/docs/docs-developer-install.sh
+    ```
+- **Community**:
+    ```bash
+    wget https://download.onlyoffice.com/docs/docs-install.sh
+    ```
 
 **STEP 2**: Install ONLYOFFICE Docs executing the following command:
 
 ```bash
-bash docs-install.sh
+bash <script-name>
 ```
 
 The detailed instruction is available in [ONLYOFFICE Help Center](https://helpcenter.onlyoffice.com/installation/docs-community-install-script.aspx). 
