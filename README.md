@@ -1,47 +1,175 @@
 [![License](https://img.shields.io/badge/License-GNU%20AGPL%20V3-green.svg?style=flat)](https://www.gnu.org/licenses/agpl-3.0.en.html) 
+[![Docker Pulls](https://img.shields.io/docker/pulls/onlyoffice/documentserver?logo=docker)](https://hub.docker.com/r/onlyoffice/documentserver)
+[![Docker Image Version](https://img.shields.io/docker/v/onlyoffice/documentserver?sort=semver&logo=docker)](https://hub.docker.com/r/onlyoffice/documentserver/tags)
+[![GitHub Stars](https://img.shields.io/github/stars/ONLYOFFICE/OneClickInstall-Docs?style=flat&logo=github)](https://github.com/ONLYOFFICE/OneClickInstall-Docs/stargazers)
 
-## Overview
+# ONLYOFFICE Docs - OneClickInstall
 
-This repo contains scripts to quickly install ONLYOFFICE Docs.
+A simple self-hosted installer for ONLYOFFICE Docs using Docker or Linux packages.
 
-ONLYOFFICE Docs is an open-source office suite that comprises all the tools you need to work with documents, spreadsheets, presentations, PDFs, and PDF forms. The suite supports office files of all popular formats (DOCX, ODT, XLSX, ODS, CSV, PPTX, ODP, etc.) and enables collaborative editing in real time.
+| 🚀 [Start](#-quick-start) | 🛠 [Flags](#-flags) | 💡 [Examples](#-examples) | 🖥️ [Reqs](#-system-requirements) | ✅ [OS](#-supported-operating-systems) | 📚 [Resources](#-additional-resources) | 📝 [License](#-license) |
+|--------------------------|--------------------------------------------|----------------------------|----------------------------------------|----------------------------------------|----------------------------------------|----------------------|
 
-Starting from version 6.0, Document Server is distributed under a new name - ONLYOFFICE Docs. 
+ONLYOFFICE Docs is an open-source office suite that comprises all the tools you need to work with documents, spreadsheets, presentations, PDFs, and PDF forms.
 
-ONLYOFFICE Docs can be used as a part of [ONLYOFFICE Workspace](#onlyoffice-workspace) or with third-party sync&share solutions (e.g. Nextcloud, ownCloud, Seafile) to enable collaborative editing within their interface.
+With just one script, you can deploy ONLYOFFICE Docs as a standalone document editing service.
 
-It has three editions - [Community, Enterprise, and Developer](#onlyoffice-docs-editions).
+ONLYOFFICE Docs is also a core component of broader collaboration platforms:  
+- [**ONLYOFFICE DocSpace**](https://github.com/ONLYOFFICE/DocSpace-buildtools/tree/208163d521daf9c3a32ad34a53b0ca90c7dc9a40/install/OneClickInstall) is a room-based collaboration platform for project or team documents.  
+- [**ONLYOFFICE Workspace**](https://github.com/ONLYOFFICE/OneClickInstall-Workspace) is a full-featured solution with document management, mail, calendar, CRM, and more.
 
-`docs-install.sh` is used to install ONLYOFFICE Docs Community Edition.
+To deploy these platforms, use their own dedicated installation scripts.  
+This script installs **only the Docs component**, which can be integrated with them or used independently.
 
-`docs-install.sh -it ENTERPRISE` installs ONLYOFFICE Docs Enterprise Edition.
+Supports all popular formats: **DOCX, XLSX, PPTX, ODT, PDF, CSV, TXT, HTML, EPUB**, and more.  
+Works with platforms like **Nextcloud**, **ownCloud**, **Alfresco**, or independently via **Docker** or **Linux packages**.
 
-`docs-install.sh -it DEVELOPER` installs ONLYOFFICE Docs Developer Edition. 
+## 🚀 Quick Start
 
-## Functionality
+### 1. Download the installer
 
-ONLYOFFICE Document Server includes the following editors:
+Community Edition (default)
+```bash
+curl -O https://download.onlyoffice.com/docs/docs-install.sh
+```
 
-* ONLYOFFICE Document Editor
-* ONLYOFFICE Spreadsheet Editor
-* ONLYOFFICE Presentation Editor
+If you want to install a different edition, choose one of the following:
+> Enterprise Edition
+> ```bash
+> curl -O https://download.onlyoffice.com/docs/docs-enterprise-install.sh
+> ```
 
-The editors allow you to create, edit, save and export text, spreadsheet and presentation documents and additionally have the features:
+> Developer Edition
+> ```bash
+> curl -O https://download.onlyoffice.com/docs/docs-developer-install.sh
+> ```
 
-* Collaborative editing
-* Hieroglyph support
-* Reviewing
-* Spell-checking
+### 2. Run the script
+The script detects your OS and installs ONLYOFFICE Docs using Docker (or native packages, if selected).  
+```bash
+sudo bash docs-install.sh
+```
+> Enterprise Edition
+> ```bash
+> sudo bash docs-enterprise-install.sh
+> ```
 
-## Recommended system requirements
+> Developer Edition
+> ```bash
+> sudo bash docs-developer-install.sh
+> ```
 
-* **CPU**: dual-core 2 GHz or higher
-* **RAM**: 2 GB or more
-* **HDD**: at least 40 GB of free space
-* **Swap file**: at least 4 GB
-* **OS**: amd64 Linux distribution with kernel version 3.10 or later
+You'll be prompted to choose the installation method:
 
-## Supported Operating Systems
+- `Y` - Docker (recommended)
+- `N` - `.deb` / `.rpm` packages
+
+## 🛠 Flags
+
+All scripts support `--help` to show available flags. View available options with:
+```bash
+sudo bash docs-install.sh --help
+```
+
+### Common flags
+> Works for both Docker and package installations
+
+| Flag                  | Value placeholder                          | Description                      |
+|-----------------------|--------------------------------------------|----------------------------------|
+| `--installationtype`  | `community` \| `enterprise` \| `developer` | Choose edition                   |
+| `--update`            | `true` \| `false`                          | Update existing components       |
+| `--skiphardwarecheck` | `true` \| `false`                          | Skip hardware check              |
+| `--jwtenabled`        | `true` \| `false`                          | Enable JWT validation            |
+| `--jwtheader`         | `<HEADER_NAME>`                            | JWT HTTP header (Authorization)  |
+| `--jwtsecret`         | `<JWT_SECRET>`                             | JWT secret key                   |
+| `--localscripts`      | `true` \| `false`                          | Run local scripts                |
+| `--docsport`          | `<PORT>`                                   | Docs port (80)                   |
+
+### Docker flags
+> Applies only to Docker installation
+
+| Flag                       | Value placeholder            | Description                                               |
+|----------------------------|------------------------------|-----------------------------------------------------------|
+| `--documentimage`          | `<name>` \| `<path>`         | Image name or `.tar.gz` path                              |
+| `--documentversion`        | `<VERSION_TAG>`              | Image tag / version                                       |
+| `--installdocumentserver`  | `true` \| `false` \| `pull`  | Install Docs or just pull images                          |
+| `--registry`               | `<URL>`                      | Docker registry URL (e.g. `https://reg.example.com:5000`) |
+| `--username`               | `<USERNAME>`                 | Docker registry username                                  |
+| `--password`               | `<PASSWORD>`                 | Docker registry password                                  |
+| `--useasexternalserver`    | `true` \| `false`            | Expose Docs externally (true)                             |
+| `--skipversioncheck`       | `true` \| `false`            | Skip version check during update                          |
+| `--letsencryptdomain`      | `<DOMAIN>`                   | Domain for Let's Encrypt cert                             |
+| `--letsencryptmail`        | `<EMAIL>`                    | Admin email for Let's Encrypt                             |
+
+## 💡 Examples
+
+Typical usage scenarios with different combinations of flags.  
+
+1. Quick install on non-default port 8080 (default is 80)
+```bash
+sudo bash docs-install.sh --docsport 8080
+```
+
+2. Update in Developer mode, skipping hardware checks
+```bash
+sudo bash docs-install.sh \
+  --update true \
+  --installation_type DEVELOPER \
+  --skiphardwarecheck true
+```
+
+3. Update from a private registry
+```bash
+sudo bash docs-install.sh \
+  --update true \
+  --registry https://reg.example.com:5000 \
+  --username USER \
+  --password PASS
+```
+
+4. Install a specific Document Server image & version
+```bash
+sudo bash docs-install.sh \
+  --documentimage onlyoffice/documentserver \
+  --documentversion 8.3.3
+```
+
+5. Enable JWT with custom header & secret
+```bash
+sudo bash docs-install.sh \
+  --jwtenabled true \
+  --jwtheader "Authorization" \
+  --jwtsecret "SecretString"
+```
+
+6. Pull images only (offline prep)
+```bash
+sudo bash docs-install.sh \
+  --installdocumentserver pull \
+  --documentimage onlyoffice/documentserver \
+  --documentversion 8.0.0
+```
+
+7. Install with free HTTPS via Let's Encrypt
+```bash
+sudo bash docs-install.sh \
+  --letsencryptdomain example.com \
+  --letsencryptmail admin@example.com
+```
+
+## 🖥 System Requirements
+
+| Resource     | Minimum                        |
+|--------------|--------------------------------|
+| **CPU**      | Dual-core 2 GHz                |
+| **RAM**      | 2 GB+ (pkg) / 4 GB+ (Docker)\* |
+| **Disk**     | 40 GB+ free                    |
+| **Swap**     | ≥ 4 GB                         |
+| **Kernel**   | Linux 3.10+ (x86_64)           |
+
+\* Minimum requirements for test environments. For production, 8 GB RAM or more is recommended.
+
+## ✅ Supported Operating Systems
 
 The installation scripts support the following operating systems, which are **regularly tested** as part of our CI/CD pipelines:
 <!-- OS-SUPPORT-LIST-START -->
@@ -57,50 +185,20 @@ The installation scripts support the following operating systems, which are **re
 - Ubuntu 24.04
 <!-- OS-SUPPORT-LIST-END -->
 
-## Installing ONLYOFFICE Docs using the provided script
+## 📚 Additional Resources
 
-**STEP 1**: Download the Installation Script:
-Download the appropriate OneClickInstall script based on the version you want to install:
+| Resource         | Link                                                             |
+|------------------|------------------------------------------------------------------|
+| Official website | <https://www.onlyoffice.com/>                                    |
+| Code repository  | <https://github.com/ONLYOFFICE/DocumentServer>                   |
+| Docker image     | <https://github.com/ONLYOFFICE/Docker-DocumentServer>            |
+| Help Center      | <https://helpcenter.onlyoffice.com/docs/installation>            |
+| Product page     | <https://www.onlyoffice.com/office-suite.aspx>                   |
+| Community Forum  | <https://forum.onlyoffice.com>                                   |
+| Stack Overflow   | <https://stackoverflow.com/questions/tagged/onlyoffice>          |
 
-- **Enterprise**:
-    ```bash
-    wget https://download.onlyoffice.com/docs/docs-enterprise-install.sh
-    ```
-- **Developer**:
-    ```bash
-    wget https://download.onlyoffice.com/docs/docs-developer-install.sh
-    ```
-- **Community**:
-    ```bash
-    wget https://download.onlyoffice.com/docs/docs-install.sh
-    ```
+## 📝 License
 
-**STEP 2**: Install ONLYOFFICE Docs executing the following command:
+ONLYOFFICE Docs is distributed under the [**GNU AGPL v3**](https://onlyo.co/38YZGJh) license (for the Community Edition).  
+**Enterprise** and **Developer** editions require a valid commercial license. For more details, please contact [sales@onlyoffice.com](mailto:sales@onlyoffice.com).
 
-```bash
-bash <script-name>
-```
-
-The detailed instruction is available in [ONLYOFFICE Help Center](https://helpcenter.onlyoffice.com/installation/docs-community-install-script.aspx). 
-
-To install Enterprise Edition, use [this instruction](https://helpcenter.onlyoffice.com/installation/docs-enterprise-install-script.aspx). For Developer Edition, use [this one](https://helpcenter.onlyoffice.com/installation/docs-developer-install-script.aspx).
-
-## Project information
-
-Official website: [https://www.onlyoffice.com](https://www.onlyoffice.com/?utm_source=github&utm_medium=cpc&utm_campaign=GitHubDS)
-
-Code repository: [https://github.com/ONLYOFFICE/DocumentServer](https://github.com/ONLYOFFICE/DocumentServer "https://github.com/ONLYOFFICE/DocumentServer")
-
-Docker Image: [https://github.com/ONLYOFFICE/Docker-DocumentServer](https://github.com/ONLYOFFICE/Docker-DocumentServer "https://github.com/ONLYOFFICE/Docker-DocumentServer")
-
-License: [GNU AGPL v3.0](https://onlyo.co/38YZGJh)
-
-ONLYOFFICE Docs on official website: [http://www.onlyoffice.com/office-suite.aspx](http://www.onlyoffice.com/office-suite.aspx?utm_source=github&utm_medium=cpc&utm_campaign=GitHubDS)
-
-## User feedback and support
-
-If you have any problems with or questions about [ONLYOFFICE Document Server][2], please visit our official forum to find answers to your questions: [forum.onlyoffice.com][1] or you can ask and answer ONLYOFFICE development questions on [Stack Overflow][3].
-
-  [1]: https://forum.onlyoffice.com
-  [2]: https://github.com/ONLYOFFICE/DocumentServer
-  [3]: http://stackoverflow.com/questions/tagged/onlyoffice
