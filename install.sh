@@ -204,29 +204,61 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
-        -? | -h | --help )
+        -h | -? | --help )
+            echo
             echo "  Usage: bash $HELP_TARGET [PARAMETER] [[PARAMETER], ...]"
             echo
-            echo "    Parameters:"
-            echo "      -di, --documentimage              document image name or .tar.gz file path"
-            echo "      -dv, --documentversion            document version"
-            echo "      -ids, --installdocumentserver     install or update document server (true|false|pull)"
-            echo "      -je, --jwtenabled                 specifies whether JWT validation is enabled (true|false)"
-            echo "      -jh, --jwtheader                  defines the HTTP header that will be used to send the JWT"
-            echo "      -js, --jwtsecret                  defines the secret key to validate the JWT in the request"
-            echo "      -u, --update                      use to update existing components (true|false)"
-            echo "      -reg, --registry                  docker registry URL (e.g., https://myregistry.com:5000)"
-            echo "      -un, --username                   docker registry login"
-            echo "      -p, --password                    docker registry password"
-            echo "      -es, --useasexternalserver        use as external server (true|false)"
-            echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
-            echo "      -skiphc, --skiphardwarecheck      skip hardware check (true|false)"
-            echo "      -skipvc, --skipversioncheck       skip version check while update (true|false)"
-            echo "      -dp, --docsport                   docs port (default value 80)"
-            echo "      -led, --letsencryptdomain         defines the domain for Let's Encrypt certificate"
-            echo "      -lem, --letsencryptmail           defines the domain administrator mail address for Let's Encrypt certificate"
-            echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
-            echo "      -?, -h, --help                    this help"
+
+            echo "DOCKER REGISTRY AUTH:"
+            echo "  -reg,     --registry               <URL>              Docker registry URL (e.g., https://myregistry.com:5000)"
+            echo "  -un,      --username               <USERNAME>         Docker registry login"
+            echo "  -p,       --password               <PASSWORD>         Docker registry password"
+            echo
+            echo "INSTALLATION MODE:"
+            echo "  -it,      --installation_type      <EDITION>          Installation type: COMMUNITY | ENTERPRISE | DEVELOPER"
+            echo "  -u,       --update                 <true|false>       Update existing components"
+            echo "  -ls,      --localscripts           <true|false>       Use local scripts"
+            echo
+            echo "DOCUMENT SERVER OPTIONS:"
+            echo "  -di,      --documentimage          <name|path>        Document image name or .tar.gz file path"
+            echo "  -dv,      --documentversion        <VERSION_TAG>      Document version tag"
+            echo "  -ids,     --installdocumentserver  <true|false|pull>  Install or update Document Server"
+            echo "  -dp,      --docsport               <PORT>             Port for ONLYOFFICE Docs (default: $DOCS_PORT)"
+            echo "  -es,      --useasexternalserver    <true|false>       Expose Docs externally (default: true)"
+            echo
+            echo "JWT AUTHENTICATION:"
+            echo "  -je,      --jwtenabled             <true|false>       Enable JWT validation"
+            echo "  -jh,      --jwtheader              <HEADER_NAME>      HTTP header for JWT (default: Authorization)"
+            echo "  -js,      --jwtsecret              <JWT_SECRET>       Secret key to validate JWT"
+            echo
+            echo "ADVANCED OPTIONS:"
+            echo "  -skiphc,  --skiphardwarecheck      <true|false>       Skip hardware check"
+            echo "  -skipvc,  --skipversioncheck       <true|false>       Skip version check during update"
+            echo "  -led,     --letsencryptdomain      <DOMAIN>           Domain for Let's Encrypt certificate (e.g., docs.example.com)"
+            echo "  -lem,     --letsencryptmail        <EMAIL>            Admin email for Let's Encrypt (e.g., admin@example.com)"
+            echo
+            echo "EXAMPLES:"
+            echo "  # 1. Quick install on non-default port 8787 (default is 80)"
+            echo "  sudo bash $HELP_TARGET --docsport 8787"
+            echo
+            echo "  # 2. Update in developer mode, skipping hardware checks"
+            echo "  sudo bash $HELP_TARGET --update true --installation_type DEVELOPER --skiphardwarecheck true"
+            echo
+            echo "  # 3. Update from private registry"
+            echo "  sudo bash $HELP_TARGET --update true --registry https://reg.example.com:5000 --username USER --password PASS"
+            echo
+            echo "  # 4. Install specific Document Server image & version"
+            echo "  sudo bash $HELP_TARGET -di onlyoffice/documentserver -dv 8.3.3"
+            echo
+            echo "  # 5. Enable JWT with custom header/secret"
+            echo "  sudo bash $HELP_TARGET --jwtenabled true --jwtheader X-JWT-Token --jwtsecret \"mysupersecret1234567890abcdef\""
+            echo
+            echo "  # 6. Pull images only (offline prep)"
+            echo "  sudo bash $HELP_TARGET -ids pull -di onlyoffice/documentserver -dv 8.0.0"
+            echo
+            echo "  # 7. Install with free HTTPS via Let's Encrypt"
+            echo "  sudo bash $HELP_TARGET --letsencryptdomain docs.example.com --letsencryptmail admin@example.com"
+            echo
             exit 0
         ;;
 
