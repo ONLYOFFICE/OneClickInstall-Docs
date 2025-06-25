@@ -28,11 +28,20 @@ jobs:
         run: |
           sudo docker image prune --all --force
 
+      - name: Decode and Docker login
+        id: decode
+        run: |
+          set +x
+          IFS=':' read -r USERNAME PASSWORD <<< "$(echo "${{ secrets.DOCKER_AUTH_KEY }}" | base64 -d)"
+          echo "::add-mask::$USERNAME" && echo "::add-mask::$PASSWORD"
+          { echo "username=$USERNAME"; echo "password=$PASSWORD"; } | tee -a $GITHUB_OUTPUT
+          echo "$PASSWORD" | docker login --username "$USERNAME" --password-stdin
+
       - name: Test Docs Docker scripts
         run: |
           [ "${{ github.ref }}" = "refs/heads/master" ] \
-            && { sudo bash -x install.sh -skiphc true </dev/null || exit $?; } \
-            || { sudo bash -x install.sh -skiphc true -di onlyoffice/4testing-documentserver </dev/null || exit $?; }
+            && { sudo bash -x install.sh -un ${{ steps.decode.outputs.username }} -p ${{ steps.decode.outputs.password }} -skiphc true </dev/null || exit $?; } \
+            || { sudo bash -x install.sh -un ${{ steps.decode.outputs.username }} -p ${{ steps.decode.outputs.password }} -skiphc true -di onlyoffice/4testing-documentserver </dev/null || exit $?; }
           echo -n "Waiting for container startup..."
           timeout 300 bash -c 'while docker ps | grep -q "starting"; do sleep 5; done' && echo "OK" || echo "container_status=timeout" >> $GITHUB_ENV
 

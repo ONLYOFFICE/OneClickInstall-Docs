@@ -1,6 +1,6 @@
-name: Upload on S3 
+name: Upload on S3
 
-on:    
+on:
   push:
     branches:
       - master
@@ -18,18 +18,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Creating additional scripts
+        run: |
+          for EDITION in ENTERPRISE DEVELOPER; do
+            cp -rf "./docs-install.sh" "./docs-${EDITION,,}-install.sh"
+            sed -i "/^PARAMETERS/s|\(-it\) [^\" ]\+|\1 ${EDITION}|g" "./docs-${EDITION,,}-install.sh"
+          done
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET }}
           aws-region: us-east-1
-       
+
       - name: Upload scripts
-        run: | 
-          aws s3 cp . ${{ secrets.AWS_BUCKET_URL }}/docs --acl public-read --recursive --exclude "*" --include "*.sh" 
-          aws s3 cp ./install-Debian ${{ secrets.AWS_BUCKET_URL }}/docs/install-Debian --acl public-read --recursive --exclude "*" --include "*.sh" 
+        run: |
+          aws s3 cp . ${{ secrets.AWS_BUCKET_URL }}/docs --acl public-read --recursive --exclude "*" --include "*.sh"
+          aws s3 cp ./install-Debian ${{ secrets.AWS_BUCKET_URL }}/docs/install-Debian --acl public-read --recursive --exclude "*" --include "*.sh"
           aws s3 cp ./install-RedHat ${{ secrets.AWS_BUCKET_URL }}/docs/install-RedHat --acl public-read --recursive --exclude "*" --include "*.sh"
-      
+
       - name: Invalidate CLOUDFRONT cache
         run: aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_DISTRIBUTION_ID }} --paths "/docs/*"
