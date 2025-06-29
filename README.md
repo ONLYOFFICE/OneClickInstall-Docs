@@ -7,7 +7,7 @@
 
 A simple self-hosted installer for ONLYOFFICE Docs using Docker or Linux packages.
 
-| 🚀 [Start](#-quick-start) | 🛠️ [Flags](#-flags) | 💡 [Examples](#-examples) | 🖥️ [Reqs](#-system-requirements) | ✅ [OS](#-supported-operating-systems) | 📚 [Resources](#-additional-resources) | 📝 [License](#-license) |
+| 🚀 [Start](#-quick-start) | 🛠 [Flags](#-flags) | 💡 [Examples](#-examples) | 🖥️ [Reqs](#-system-requirements) | ✅ [OS](#-supported-operating-systems) | 📚 [Resources](#-additional-resources) | 📝 [License](#-license) |
 |--------------------------|--------------------------------------------|----------------------------|----------------------------------------|----------------------------------------|----------------------------------------|----------------------|
 
 ONLYOFFICE Docs is an open-source office suite that comprises all the tools you need to work with documents, spreadsheets, presentations, PDFs, and PDF forms.
@@ -76,7 +76,7 @@ sudo bash docs-install.sh --help
 
 | Flag | Value&nbsp;placeholder | Description |
 |------|------------------------|-------------|
-| `--installation_type` | `COMMUNITY` \| `ENTERPRISE` \| `DEVELOPER` | Choose edition |
+| `--installation_type` | `community` \| `enterprise` \| `developer` | Choose edition |
 | `--update` | `true` \| `false` | Update existing components |
 | `--skiphardwarecheck` | `true` \| `false` | Skip hardware check |
 | `--jwtenabled` | `true` \| `false` | Enable JWT validation |
