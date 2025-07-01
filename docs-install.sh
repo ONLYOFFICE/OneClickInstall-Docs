@@ -97,7 +97,7 @@ is_command_exists curl || install_curl
 
 if [ "$DOCKER" = "true" ]; then
     SCRIPT="install.sh"
-elif [ -f /etc/redhat-release ] || [ -f /etc/amazon-linux-release ]; then
+elif [ -f /etc/redhat-release ] || grep -qiE '^ID="?amzn' /etc/os-release; then
     SCRIPT="install-RedHat.sh"
 elif [ -f /etc/debian_version ]; then
     SCRIPT="install-Debian.sh"

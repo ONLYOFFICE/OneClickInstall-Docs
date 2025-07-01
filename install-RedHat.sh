@@ -143,6 +143,6 @@ else
     source <(curl ${DOWNLOAD_URL_PREFIX}/tools.sh)
     source <(curl ${DOWNLOAD_URL_PREFIX}/bootstrap.sh)
     source <(curl ${DOWNLOAD_URL_PREFIX}/check-ports.sh)
-    [ -f /etc/amazon-linux-release ] && source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq-amzn.sh) || source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq.sh)
+    grep -qiE '^ID="?amzn' /etc/os-release && source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq-amzn.sh) || source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq.sh)
     source <(curl ${DOWNLOAD_URL_PREFIX}/install-app.sh)
 fi
