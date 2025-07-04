@@ -114,7 +114,7 @@ sudo bash docs-install.sh --docsport 8080
 ```bash
 sudo bash docs-install.sh \
   --update true \
-  --installation_type DEVELOPER \
+  --installationtype DEVELOPER \
   --skiphardwarecheck true
 ```
 
