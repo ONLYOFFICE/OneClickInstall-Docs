@@ -180,7 +180,7 @@ EOF
 #############################################################################################
 function install_docs() {
 	if [ "${DOWNLOAD_SCRIPTS}" == 'true' ]; then
-            wget https://download.onlyoffice.com/install/docs-install.sh
+            wget https://download.onlyoffice.com/docs/docs-install.sh
         fi
         
 	printf "N\nY\nY\nY" | bash docs-install.sh ${ARGUMENTS}
