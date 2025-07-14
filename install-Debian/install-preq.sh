@@ -11,8 +11,8 @@ cat<<EOF
 EOF
 
 if [ "$DIST" = "debian" ] && [ $(apt-cache search ttf-mscorefonts-installer | wc -l) -eq 0 ]; then
-    echo "deb http://ftp.uk.debian.org/debian/ $DISTRIB_CODENAME main contrib" >> /etc/apt/sources.list
-    echo "deb-src http://ftp.uk.debian.org/debian/ $DISTRIB_CODENAME main contrib" >> /etc/apt/sources.list
+    REPO_URL=$([ "$DISTRIB_CODENAME" = "buster" ] && echo "http://archive.debian.org/debian/" || echo "http://ftp.uk.debian.org/debian/")
+    echo -e "deb $REPO_URL $DISTRIB_CODENAME main contrib\ndeb-src $REPO_URL $DISTRIB_CODENAME main contrib" > /etc/apt/sources.list
 fi
 
 apt-get -y update
