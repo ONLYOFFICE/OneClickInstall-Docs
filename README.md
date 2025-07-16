@@ -92,11 +92,11 @@ sudo bash docs-install.sh --help
 |----------------------------|------------------------------|-----------------------------------------------------------|
 | `--documentimage`          | `<name>` \| `<path>`         | Image name or `.tar.gz` path                              |
 | `--documentversion`        | `<VERSION_TAG>`              | Image tag / version                                       |
-| `--installdocumentserver`  | `true` \| `false` \| `pull`  | Install Docs or just pull images                          |
+| `--installdocs`            | `true` \| `false` \| `pull`  | Install Docs or just pull images                          |
 | `--registry`               | `<URL>`                      | Docker registry URL (e.g. `https://reg.example.com:5000`) |
 | `--username`               | `<USERNAME>`                 | Docker registry username                                  |
 | `--password`               | `<PASSWORD>`                 | Docker registry password                                  |
-| `--useasexternalserver`    | `true` \| `false`            | Expose Docs externally (true)                             |
+| `--externalserver`         | `true` \| `false`            | Expose Docs externally (true)                             |
 | `--skipversioncheck`       | `true` \| `false`            | Skip version check during update                          |
 | `--letsencryptdomain`      | `<DOMAIN>`                   | Domain for Let's Encrypt cert                             |
 | `--letsencryptmail`        | `<EMAIL>`                    | Admin email for Let's Encrypt                             |
@@ -145,7 +145,7 @@ sudo bash docs-install.sh \
 6. Pull images only (offline prep)
 ```bash
 sudo bash docs-install.sh \
-  --installdocumentserver pull \
+  --installdocs pull \
   --documentimage onlyoffice/documentserver \
   --documentversion 8.0.0
 ```

@@ -113,7 +113,7 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
-        -es | --useasexternalserver )
+        -es | --externalserver | --useasexternalserver )
             if [ "$2" != "" ]; then
                 USE_AS_EXTERNAL_SERVER=$2
                 shift
@@ -162,7 +162,7 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
-        -ids | --installdocumentserver )
+        -ids | --installdocs | --installdocumentserver )
             if [ "$2" != "" ]; then
                 INSTALL_DOCUMENT_SERVER=$2
                 shift
@@ -222,9 +222,9 @@ while [ "$1" != "" ]; do
             echo "DOCUMENT SERVER OPTIONS:"
             echo "--documentimage          <name|path>        Document image name or .tar.gz file path"
             echo "--documentversion        <VERSION_TAG>      Document version tag"
-            echo "--installdocumentserver  <true|false|pull>  Install or update Document Server"
+            echo "--installdocs            <true|false|pull>  Install or update Document Server"
             echo "--docsport               <PORT>             Port for ONLYOFFICE Docs (default: $DOCS_PORT)"
-            echo "--useasexternalserver    <true|false>       Expose Docs externally (default: true)"
+            echo "--externalserver         <true|false>       Expose Docs externally (default: true)"
             echo
             echo "JWT AUTHENTICATION:"
             echo "--jwtenabled             <true|false>       Enable JWT validation"
@@ -254,7 +254,7 @@ while [ "$1" != "" ]; do
             echo "  sudo bash $HELP_TARGET --jwtenabled true --jwtheader \"Authorization\" --jwtsecret \"SecretString\""
             echo
             echo "  # 6. Pull images only"
-            echo "  sudo bash $HELP_TARGET --installdocumentserver pull --documentimage onlyoffice/documentserver --documentversion 8.0.0"
+            echo "  sudo bash $HELP_TARGET --installdocs pull --documentimage onlyoffice/documentserver --documentversion 8.0.0"
             echo
             echo "  # 7. Install with free HTTPS via Let's Encrypt"
             echo "  sudo bash $HELP_TARGET --letsencryptdomain docs.example.com --letsencryptmail admin@example.com"
