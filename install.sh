@@ -228,7 +228,7 @@ while [ "$1" != "" ]; do
             echo
             echo "JWT AUTHENTICATION:"
             echo "--jwtenabled             <true|false>       Enable JWT validation"
-            echo "--jwtheader              <HEADER_NAME>      HTTP header for JWT (default: Authorization)"
+            echo "--jwtheader              <HEADER_NAME>      HTTP header for JWT (default: AuthorizationJwt)"
             echo "--jwtsecret              <JWT_SECRET>       Secret key to validate JWT"
             echo
             echo "ADVANCED OPTIONS:"
@@ -251,7 +251,7 @@ while [ "$1" != "" ]; do
             echo "  sudo bash $HELP_TARGET --documentimage onlyoffice/documentserver --documentversion 8.3.3"
             echo
             echo "  # 5. Enable JWT with custom header/secret"
-            echo "  sudo bash $HELP_TARGET --jwtenabled true --jwtheader \"Authorization\" --jwtsecret \"SecretString\""
+            echo "  sudo bash $HELP_TARGET --jwtenabled true --jwtheader \"AuthorizationJwt\" --jwtsecret \"SecretString\""
             echo
             echo "  # 6. Pull images only"
             echo "  sudo bash $HELP_TARGET --installdocs pull --documentimage onlyoffice/documentserver --documentversion 8.0.0"
@@ -845,7 +845,7 @@ set_jwt_header () {
     fi
 
     if [[ -z ${JWT_HEADER} ]]; then
-        JWT_HEADER="Authorization"
+        JWT_HEADER="AuthorizationJwt"
     fi
 }
 

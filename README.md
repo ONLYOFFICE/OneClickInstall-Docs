@@ -138,7 +138,7 @@ sudo bash docs-install.sh \
 ```bash
 sudo bash docs-install.sh \
   --jwtenabled true \
-  --jwtheader "Authorization" \
+  --jwtheader "AuthorizationJwt" \
   --jwtsecret "SecretString"
 ```
 
