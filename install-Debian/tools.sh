@@ -31,18 +31,14 @@ check_hardware () {
 
 [ "$SKIP_HARDWARE_CHECK" != "true" ] && check_hardware
 
-REV=$(< /etc/debian_version)
 DIST='Debian'
+DISTRIB_CODENAME='bullseye'
 if [ -f /etc/lsb-release ]; then
     DIST=$(grep '^DISTRIB_ID=' /etc/lsb-release | awk -F= '{print $2}')
-    REV=$(grep '^DISTRIB_RELEASE=' /etc/lsb-release | awk -F= '{print $2}')
     DISTRIB_CODENAME=$(grep '^DISTRIB_CODENAME=' /etc/lsb-release | awk -F= '{print $2}')
-    DISTRIB_RELEASE=$(grep '^DISTRIB_RELEASE=' /etc/lsb-release | awk -F= '{print $2}')
 elif [ -f /etc/lsb_release ] || command_exists lsb_release; then
     DIST=$(lsb_release -a 2>&1 | awk -F ":" '/Distributor ID:/ {print $2}' | xargs)
-    REV=$(lsb_release -a 2>&1 | awk -F ":" '/Release:/ {print $2}' | xargs)
     DISTRIB_CODENAME=$(lsb_release -a 2>&1 | awk -F ":" '/Codename:/ {print $2}' | xargs)
-    DISTRIB_RELEASE=$REV
 elif [ -f /etc/os-release ]; then
     DISTRIB_CODENAME=$(grep "VERSION=" /etc/os-release | awk -F= '{print $2}' | sed 's/["0-9()]//g' | tr -d '[:space:]')
 fi
@@ -54,5 +50,3 @@ fi
 
 DIST=$(echo "$DIST" | tr '[:upper:]' '[:lower:]' | xargs)
 DISTRIB_CODENAME=$(echo "$DISTRIB_CODENAME" | tr '[:upper:]' '[:lower:]' | xargs)
-
-[ "$DISTRIB_CODENAME" = "kinetic" ] || [ "$DISTRIB_CODENAME" = "lunar" ] && { DISTRIB_CODENAME="jammy"; REV="22.04"; } || true
