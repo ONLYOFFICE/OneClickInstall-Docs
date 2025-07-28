@@ -99,7 +99,7 @@ if [ "$DOCKER" = "true" ]; then
     SCRIPT="install.sh"
 elif [ -f /etc/redhat-release ] || [ -f /etc/amazon-linux-release ]; then
     SCRIPT="install-RedHat.sh"
-elif [ -f /etc/debian_version ]; then
+elif [ -f /etc/debian_version ] || grep -qi "openkylin" /etc/os-release; then
     SCRIPT="install-Debian.sh"
 else
     echo "Not supported OS" >&2

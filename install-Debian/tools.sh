@@ -45,7 +45,11 @@ elif [ -f /etc/lsb_release ] || command_exists lsb_release; then
     DISTRIB_RELEASE=$REV
 elif [ -f /etc/os-release ]; then
     DISTRIB_CODENAME=$(grep "VERSION=" /etc/os-release | awk -F= '{print $2}' | sed 's/["0-9()]//g' | tr -d '[:space:]')
-    DISTRIB_RELEASE=$(grep "VERSION_ID=" /etc/os-release | awk -F= '{print $2}' | sed 's/["0-9()]//g' | tr -d '[:space:]')
+fi
+
+if grep -qi "openkylin" /etc/os-release; then
+    DIST="Debian"
+    DISTRIB_CODENAME="bullseye"
 fi
 
 DIST=$(echo "$DIST" | tr '[:upper:]' '[:lower:]' | xargs)

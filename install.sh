@@ -556,6 +556,12 @@ install_docker () {
         service docker start
         systemctl enable docker
 
+    elif [ "${DIST}" == "openkylin" ]; then
+
+        apt-get -y install docker.io
+        systemctl start docker
+        systemctl enable docker
+
     else
 
         echo ""
