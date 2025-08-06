@@ -74,32 +74,32 @@ sudo bash docs-install.sh --help
 ### Common flags
 > Works for both Docker and package installations
 
-| Flag                  | Value placeholder                          | Description                      |
-|-----------------------|--------------------------------------------|----------------------------------|
-| `--installationtype`  | `community` \| `enterprise` \| `developer` | Choose edition                   |
-| `--update`            | `true` \| `false`                          | Update existing components       |
-| `--skiphardwarecheck` | `true` \| `false`                          | Skip hardware check              |
-| `--jwtenabled`        | `true` \| `false`                          | Enable JWT validation            |
-| `--jwtheader`         | `<HEADER_NAME>`                            | JWT HTTP header (Authorization)  |
-| `--jwtsecret`         | `<JWT_SECRET>`                             | JWT secret key                   |
-| `--localscripts`      | `true` \| `false`                          | Run local scripts                |
-| `--docsport`          | `<PORT>`                                   | Docs port (80)                   |
+| Flag                  | Value placeholder                          | Default value      | Description                      |
+|-----------------------|--------------------------------------------|--------------------|----------------------------------|
+| `--installationtype`  | `community\|enterprise\|developer`         | `community`        | Choose edition                   |
+| `--update`            | `true` \| `false`                          | `false`            | Update components                |
+| `--skiphardwarecheck` | `true` \| `false`                          | `false`            | Skip hardware check              |
+| `--jwtenabled`        | `true` \| `false`                          | `true`             | Enable JWT validation            |
+| `--jwtheader`         | `<HEADER_NAME>`                            | `AuthorizationJwt` | JWT HTTP header                  |
+| `--jwtsecret`         | `<JWT_SECRET>`                             | *(auto-generate)*  | JWT secret key                   |
+| `--localscripts`      | `true` \| `false`                          | `false`            | Run local scripts                |
+| `--docsport`          | `<PORT>`                                   | `80`               | Docs port                        |
 
 ### Docker flags
 > Applies only to Docker installation
 
-| Flag                       | Value placeholder            | Description                                               |
-|----------------------------|------------------------------|-----------------------------------------------------------|
-| `--documentimage`          | `<name>` \| `<path>`         | Image name or `.tar.gz` path                              |
-| `--documentversion`        | `<VERSION_TAG>`              | Image tag / version                                       |
-| `--installdocumentserver`  | `true` \| `false` \| `pull`  | Install Docs or just pull images                          |
-| `--registry`               | `<URL>`                      | Docker registry URL (e.g. `https://reg.example.com:5000`) |
-| `--username`               | `<USERNAME>`                 | Docker registry username                                  |
-| `--password`               | `<PASSWORD>`                 | Docker registry password                                  |
-| `--useasexternalserver`    | `true` \| `false`            | Expose Docs externally (true)                             |
-| `--skipversioncheck`       | `true` \| `false`            | Skip version check during update                          |
-| `--letsencryptdomain`      | `<DOMAIN>`                   | Domain for Let's Encrypt cert                             |
-| `--letsencryptmail`        | `<EMAIL>`                    | Admin email for Let's Encrypt                             |
+| Flag                       | Value placeholder            | Default value                | Description                                               |
+|----------------------------|------------------------------|------------------------------|-----------------------------------------------------------|
+| `--documentimage`          | `<name>` \| `<path>`         | `onlyoffice/documentserver`  | Image name or `.tar.gz` path                              |
+| `--documentversion`        | `<VERSION_TAG>`              | *(latest stable)*            | Image tag / version                                       |
+| `--installdocs`            | `true` \| `false` \| `pull`  | `true`                       | Install Docs or just pull images                          |
+| `--registry`               | `<URL>`                      | -                            | Docker registry URL                                       |
+| `--username`               | `<USERNAME>`                 | -                            | Docker registry username                                  |
+| `--password`               | `<PASSWORD>`                 | -                            | Docker registry password                                  |
+| `--externalserver`         | `true` \| `false`            | `true`                       | Expose Docs externally                                    |
+| `--skipversioncheck`       | `true` \| `false`            | `false`                      | Skip version check                                        |
+| `--letsencryptdomain`      | `<DOMAIN>`                   | -                            | Domain for Let's Encrypt cert                             |
+| `--letsencryptmail`        | `<EMAIL>`                    | -                            | Admin email for Let's Encrypt                             |
 
 ## 💡 Examples
 
@@ -138,14 +138,14 @@ sudo bash docs-install.sh \
 ```bash
 sudo bash docs-install.sh \
   --jwtenabled true \
-  --jwtheader "Authorization" \
+  --jwtheader "AuthorizationJwt" \
   --jwtsecret "SecretString"
 ```
 
 6. Pull images only (offline prep)
 ```bash
 sudo bash docs-install.sh \
-  --installdocumentserver pull \
+  --installdocs pull \
   --documentimage onlyoffice/documentserver \
   --documentversion 8.0.0
 ```
