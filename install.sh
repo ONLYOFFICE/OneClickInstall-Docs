@@ -113,14 +113,14 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
-        -es | --useasexternalserver )
+        -es | --externalserver | --useasexternalserver )
             if [ "$2" != "" ]; then
                 USE_AS_EXTERNAL_SERVER=$2
                 shift
             fi
         ;;
 
-        -it | --installation_type )
+        -it | --installationtype | --installation_type )
             if [ "$2" != "" ]; then
                 INSTALLATION_TYPE=$(echo "$2" | awk '{print toupper($0)}');
                 shift
@@ -162,7 +162,7 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
-        -ids | --installdocumentserver )
+        -ids | --installdocs | --installdocumentserver )
             if [ "$2" != "" ]; then
                 INSTALL_DOCUMENT_SERVER=$2
                 shift
@@ -205,28 +205,60 @@ while [ "$1" != "" ]; do
         ;;
 
         -? | -h | --help )
+            echo
             echo "  Usage: bash $HELP_TARGET [PARAMETER] [[PARAMETER], ...]"
             echo
-            echo "    Parameters:"
-            echo "      -di, --documentimage              document image name or .tar.gz file path"
-            echo "      -dv, --documentversion            document version"
-            echo "      -ids, --installdocumentserver     install or update document server (true|false|pull)"
-            echo "      -je, --jwtenabled                 specifies whether JWT validation is enabled (true|false)"
-            echo "      -jh, --jwtheader                  defines the HTTP header that will be used to send the JWT"
-            echo "      -js, --jwtsecret                  defines the secret key to validate the JWT in the request"
-            echo "      -u, --update                      use to update existing components (true|false)"
-            echo "      -reg, --registry                  docker registry URL (e.g., https://myregistry.com:5000)"
-            echo "      -un, --username                   docker registry login"
-            echo "      -p, --password                    docker registry password"
-            echo "      -es, --useasexternalserver        use as external server (true|false)"
-            echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
-            echo "      -skiphc, --skiphardwarecheck      skip hardware check (true|false)"
-            echo "      -skipvc, --skipversioncheck       skip version check while update (true|false)"
-            echo "      -dp, --docsport                   docs port (default value 80)"
-            echo "      -led, --letsencryptdomain         defines the domain for Let's Encrypt certificate"
-            echo "      -lem, --letsencryptmail           defines the domain administrator mail address for Let's Encrypt certificate"
-            echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
-            echo "      -?, -h, --help                    this help"
+
+            echo "DOCKER REGISTRY AUTH:"
+            echo "--registry               <URL>              Docker registry URL (e.g., https://myregistry.com:5000)"
+            echo "--username               <USERNAME>         Docker registry login"
+            echo "--password               <PASSWORD>         Docker registry password"
+            echo
+            echo "INSTALLATION MODE:"
+            echo "--installationtype       <EDITION>          Installation type: COMMUNITY | ENTERPRISE | DEVELOPER"
+            echo "--update                 <true|false>       Update existing components"
+            echo "--localscripts           <true|false>       Use local scripts"
+            echo
+            echo "DOCUMENT SERVER OPTIONS:"
+            echo "--documentimage          <name|path>        Document image name or .tar.gz file path"
+            echo "--documentversion        <VERSION_TAG>      Document version tag"
+            echo "--installdocs            <true|false|pull>  Install or update Document Server"
+            echo "--docsport               <PORT>             Port for ONLYOFFICE Docs (default: $DOCS_PORT)"
+            echo "--externalserver         <true|false>       Expose Docs externally (default: true)"
+            echo
+            echo "JWT AUTHENTICATION:"
+            echo "--jwtenabled             <true|false>       Enable JWT validation"
+            echo "--jwtheader              <HEADER_NAME>      HTTP header for JWT (default: AuthorizationJwt)"
+            echo "--jwtsecret              <JWT_SECRET>       Secret key to validate JWT"
+            echo
+            echo "ADVANCED OPTIONS:"
+            echo "--skiphardwarecheck      <true|false>       Skip hardware check"
+            echo "--skipversioncheck       <true|false>       Skip version check during update"
+            echo "--letsencryptdomain      <DOMAIN>           Domain for Let's Encrypt certificate (e.g., docs.example.com)"
+            echo "--letsencryptmail        <EMAIL>            Admin email for Let's Encrypt (e.g., admin@example.com)"
+            echo
+            echo "EXAMPLES:"
+            echo "  # 1. Quick install on non-default port 8080 (default is 80)"
+            echo "  sudo bash $HELP_TARGET --docsport 8080"
+            echo
+            echo "  # 2. Update and skipping hardware checks"
+            echo "  sudo bash $HELP_TARGET --update true --skiphardwarecheck true"
+            echo
+            echo "  # 3. Install from private registry"
+            echo "  sudo bash $HELP_TARGET --registry https://reg.example.com:5000 --username USER --password PASS"
+            echo
+            echo "  # 4. Install specific Document Server image & version"
+            echo "  sudo bash $HELP_TARGET --documentimage onlyoffice/documentserver --documentversion 8.3.3"
+            echo
+            echo "  # 5. Enable JWT with custom header/secret"
+            echo "  sudo bash $HELP_TARGET --jwtenabled true --jwtheader \"AuthorizationJwt\" --jwtsecret \"SecretString\""
+            echo
+            echo "  # 6. Pull images only"
+            echo "  sudo bash $HELP_TARGET --installdocs pull --documentimage onlyoffice/documentserver --documentversion 8.0.0"
+            echo
+            echo "  # 7. Install with free HTTPS via Let's Encrypt"
+            echo "  sudo bash $HELP_TARGET --letsencryptdomain docs.example.com --letsencryptmail admin@example.com"
+            echo
             exit 0
         ;;
 
@@ -524,6 +556,12 @@ install_docker () {
         service docker start
         systemctl enable docker
 
+    elif [ "${DIST}" == "openkylin" ]; then
+
+        apt-get -y install docker.io
+        systemctl start docker
+        systemctl enable docker
+
     else
 
         echo ""
@@ -553,75 +591,44 @@ make_directories () {
     mkdir -p "$BASE_DIR/DocumentServer/forgotten"
 }
 
-get_available_version () {
+get_tag_from_registry() {
+    if [[ -n ${REGISTRY_URL} ]]; then
+        if [[ -n ${USERNAME} && -n ${PASSWORD} ]]; then
+            CREDENTIALS=$(echo -n "$USERNAME:$PASSWORD" | base64)
+        elif [[ -f "$HOME/.docker/config.json" ]]; then
+            CREDENTIALS=$(jq -r --arg registry "${REGISTRY_URL}" '.auths | to_entries[] | select(.key | contains($registry)).value.auth // empty' "$HOME/.docker/config.json")
+        fi
+        AUTH_HEADER=${CREDENTIALS:+Authorization: Basic $CREDENTIALS}
+        REGISTRY_TAGS_URL="${REGISTRY_URL%/}/v2/${IMAGE}/tags/list"
+        JQ_FILTER='.tags[]?'
+    else
+        if [[ -n ${USERNAME} && -n ${PASSWORD} ]]; then
+            CREDENTIALS=${USERNAME:+${PASSWORD:+-u ${USERNAME}:${PASSWORD}}}
+        fi
+        TOKEN=$(curl -fs ${CREDENTIALS} "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${IMAGE}:pull" | jq -r .token)
+        AUTH_HEADER="Authorization: Bearer $TOKEN"
+        REGISTRY_TAGS_URL="https://registry-1.docker.io/v2/${IMAGE}/tags/list"
+        JQ_FILTER='.tags | map(select( test("^99\\.") | not )) | .[-100:] | .[]'
+    fi
+
+    mapfile -t TAGS_RESP < <(curl -s ${AUTH_HEADER:+-H "$AUTH_HEADER"} "$REGISTRY_TAGS_URL" | jq -r "$JQ_FILTER")
+}
+
+get_available_version() {
+    local IMAGE="$1"
     if [[ -z "$1" ]]; then
         echo "image name is empty"
         exit 1
     fi
 
-    if ! command_exists curl ; then
-        install_curl; >/dev/null 2>&1
-    fi
+    if ! command_exists curl; then install_curl >/dev/null 2>&1; fi
+    if ! command_exists jq; then install_jq >/dev/null 2>&1; fi
 
-    if ! command_exists jq ; then
-        install_jq >/dev/null 2>&1
-    fi
+    get_tag_from_registry "$IMAGE"
 
-    CREDENTIALS=""
-    AUTH_HEADER=""
-    TAGS_RESP=""
+    VERSION_REGEX='^[0-9]+(\.[0-9]+){2,3}$'
+    echo $(printf "%s\n" "${TAGS_RESP[@]}" | grep -E "$VERSION_REGEX" | sort -V | tail -n 1)
 
-    if [[ -n ${REGISTRY_URL} ]]; then
-        DOCKER_CONFIG="$HOME/.docker/config.json"
-
-        if [[ -f "$DOCKER_CONFIG" ]]; then
-            CREDENTIALS=$(jq -r '.auths."'$REGISTRY_URL'".auth' < "$DOCKER_CONFIG")
-            if [ "$CREDENTIALS" == "null" ]; then
-                CREDENTIALS=""
-            fi
-        fi
-
-        if [[ -z ${CREDENTIALS} && -n ${USERNAME} && -n ${PASSWORD} ]]; then
-            CREDENTIALS=$(echo -n "$USERNAME:$PASSWORD" | base64)
-        fi
-
-        if [[ -n ${CREDENTIALS} ]]; then
-            AUTH_HEADER="Authorization: Basic $CREDENTIALS"
-        fi
-
-        REPO=$(echo $1 | sed "s/$REGISTRY_URL\///g");
-        TAGS_RESP=$(curl -s -H "$AUTH_HEADER" -X GET https://$REGISTRY_URL/v2/$REPO/tags/list)
-        TAGS_RESP=$(echo $TAGS_RESP | jq -r '.tags')
-    else
-        if [[ -n ${USERNAME} && -n ${PASSWORD} ]]; then
-            CREDENTIALS="{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}"
-        fi
-
-        if [[ -n ${CREDENTIALS} ]]; then
-            LOGIN_RESP=$(curl -s -H "Content-Type: application/json" -X POST -d "$CREDENTIALS" https://hub.docker.com/v2/users/login/)
-            TOKEN=$(echo $LOGIN_RESP | jq -r '.token')
-            AUTH_HEADER="Authorization: JWT $TOKEN"
-            sleep 1
-        fi
-
-        TAGS_RESP=$(curl -s -H "$AUTH_HEADER" -X GET https://hub.docker.com/v2/repositories/$1/tags/)
-        TAGS_RESP=$(echo $TAGS_RESP | jq -r '.results[].name')
-    fi
-
-    VERSION_REGEX_1="[0-9]+\.[0-9]+\.[0-9]+"
-    VERSION_REGEX_2="[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+"
-    TAG_LIST=""
-
-    for item in $TAGS_RESP
-    do
-        if [[ $item =~ $VERSION_REGEX_1 ]] || [[ $item =~ $VERSION_REGEX_2 ]]; then
-            TAG_LIST="$item,$TAG_LIST"
-        fi
-    done
-
-    LATEST_TAG=$(echo $TAG_LIST | tr ',' '\n' | sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n | awk '/./{line=$0} END{print line}')
-
-    echo "$LATEST_TAG" | sed "s/\"//g"
 }
 
 get_current_image_name () {
@@ -844,7 +851,7 @@ set_jwt_header () {
     fi
 
     if [[ -z ${JWT_HEADER} ]]; then
-        JWT_HEADER="Authorization"
+        JWT_HEADER="AuthorizationJwt"
     fi
 }
 

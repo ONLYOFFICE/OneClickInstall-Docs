@@ -15,6 +15,12 @@ if [ "$DIST" = "debian" ] && [ $(apt-cache search ttf-mscorefonts-installer | wc
     echo -e "deb $REPO_URL $DISTRIB_CODENAME main contrib\ndeb-src $REPO_URL $DISTRIB_CODENAME main contrib" > /etc/apt/sources.list
 fi
 
+# Fix apt for EOL Debian 10 (buster) during update
+[ "$DISTRIB_CODENAME" = "buster" ] && find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) -exec sed -Ei \
+    -e 's|http://deb\.debian\.org/debian/?|http://archive.debian.org/debian/|g' \
+    -e 's|http://security\.debian\.org/debian-security/?|http://archive.debian.org/debian-security/|g' \
+    -e 's|http://ftp\.uk\.debian\.org/debian/?|http://archive.debian.org/debian/|g' {} +
+
 apt-get -y update
 
 if ! command -v locale-gen &> /dev/null; then

@@ -13,7 +13,7 @@ RES_QUESTIONS="In case you have any questions contact us via http://support.only
 while [ "$1" != "" ]; do
     case $1 in
 
-        -it | --installation_type )
+        -it | --installationtype | --installation_type )
             if [ "$2" != "" ]; then
                 INSTALLATION_TYPE=$(echo "$2" | awk '{print toupper($0)}')
                 shift
@@ -72,7 +72,7 @@ while [ "$1" != "" ]; do
         -? | -h | --help )
             echo "  Usage $0 [PARAMETER] [[PARAMETER], ...]"
             echo "    Parameters:"
-            echo "      -it, --installation_type          installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
+            echo "      -it, --installationtype           installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
             echo "      -u, --update                      use to update existing components (true|false)"
             echo "      -skiphc, --skiphardwarecheck      use to skip hardware check (true|false)"
             echo "      -je, --jwtenabled                 specifies whether JWT validation is enabled (true|false)"
