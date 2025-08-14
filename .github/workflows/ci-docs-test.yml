@@ -89,11 +89,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Python 3.
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
-
     - name: Set up vagrant and virtualbox
       run: |
            gpg --keyserver keyserver.ubuntu.com --recv-keys A2F683C52980AECF && gpg --export A2F683C52980AECF > /usr/share/keyrings/virtualbox.gpg
