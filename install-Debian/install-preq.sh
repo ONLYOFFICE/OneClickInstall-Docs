@@ -31,10 +31,6 @@ if ! dpkg -l | grep -q "dirmngr"; then
     apt-get install -yq dirmngr
 fi
 
-if ! dpkg -l | grep -q "software-properties-common"; then
-    apt-get install -yq software-properties-common
-fi
-
 if [ $(dpkg-query -W -f='${Status}' curl 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
     apt-get install -yq curl
 fi
@@ -42,7 +38,7 @@ fi
 locale-gen en_US.UTF-8
 
 #add nginx repo
-if [[ "$DISTRIB_CODENAME" != noble ]]; then
+if [[ "$DISTRIB_CODENAME" != noble && "$DISTRIB_CODENAME" != "trixie" ]]; then
     curl -s http://nginx.org/keys/nginx_signing.key | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/nginx.gpg --import
     chmod 644 /usr/share/keyrings/nginx.gpg
     echo "deb [signed-by=/usr/share/keyrings/nginx.gpg] http://nginx.org/packages/$DIST/ $DISTRIB_CODENAME nginx" | tee /etc/apt/sources.list.d/nginx.list

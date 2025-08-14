@@ -49,6 +49,10 @@ jobs:
             name: "Debian 12"
 
           - distr: onlyoffice
+            os: debian13
+            name: "Debian 13"
+
+          - distr: onlyoffice
             os: ubuntu2004
             name: "Ubuntu 20.04"
 
