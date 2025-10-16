@@ -29,44 +29,43 @@ jobs:
       matrix:
         include:
           - distr: onlyoffice
-            os: centos8s
+            os: docs-centos8s
             name: "CentOS 8 Stream"
 
           - distr: onlyoffice
-            os: centos9s
+            os: docs-centos9s
             name: "CentOS 9 Stream"
 
           - distr: onlyoffice
-            os: debian10
+            os: docs-debian10
             name: "Debian 10"
 
           - distr: onlyoffice
-            os: debian11
+            os: docs-debian11
             name: "Debian 11"
 
           - distr: onlyoffice
-            os: debian12
+            os: docs-debian12
             name: "Debian 12"
 
           - distr: onlyoffice
-            os: ubuntu2004
+            os: docs-debian13
+            name: "Debian 13"
+
+          - distr: onlyoffice
+            os: docs-ubuntu2004
             name: "Ubuntu 20.04"
 
           - distr: onlyoffice
-            os: ubuntu2204
+            os: docs-ubuntu2204
             name: "Ubuntu 22.04"
 
           - distr: onlyoffice
-            os: ubuntu2404
+            os: docs-ubuntu2404
             name: "Ubuntu 24.04"
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-
-    - name: Set up Python 3.
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
 
     - name: Set up Vagrant and VirtualBox
       run: |
@@ -75,7 +74,7 @@ jobs:
             curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
             echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
             sudo apt update -y
-            sudo apt install vagrant virtualbox-7.0 -y
+            sudo apt install vagrant virtualbox-7.1 -y
 
     - name: Testing with update
       uses: nick-fields/retry@v2
@@ -91,7 +90,7 @@ jobs:
               RAM='4096' \
               CPU='2' \
               VER='-v ${{ env.VER }}' \
-              OS='docs-${{ matrix.os }}' \
+              OS='${{ matrix.os }}' \
               DOWNLOAD_SCRIPT='-ds false' \
               TEST_REPO='-tr true' \
               ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true --update true'" \

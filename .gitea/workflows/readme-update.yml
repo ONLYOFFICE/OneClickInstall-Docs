@@ -24,7 +24,7 @@ jobs:
           sudo chmod +x /usr/local/bin/yq
 
       - name: Update OS list in README
-        working-directory: "${{ github.repository#*/ }}"
+        working-directory: ${{ github.event.repository.name }}
         run: |
           OS_LIST=$(yq -r '.jobs["vagrant-up"].strategy.matrix.include[].name' .github/workflows/ci-docs-test.yml | sed 's/^/- /')
           {
@@ -42,7 +42,7 @@ jobs:
           rm os_block.tmp
 
       - name: Commit changes (if any)
-        working-directory: "${{ github.repository#*/ }}"
+        working-directory: ${{ github.event.repository.name }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

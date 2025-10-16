@@ -31,10 +31,6 @@ if ! dpkg -l | grep -q "dirmngr"; then
     apt-get install -yq dirmngr
 fi
 
-if ! dpkg -l | grep -q "software-properties-common"; then
-    apt-get install -yq software-properties-common
-fi
-
 if [ $(dpkg-query -W -f='${Status}' curl 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
     apt-get install -yq curl
 fi
