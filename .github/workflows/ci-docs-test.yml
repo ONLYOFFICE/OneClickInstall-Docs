@@ -42,8 +42,8 @@ jobs:
             os: rhel8
             name: "RHEL 8"
 
-          - distr: generic
-            os: rhel9
+          - distr: onlyoffice
+            os: base-rhel9
             name: "RHEL 9"
 
           - distr: onlyoffice
