@@ -46,10 +46,11 @@ prepare_vm() {
       REV=$(sed -E 's/[^0-9]+([0-9]+).*/\1/' /etc/amazon-linux-release)
     fi
 
-    if [[ "$REV" =~ ^9 ]]; then
-      update-crypto-policies --set LEGACY || true
-      echo "${COLOR_GREEN}[OK] PREPARE_VM: sha1 gpg key check enabled${COLOR_RESET}"
-      cat <<'EOF' | sudo tee /etc/yum.repos.d/centos-stream-9.repo >/dev/null
+    if [ "$REV" != "10" ]; then
+      if [[ "$REV" =~ ^9 ]]; then
+        update-crypto-policies --set LEGACY || true
+        echo "${COLOR_GREEN}[OK] PREPARE_VM: sha1 gpg key check enabled${COLOR_RESET}"
+        cat <<'EOF' | sudo tee /etc/yum.repos.d/centos-stream-9.repo >/dev/null
 [centos9s-baseos]
 name=CentOS Stream 9 - BaseOS
 baseurl=http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/
@@ -62,11 +63,11 @@ baseurl=http://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/
 enabled=1
 gpgcheck=0
 EOF
-    else
-      if grep -qi 'centos' /etc/redhat-release 2>/dev/null; then
-        sudo sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-*
-      elif [ "$REV" = "8" ]; then
-        cat <<'EOF' | sudo tee /etc/yum.repos.d/CentOS-Vault.repo >/dev/null
+      else
+        if grep -qi 'centos' /etc/redhat-release 2>/dev/null; then
+          sudo sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-*
+        elif [ "$REV" = "8" ]; then
+          cat <<'EOF' | sudo tee /etc/yum.repos.d/CentOS-Vault.repo >/dev/null
 [BaseOS]
 name=CentOS-8 - Base
 baseurl=http://vault.centos.org/8.5.2111/BaseOS/x86_64/os/
@@ -79,10 +80,11 @@ gpgcheck=0
 enabled=1
 EOF
         fi
-    fi
+      fi
 
-    if [ "${TEST_REPO_ENABLE:-}" = 'true' ]; then
-      yum-config-manager --add-repo "https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/repo/centos/onlyoffice-dev-${VER}.repo"
+      if [ "${TEST_REPO_ENABLE:-}" = 'true' ]; then
+        yum-config-manager --add-repo "https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/repo/centos/onlyoffice-dev-${VER}.repo"
+      fi
     fi
   fi
 

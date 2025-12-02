@@ -39,4 +39,8 @@ jobs:
           aws s3 cp ./install-RedHat ${{ secrets.AWS_BUCKET_URL }}/docs/install-RedHat --acl public-read --recursive --exclude "*" --include "*.sh"
 
       - name: Invalidate CLOUDFRONT cache
-        run: aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_DISTRIBUTION_ID }} --paths "/docs/*"
+        run: |
+          aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_DISTRIBUTION_ID }} --paths "/docs/*"
+          aws apigateway test-invoke-method --rest-api-id ${{ secrets.AWS_REST_API_ID }}--http-method PUT \
+            --resource-id "${{ secrets.AWS_RESOURCE_ID }}" --path-with-query-string "/prod/cdn77" \
+            --body "$(jq -c -n '.paths = $ARGS.positional' --args "/docs/*")" --region us-east-1 ||:
