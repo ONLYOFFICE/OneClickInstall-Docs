@@ -3,12 +3,7 @@ name: Upload on S3
 on:
   push:
     branches:
-      - master
-    paths-ignore:
-      - '**/README.md'
-      - '**/LICENSE'
-      - '.github/**'
-      - 'tests/**'
+      - bugfix/apigateway
 
 jobs:
   build:
