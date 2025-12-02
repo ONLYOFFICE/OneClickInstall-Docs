@@ -37,6 +37,10 @@ jobs:
             name: "CentOS 9 Stream"
 
           - distr: onlyoffice
+            os: docs-centos10
+            name: "CentOS 10 Stream"
+
+          - distr: onlyoffice
             os: docs-debian10
             name: "Debian 10"
 

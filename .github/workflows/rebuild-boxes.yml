@@ -16,6 +16,7 @@ on:
         default: |
           centos8s,
           centos9s,
+          centos10,
           debian10,
           debian11,
           debian12,
@@ -44,6 +45,7 @@ jobs:
           {
             "centos8s":  {"distr":"onlyoffice","os":"base-centos8s"},
             "centos9s":  {"distr":"onlyoffice","os":"base-centos9s"},
+            "centos10":  {"distr":"onlyoffice","os":"base-centos10"},
             "debian10":  {"distr":"onlyoffice","os":"base-debian10"},
             "debian11":  {"distr":"onlyoffice","os":"base-debian11"},
             "debian12":  {"distr":"onlyoffice","os":"base-debian12"},
