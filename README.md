@@ -177,6 +177,7 @@ The installation scripts support the following operating systems, which are **re
 - RHEL 9
 - CentOS 8 Stream
 - CentOS 9 Stream
+- CentOS 10 Stream
 - Amazon Linux 2023
 - Debian 10
 - Debian 11
