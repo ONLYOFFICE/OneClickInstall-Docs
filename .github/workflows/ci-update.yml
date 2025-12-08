@@ -14,7 +14,7 @@ jobs:
       id: get-version
       shell: bash
       run: |
-        VERSION=$(curl -sL --max-time 10 -H "Accept: application/vnd.github+json" https://api.github.com/repos/ONLYOFFICE/document-server-package/branches?per_page=100 \
+        VERSION=$(curl -sL --max-time 10 -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ github.token }}" https://api.github.com/repos/ONLYOFFICE/document-server-package/branches?per_page=100 \
           | jq -r '.[] | select(.name|test("^(release|hotfix)/")) | .name' | sort -Vr | head -n1 | sed 's#.*/v##') || echo "99.99.99"
         echo "ds-ver=$VERSION" >> "$GITHUB_OUTPUT"
 
@@ -35,6 +35,10 @@ jobs:
           - distr: onlyoffice
             os: docs-centos9s
             name: "CentOS 9 Stream"
+
+          - distr: onlyoffice
+            os: docs-centos10
+            name: "CentOS 10 Stream"
 
           - distr: onlyoffice
             os: docs-debian10

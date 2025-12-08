@@ -39,4 +39,12 @@ jobs:
           aws s3 cp ./install-RedHat ${{ secrets.AWS_BUCKET_URL }}/docs/install-RedHat --acl public-read --recursive --exclude "*" --include "*.sh"
 
       - name: Invalidate CLOUDFRONT cache
-        run: aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_DISTRIBUTION_ID }} --paths "/docs/*"
+        run: |
+          CF_STATUS=$(aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_DISTRIBUTION_ID }} --paths "/docs/*" --query 'Invalidation.Status' --output text)
+          echo "CloudFront invalidation: $CF_STATUS"
+
+          API_STATUS=$(aws apigateway test-invoke-method --rest-api-id ${{ secrets.AWS_REST_API_ID }} --resource-id "${{ secrets.AWS_RESOURCE_ID }}" \
+            --http-method PUT --path-with-query-string "/prod/cdn77" --body "$(jq -c -n '.paths = $ARGS.positional' --args "/docs/*")" \
+            --region us-east-1 --query 'status' --output text || :)
+
+          echo "API Gateway test-invoke status: ${API_STATUS:-<failed>}"

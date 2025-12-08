@@ -80,7 +80,6 @@ RABBIT_DIST_NAME=$( [[ "$REV" == "10" ]] && echo "el" || echo "$DIST" )
 RABBIT_DIST_VER=$( [[ "$REV" == "10" ]] && echo "9" || echo "$REV" )
 ERLANG_DIST_NAME=$( [[ "$REV" == "10" ]] && echo "el" || echo "$DIST" )
 ERLANG_DIST_VER=$( [[ "$REV" == "10" ]] && echo "9" || echo "$REV" )
-
 # Temporary workaround for missing CentOS 10 repos
 if [ "$REV" = "10" ]; then
   APPSTREAM_PKGS="https://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/Packages"
