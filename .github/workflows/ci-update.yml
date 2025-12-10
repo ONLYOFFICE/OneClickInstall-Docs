@@ -91,6 +91,8 @@ jobs:
         command: |
               cd ./tests/vagrant
               set -eux
+              ls -ld /home/runner/work/OneClickInstall-Docs/OneClickInstall-Docs
+              ls -l  /home/runner/work/OneClickInstall-Docs/OneClickInstall-Docs | head
               TEST_CASE='--local-install' \
               DISTR='${{matrix.distr}}' \
               RAM='4096' \
