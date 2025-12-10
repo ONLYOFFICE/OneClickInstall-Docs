@@ -12,15 +12,28 @@ Vagrant.configure("2") do |config|
     config.vm.hostname = "host4test"
 
     if ENV['TEST_CASE'] != '--production-install'
-    if ENV['OS'] == 'docs-centos10'
-      config.vm.provision "shell",
-        inline: <<-SHELL
-          sudo rm -rf /tmp/docs
-          sudo mkdir -p /tmp/docs
-          sudo chmod 1777 /tmp/docs
-          sudo chown vagrant:vagrant /tmp/docs
-        SHELL
-    end
+    name: "debug-tmp-docs-before-file",
+      inline: <<-'SHELL'
+        echo "=== DEBUG BEFORE FILE PROVISIONER ==="
+        echo "whoami: $(whoami)"
+        echo "id: $(id)"
+        echo "--- ls -ld /tmp ---"
+        ls -ld /tmp || echo "no /tmp"
+        echo "--- ls -ld /tmp/docs ---"
+        ls -ld /tmp/docs || echo "no /tmp/docs"
+        echo "--- stat /tmp/docs ---"
+        stat /tmp/docs 2>/dev/null || echo "stat: no /tmp/docs"
+        echo "==============================="
+      SHELL
+    # if ENV['OS'] == 'docs-centos10'
+    #   config.vm.provision "shell",
+    #     inline: <<-SHELL
+    #       sudo rm -rf /tmp/docs
+    #       sudo mkdir -p /tmp/docs
+    #       sudo chmod 1777 /tmp/docs
+    #       sudo chown vagrant:vagrant /tmp/docs
+    #     SHELL
+    # end
        config.vm.provision "file", source: "../../../OneClickInstall-Docs/.", destination: "/tmp/docs/"
     end
 
