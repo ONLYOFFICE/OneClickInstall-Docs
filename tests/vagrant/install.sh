@@ -93,6 +93,7 @@ EOF
   if [ -d /tmp/docs ]; then
     mv /tmp/docs/* /home/vagrant
   fi
+  rm -rf /tmp/docs
 
   echo '127.0.0.1 host4test' | sudo tee -a /etc/hosts
   echo "${COLOR_GREEN}[OK] PREPARE_VM: Hostname was setting up${COLOR_RESET}"
