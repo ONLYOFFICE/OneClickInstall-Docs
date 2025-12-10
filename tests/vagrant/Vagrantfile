@@ -12,19 +12,19 @@ Vagrant.configure("2") do |config|
     config.vm.hostname = "host4test"
 
     if ENV['TEST_CASE'] != '--production-install'
-    name: "debug-tmp-docs-before-file",
-      inline: <<-'SHELL'
-        echo "=== DEBUG BEFORE FILE PROVISIONER ==="
-        echo "whoami: $(whoami)"
-        echo "id: $(id)"
-        echo "--- ls -ld /tmp ---"
-        ls -ld /tmp || echo "no /tmp"
-        echo "--- ls -ld /tmp/docs ---"
-        ls -ld /tmp/docs || echo "no /tmp/docs"
-        echo "--- stat /tmp/docs ---"
-        stat /tmp/docs 2>/dev/null || echo "stat: no /tmp/docs"
-        echo "==============================="
-      SHELL
+      config.vm.provision "shell",
+        inline: <<-'SHELL'
+          echo "=== DEBUG BEFORE FILE PROVISIONER ==="
+          echo "whoami: $(whoami)"
+          echo "id: $(id)"
+          echo "--- ls -ld /tmp ---"
+          ls -ld /tmp || echo "no /tmp"
+          echo "--- ls -ld /tmp/docs ---"
+          ls -ld /tmp/docs || echo "no /tmp/docs"
+          echo "--- stat /tmp/docs ---"
+          stat /tmp/docs 2>/dev/null || echo "stat: no /tmp/docs"
+          echo "==============================="
+        SHELL
     # if ENV['OS'] == 'docs-centos10'
     #   config.vm.provision "shell",
     #     inline: <<-SHELL
