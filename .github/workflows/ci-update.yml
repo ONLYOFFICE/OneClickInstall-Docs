@@ -28,45 +28,45 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - distr: onlyoffice
-            os: docs-centos8s
-            name: "CentOS 8 Stream"
+          # - distr: onlyoffice
+          #   os: docs-centos8s
+          #   name: "CentOS 8 Stream"
 
-          - distr: onlyoffice
-            os: docs-centos9s
-            name: "CentOS 9 Stream"
+          # - distr: onlyoffice
+          #   os: docs-centos9s
+          #   name: "CentOS 9 Stream"
 
           - distr: onlyoffice
             os: docs-centos10
             name: "CentOS 10 Stream"
 
-          - distr: onlyoffice
-            os: docs-debian10
-            name: "Debian 10"
+          # - distr: onlyoffice
+          #   os: docs-debian10
+          #   name: "Debian 10"
 
-          - distr: onlyoffice
-            os: docs-debian11
-            name: "Debian 11"
+          # - distr: onlyoffice
+          #   os: docs-debian11
+          #   name: "Debian 11"
 
-          - distr: onlyoffice
-            os: docs-debian12
-            name: "Debian 12"
+          # - distr: onlyoffice
+          #   os: docs-debian12
+          #   name: "Debian 12"
 
-          - distr: onlyoffice
-            os: docs-debian13
-            name: "Debian 13"
+          # - distr: onlyoffice
+          #   os: docs-debian13
+          #   name: "Debian 13"
 
-          - distr: onlyoffice
-            os: docs-ubuntu2004
-            name: "Ubuntu 20.04"
+          # - distr: onlyoffice
+          #   os: docs-ubuntu2004
+          #   name: "Ubuntu 20.04"
 
-          - distr: onlyoffice
-            os: docs-ubuntu2204
-            name: "Ubuntu 22.04"
+          # - distr: onlyoffice
+          #   os: docs-ubuntu2204
+          #   name: "Ubuntu 22.04"
 
-          - distr: onlyoffice
-            os: docs-ubuntu2404
-            name: "Ubuntu 24.04"
+          # - distr: onlyoffice
+          #   os: docs-ubuntu2404
+          #   name: "Ubuntu 24.04"
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
