@@ -28,7 +28,7 @@ if [[ $exitCode -eq $UPDATE_AVAILABLE_CODE ]]; then
     read_unsupported_installation
 fi
 
-[ "$REV" = "9" ] && update-crypto-policies --set DEFAULT:SHA1 && yum -y install xorg-x11-font-utils
+[ "$REV" = "9" ] && update-crypto-policies --set DEFAULT:SHA1
 
 #Add repo EPEL
 yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
@@ -48,7 +48,7 @@ fi
 
 #add erlang repo
 #or download the RPM package for the latest erlang release
-if [[ "$(uname -m)" =~ (arm|aarch) ]] && [[ $REV -gt 7 ]]; then
+if [[ "$(uname -m)" =~ (arm|aarch) ]]; then
     ERLANG_LATEST_URL=$(curl -s https://api.github.com/repos/rabbitmq/erlang-rpm/releases | jq -r --arg rev "$REV" \
         '.[] | .assets[]? | select(.name | test("erlang-[0-9\\.]+-1\\.el" + $rev + "\\.aarch64\\.rpm$")) | .browser_download_url' | head -n1)
     yum install -y "${ERLANG_LATEST_URL}"
