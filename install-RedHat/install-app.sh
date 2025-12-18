@@ -29,7 +29,7 @@ if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
         ${package_manager} -y remove ${ds_pkg_installed_name}
         DOCUMENT_SERVER_INSTALLED="false"
     else
-        ${package_manager} -y update ${ds_pkg_installed_name}
+        ${package_manager} -y update ${ds_pkg_installed_name} --nobest # --no-best for rhel 8 compatibility
     fi
 fi
 
@@ -58,7 +58,7 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
         su - postgres -s /bin/bash -c "psql -c \"CREATE DATABASE ${DS_DB_NAME} OWNER ${DS_DB_USER};\""
     fi
 
-    ${package_manager} -y install ${ds_pkg_name}
+    ${package_manager} -y install ${ds_pkg_name} --nobest # --nobest for rhel 8 compatibility
 
 expect << EOF
 
