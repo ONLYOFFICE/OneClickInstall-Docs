@@ -106,11 +106,10 @@ jobs:
 
     - name: Test production scripts
       if: ${{ github.event_name == 'schedule' }}
-      uses: nick-fields/retry@v2
+      uses: nick-fields/retry@v3
       with:
         max_attempts: 2
         timeout_minutes: 40
-        retry_on: error
         command: |
                 set -eux
                 cd tests/vagrant
@@ -130,11 +129,10 @@ jobs:
 
     - name: "Test Local scripts with ver: ${{ needs.get-version.outputs.ds-ver }}"
       if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
-      uses: nick-fields/retry@v2
+      uses: nick-fields/retry@v3
       with:
          max_attempts: 2
          timeout_minutes: 40
-         retry_on: error
          command: |
                   set -eux
                   cd tests/vagrant
