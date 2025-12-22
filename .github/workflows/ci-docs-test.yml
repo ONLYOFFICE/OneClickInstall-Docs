@@ -109,7 +109,7 @@ jobs:
       uses: nick-fields/retry@v3
       with:
         max_attempts: 2
-        timeout_minutes: 40
+        timeout_minutes: 25
         command: |
                 set -eux
                 cd tests/vagrant
@@ -120,6 +120,7 @@ jobs:
                    RAM='4096' \
                    CPU='2' \
                    ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false'" \
+                   timeout --signal=SIGTERM --kill-after=60s 24m \
                    vagrant up
         on_retry_command: |
               echo "RUN CLEAN UP: Destroy vagrant and one more try"
@@ -132,7 +133,7 @@ jobs:
       uses: nick-fields/retry@v3
       with:
          max_attempts: 2
-         timeout_minutes: 40
+         timeout_minutes: 25
          command: |
                   set -eux
                   cd tests/vagrant
@@ -145,6 +146,7 @@ jobs:
                     DOWNLOAD_SCRIPT='-ds false' \
                     TEST_REPO='-tr true' \
                     ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'" \
+                    timeout --signal=SIGTERM --kill-after=60s 24m \
                     vagrant up
          on_retry_command: |
                     echo "RUN CLEAN UP: Destroy vagrant and one more try"
