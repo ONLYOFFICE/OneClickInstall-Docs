@@ -111,11 +111,10 @@ jobs:
           curl -fsSL "https://download.virtualbox.org/virtualbox/7.1.12/virtualbox-7.1_7.1.12-169651~Ubuntu~jammy_amd64.deb" -o /tmp/vbox.deb && sudo apt-get install -y /tmp/vbox.deb
 
       - name: Test local scripts
-        uses: nick-fields/retry@v2
+        uses: nick-fields/retry@v3
         with:
           max_attempts: 2
           timeout_minutes: 40
-          retry_on: error
           command: |
             set -eux
             cd tests/vagrant
