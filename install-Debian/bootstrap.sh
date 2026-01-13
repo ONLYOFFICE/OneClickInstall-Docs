@@ -10,16 +10,13 @@ cat<<EOF
 
 EOF
 
-if ! dpkg -l | grep -q "sudo"; then
-    apt-get install -yq sudo
-fi
+timeout 60s bash -c 'while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done' || { echo "Error: Lock not released"; exit 1; }
 
-if ! dpkg -l | grep -q "net-tools"; then
-    apt-get install -yq net-tools
-fi
+. /etc/os-release && [ "$VERSION_CODENAME" = buster ] && find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) -exec sed -Ei \
+  -e 's|http://deb\.debian\.org/debian/?|http://archive.debian.org/debian/|g' \
+  -e 's|http://security\.debian\.org/debian-security/?|http://archive.debian.org/debian-security/|g' \
+  -e 's|http://ftp\.uk\.debian\.org/debian/?|http://archive.debian.org/debian/|g' {} +
 
-if ! dpkg -l | grep -q "dirmngr"; then
-    apt-get install -yq dirmngr
-fi
+apt-get -y update
+apt-get install -yq sudo net-tools dirmngr
 
-timeout 60s bash -c 'while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done' || { echo "Error: Lock not released"; exit 1; }
