@@ -49,8 +49,9 @@ fi
 #add erlang repo
 #or download the RPM package for the latest erlang release
 if [[ "$(uname -m)" =~ (arm|aarch) ]]; then
-    ERLANG_LATEST_URL=$(curl -s https://api.github.com/repos/rabbitmq/erlang-rpm/releases | jq -r --arg rev "$REV" \
-        '.[] | .assets[]? | select(.name | test("erlang-[0-9\\.]+-1\\.el" + $rev + "\\.aarch64\\.rpm$")) | .browser_download_url' | head -n1)
+    ERLANG_LATEST_URL=$(curl -s https://api.github.com/repos/rabbitmq/erlang-rpm/releases | jq -r --arg rev "$ERLANG_DIST_VER" \
+        --arg major "$(repoquery --disablerepo='*' --enablerepo='rabbitmq_rabbitmq-server' --latest-limit=1 --requires rabbitmq-server | sed -n 's/^erlang >= \([0-9][0-9]*\)\..*/\1/p' | head -n1)" \
+        '.[] | .assets[]? | select(.name | test("^erlang-" + $major + "\\.[0-9.]+-1\\.el" + $rev + "\\.aarch64\\.rpm$")) | .browser_download_url' | head -n1)
     yum install -y "${ERLANG_LATEST_URL}"
 else
     curl -s https://packagecloud.io/install/repositories/rabbitmq/erlang/script.rpm.sh | os="${ERLANG_DIST_NAME}" dist="${ERLANG_DIST_VER}" bash
