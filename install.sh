@@ -92,6 +92,13 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        -uni | --uninstall )
+            if [ "$2" != "" ]; then
+                UNINSTALL=$2
+                shift
+            fi
+        ;;
+
         -reg | --registry )
             if [ "$2" != "" ]; then
                 REGISTRY_URL=$2
@@ -217,6 +224,7 @@ while [ "$1" != "" ]; do
             echo "INSTALLATION MODE:"
             echo "--installationtype       <EDITION>          Installation type: COMMUNITY | ENTERPRISE | DEVELOPER"
             echo "--update                 <true|false>       Update existing components"
+            echo "--uninstall              <true|false>       Uninstall ONLYOFFICE Docs"
             echo "--localscripts           <true|false>       Use local scripts"
             echo
             echo "DOCUMENT SERVER OPTIONS:"
@@ -905,6 +913,17 @@ remove_container () {
     fi
 }
 
+uninstall () {
+    root_checking
+    read -r -p "Are you sure you want to uninstall ONLYOFFICE Docs? [y/N]: " DEP_CHOICE
+    DEP_CHOICE=${DEP_CHOICE,,}
+    [[ "$DEP_CHOICE" =~ ^(y|yes)$ ]] || { echo "Uninstall canceled."; exit 0; }
+    [ -n "$(get_container_id "$DOCUMENT_CONTAINER_NAME")" ] && remove_container "$DOCUMENT_CONTAINER_NAME"
+    docker network rm "$NETWORK" >/dev/null 2>&1 || echo "Failed to uninstall network ${NETWORK}."
+    rm -rf "$BASE_DIR/DocumentServer"
+    echo -e "\nUninstallation of ONLYOFFICE Docs \e[32mcompleted.\e[0m\n"
+}
+
 pull_document_server () {
     if file_exists "${DOCUMENT_IMAGE_NAME}"; then
         docker load -i ${DOCUMENT_IMAGE_NAME}
@@ -1011,4 +1030,4 @@ start_installation () {
     exit 0;
 }
 
-start_installation
+[[ $UNINSTALL != true ]] && start_installation || uninstall

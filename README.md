@@ -84,6 +84,7 @@ sudo bash docs-install.sh --help
 | `--jwtsecret`         | `<JWT_SECRET>`                             | *(auto-generate)*  | JWT secret key                   |
 | `--localscripts`      | `true` \| `false`                          | `false`            | Run local scripts                |
 | `--docsport`          | `<PORT>`                                   | `80`               | Docs port                        |
+| `--uninstall`         | `true` \| `false`                          | `false`            | Uninstall ONLYOFFICE Docs        |
 
 ### Docker flags
 > Applies only to Docker installation
@@ -155,6 +156,11 @@ sudo bash docs-install.sh \
 sudo bash docs-install.sh \
   --letsencryptdomain example.com \
   --letsencryptmail admin@example.com
+```
+
+8. Uninstall ONLYOFFICE Docs
+```bash
+sudo bash docs-install.sh --uninstall true
 ```
 
 ## 🖥 System Requirements

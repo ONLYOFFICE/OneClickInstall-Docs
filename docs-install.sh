@@ -46,6 +46,14 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        -uni | --uninstall )
+            if [ "$2" == "true" ] || [ "$2" == "false" ]; then
+                PARAMETERS="$PARAMETERS ${1}"
+                UNINSTALL=$2
+                shift
+            fi
+        ;;
+
         "-?" | -h | --help )
             HELP="true"
             DOCKER="true"
@@ -93,7 +101,11 @@ root_checking
 
 is_command_exists curl || install_curl
 
-[ "$HELP" == "false" ] && read_installation_method
+if [ "$UNINSTALL" = "true" ] && is_command_exists docker && docker ps -a --format '{{.Names}}' | grep -qx 'onlyoffice-document-server'; then
+    DOCKER="true"
+fi
+
+[ "$HELP" == "false" ] && [ "$UNINSTALL" != "true" ] && [ -z "$DOCKER" ] && read_installation_method
 
 if [ "$DOCKER" = "true" ]; then
     SCRIPT="install.sh"

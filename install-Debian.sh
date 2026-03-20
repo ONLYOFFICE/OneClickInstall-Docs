@@ -34,6 +34,13 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        -uni | --uninstall )
+            if [ "$2" != "" ]; then
+                UNINSTALL=$2
+                shift
+            fi
+        ;;
+
         -je | --jwtenabled )
             if [ "$2" != "" ]; then
                 DS_JWT_ENABLED=$2
@@ -74,6 +81,7 @@ while [ "$1" != "" ]; do
             echo "    Parameters:"
             echo "      -it, --installationtype           installation type (COMMUNITY|ENTERPRISE|DEVELOPER)"
             echo "      -u, --update                      use to update existing components (true|false)"
+            echo "      -uni, --uninstall                 uninstall ONLYOFFICE Docs (true|false)"
             echo "      -skiphc, --skiphardwarecheck      use to skip hardware check (true|false)"
             echo "      -je, --jwtenabled                 specifies whether JWT validation is enabled (true|false)"
             echo "      -jh, --jwtheader                  defines the HTTP header that will be used to send the JWT"
@@ -110,6 +118,16 @@ if [ $(dpkg-query -W -f='${Status}' curl 2>/dev/null | grep -c "ok installed") -
 fi
 
 DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs/install-Debian"
+
+if [ "${UNINSTALL}" = "true" ]; then
+    if [ "${LOCAL_SCRIPTS}" == "true" ]; then
+        source install-Debian/uninstall.sh
+    else
+        source <(curl ${DOWNLOAD_URL_PREFIX}/uninstall.sh)
+    fi
+    exit 0
+fi
+
 if [ "${LOCAL_SCRIPTS}" == "true" ]; then
     source install-Debian/bootstrap.sh
 else
