@@ -80,6 +80,13 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        -gb | --gitbranch )
+            if [ "$2" != "" ]; then
+                GIT_BRANCH=$2
+                shift
+            fi
+        ;;
+
         -ls | --localscripts )
             if [ "$2" != "" ]; then
                 LOCAL_SCRIPTS=$2
@@ -132,6 +139,7 @@ if [ -z "${LOCAL_SCRIPTS}" ]; then
 fi
 
 DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs/install-RedHat"
+[ -n "${GIT_BRANCH}" ] && DOWNLOAD_URL_PREFIX="https://raw.githubusercontent.com/ONLYOFFICE/OneClickInstall-Docs/${GIT_BRANCH}/install-RedHat"
 
 if [ "${UNINSTALL}" = "true" ]; then
     if [ "${LOCAL_SCRIPTS}" == "true" ]; then

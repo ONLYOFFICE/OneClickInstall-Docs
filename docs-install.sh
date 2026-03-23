@@ -54,6 +54,14 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        -gb | --gitbranch )
+            if [ "$2" != "" ]; then
+                PARAMETERS="$PARAMETERS ${1}"
+                GIT_BRANCH=$2
+                shift
+            fi
+        ;;
+
         "-?" | -h | --help )
             HELP="true"
             DOCKER="true"
@@ -118,7 +126,9 @@ else
     exit 1
 fi
 
-[ "$LOCAL_SCRIPTS" != "true" ] && curl -s -O "http://download.onlyoffice.com/docs/${SCRIPT}"
+DOWNLOAD_URL_PREFIX="http://download.onlyoffice.com/docs"
+[ -n "$GIT_BRANCH" ] && DOWNLOAD_URL_PREFIX="https://raw.githubusercontent.com/ONLYOFFICE/OneClickInstall-Docs/${GIT_BRANCH}"
+[ "$LOCAL_SCRIPTS" != "true" ] && curl -s -O "${DOWNLOAD_URL_PREFIX}/${SCRIPT}"
 bash ${SCRIPT} ${PARAMETERS} || EXIT_CODE=$?
 [ "${LOCAL_SCRIPTS}" != "true" ] && rm -f "${SCRIPT}"
 exit ${EXIT_CODE:-0}
