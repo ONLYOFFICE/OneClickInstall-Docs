@@ -157,3 +157,33 @@ jobs:
                     cd tests/vagrant
                     sleep 10
                     vagrant destroy --force
+
+  arm-native:
+    name: "Test Docs with Ubuntu 24.04 (ARM)"
+    needs: [get-version]
+    runs-on: ubuntu-24.04-arm
+    env:
+      VER: ${{ needs.get-version.outputs.ds-ver }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Test production scripts
+      if: ${{ github.event_name == 'schedule' }}
+      uses: nick-fields/retry@v4
+      with:
+        max_attempts: 2
+        timeout_minutes: 25
+        command: |
+          set -eux
+          sudo bash tests/vagrant/install.sh -ds true -arg '--skiphardwarecheck true --makeswap false'
+
+    - name: "Test Local scripts with ver: ${{ needs.get-version.outputs.ds-ver }}"
+      if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
+      uses: nick-fields/retry@v4
+      with:
+        max_attempts: 2
+        timeout_minutes: 25
+        command: |
+          set -eux
+          sudo bash tests/vagrant/install.sh -ds false -v "${VER}" -tr true -arg '--skiphardwarecheck true --makeswap false --localscripts true'
