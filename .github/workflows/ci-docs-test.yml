@@ -7,6 +7,12 @@ on:
       - 'release/**'
       - 'develop'
       - 'master'
+    paths:
+      - '.github/workflows/ci-docs-test.yml'
+      - 'docs-install.sh'
+      - 'install-*.sh'
+      - 'install-*/**'
+      - 'tests/**'
 
   workflow_dispatch:
 
