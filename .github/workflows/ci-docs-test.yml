@@ -101,7 +101,7 @@ jobs:
         sudo rm -rf /usr/local/lib/android || true
 
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v6
 
     - name: Set up vagrant and virtualbox
       run: |
@@ -116,7 +116,7 @@ jobs:
 
     - name: Test production scripts
       if: ${{ github.event_name == 'schedule' }}
-      uses: nick-fields/retry@v3
+      uses: nick-fields/retry@v4
       with:
         max_attempts: 2
         timeout_minutes: 25
@@ -140,7 +140,7 @@ jobs:
 
     - name: "Test Local scripts with ver: ${{ needs.get-version.outputs.ds-ver }}"
       if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
-      uses: nick-fields/retry@v3
+      uses: nick-fields/retry@v4
       with:
          max_attempts: 2
          timeout_minutes: 25
