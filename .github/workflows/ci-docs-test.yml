@@ -21,7 +21,7 @@ on:
 
 jobs:
   get-version:
-    name: "Get ds version for test"
+    name: "Get Docs version"
     runs-on: ubuntu-latest
     outputs:
       ds-ver: ${{ steps.get-version.outputs.ds-ver }}
@@ -35,7 +35,7 @@ jobs:
         echo "ds-ver=${VERSION:-99.99.99}" >> "$GITHUB_OUTPUT"
 
   vagrant-up:
-    name: "Test Docs with ${{matrix.name}}"
+    name: "${{matrix.name}}"
     needs: [get-version]
     runs-on: ubuntu-22.04
     env:
@@ -165,7 +165,7 @@ jobs:
                     vagrant destroy --force
 
   arm-native:
-    name: "Test Docs with Ubuntu 24.04 (ARM)"
+    name: "Ubuntu 24.04 [ARM]"
     needs: [get-version]
     runs-on: ubuntu-24.04-arm
     env:

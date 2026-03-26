@@ -5,7 +5,7 @@ on:
 
 jobs:
   get-version:
-    name: "Get ds version"
+    name: "Get Docs version"
     runs-on: ubuntu-latest
     outputs:
       ds-ver: ${{ steps.get-version.outputs.ds-ver }}
@@ -19,7 +19,7 @@ jobs:
         echo "ds-ver=$VERSION" >> "$GITHUB_OUTPUT"
 
   update-test:
-    name: "Update test on ${{ matrix.name }}"
+    name: "${{ matrix.name }}"
     runs-on: ubuntu-22.04
     needs: get-version
     env:
