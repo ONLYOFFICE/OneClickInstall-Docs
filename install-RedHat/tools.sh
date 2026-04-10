@@ -79,3 +79,6 @@ RABBIT_DIST_NAME=$( [[ "$REV" == "10" ]] && echo "el" || echo "$DIST" )
 RABBIT_DIST_VER=$( [[ "$REV" == "10" ]] && echo "9" || echo "$REV" )
 ERLANG_DIST_NAME=$( [[ "$REV" == "10" ]] && echo "el" || echo "$DIST" )
 ERLANG_DIST_VER=$( [[ "$REV" == "10" ]] && echo "9" || echo "$REV" )
+
+# On EL8 the repo contains EL9-built xorg packages (GLIBC_2.34+) that break `yum update`.
+[ "$REV" = "8" ] && echo "excludepkgs=xorg-x11-server-Xvfb,xorg-x11-server-common" >> /etc/yum.repos.d/onlyoffice.repo || true
