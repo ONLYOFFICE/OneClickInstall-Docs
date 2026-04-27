@@ -82,6 +82,7 @@ sudo bash docs-install.sh --help
 | `--jwtenabled`        | `true` \| `false`                          | `true`             | Enable JWT validation            |
 | `--jwtheader`         | `<HEADER_NAME>`                            | `AuthorizationJwt` | JWT HTTP header                  |
 | `--jwtsecret`         | `<JWT_SECRET>`                             | *(auto-generate)*  | JWT secret key                   |
+| `--wopienabled`       | `true` \| `false`                          | `false`            | Enable WOPI protocol             |
 | `--localscripts`      | `true` \| `false`                          | `false`            | Run local scripts                |
 | `--docsport`          | `<PORT>`                                   | `80`               | Docs port                        |
 | `--uninstall`         | `true` \| `false`                          | `false`            | Uninstall ONLYOFFICE Docs        |

@@ -197,6 +197,13 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        -we | --wopienabled )
+            if [ "$2" != "" ]; then
+                WOPI_ENABLED=$2
+                shift
+            fi
+        ;;
+
         -led | --letsencryptdomain )
             if [ "$2" != "" ]; then
                 LETS_ENCRYPT_DOMAIN=$2
@@ -233,6 +240,7 @@ while [ "$1" != "" ]; do
             echo "--installdocs            <true|false|pull>  Install or update Document Server"
             echo "--docsport               <PORT>             Port for ONLYOFFICE Docs (default: $DOCS_PORT)"
             echo "--externalserver         <true|false>       Expose Docs externally (default: true)"
+            echo "--wopienabled            <true|false>       Enable WOPI protocol"
             echo
             echo "JWT AUTHENTICATION:"
             echo "--jwtenabled             <true|false>       Enable JWT validation"
@@ -724,6 +732,11 @@ install_document_server () {
                     LETS_ENCRYPT_MAIL="${LETS_ENCRYPT_MAIL:-$PARAMETER_VALUE}"
                 fi
 
+                PARAMETER_VALUE=$(get_container_env_parameter "$DOCUMENT_CONTAINER_NAME" "WOPI_ENABLED")
+                if [[ -n ${PARAMETER_VALUE} ]]; then
+                    WOPI_ENABLED="${WOPI_ENABLED:-$PARAMETER_VALUE}"
+                fi
+
                 check_bindings $DOCUMENT_SERVER_ID "/etc/$PRODUCT,/var/lib/$PRODUCT,/var/lib/postgresql,/usr/share/fonts/truetype/custom,/var/lib/rabbitmq,/var/lib/redis";
                 docker exec ${DOCUMENT_CONTAINER_NAME} bash /usr/bin/documentserver-prepare4shutdown.sh
                 remove_container ${DOCUMENT_CONTAINER_NAME}
@@ -762,6 +775,10 @@ install_document_server () {
 
         if [[ -n ${LETS_ENCRYPT_MAIL} ]]; then
             args+=(-e "LETS_ENCRYPT_MAIL=$LETS_ENCRYPT_MAIL")
+        fi
+
+        if [[ -n ${WOPI_ENABLED} ]]; then
+            args+=(-e "WOPI_ENABLED=$WOPI_ENABLED")
         fi
 
         args+=(-v "$BASE_DIR/DocumentServer/data:/var/www/$PRODUCT/Data")

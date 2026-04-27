@@ -58,6 +58,7 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
     echo ${package_sysname}-documentserver-ee $DS_COMMON_NAME/jwt-enabled select ${DS_JWT_ENABLED} | sudo debconf-set-selections
     echo ${package_sysname}-documentserver-ee $DS_COMMON_NAME/jwt-secret select ${DS_JWT_SECRET} | sudo debconf-set-selections
     echo ${package_sysname}-documentserver-ee $DS_COMMON_NAME/jwt-header select ${DS_JWT_HEADER} | sudo debconf-set-selections
+    [ -n "${WOPI_ENABLED}" ] && echo ${ds_pkg_name} $DS_COMMON_NAME/wopi-enabled boolean ${WOPI_ENABLED} | sudo debconf-set-selections
 
     apt-get install -yq ${ds_pkg_name}
 fi

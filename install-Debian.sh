@@ -62,6 +62,13 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        -we | --wopienabled )
+            if [ "$2" != "" ]; then
+                WOPI_ENABLED=$2
+                shift
+            fi
+        ;;
+
         -gb | --gitbranch )
             if [ "$2" != "" ]; then
                 GIT_BRANCH=$2
@@ -93,6 +100,7 @@ while [ "$1" != "" ]; do
             echo "      -je, --jwtenabled                 specifies whether JWT validation is enabled (true|false)"
             echo "      -jh, --jwtheader                  defines the HTTP header that will be used to send the JWT"
             echo "      -js, --jwtsecret                  defines the secret key to validate the JWT in the request"
+            echo "      -we, --wopienabled                specifies whether WOPI protocol is enabled (true|false)"
             echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
             echo "      -dp, --docsport                   docs port (default value 80)"
             echo "      -?, -h, --help                    this help"
