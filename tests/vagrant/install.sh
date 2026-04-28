@@ -14,7 +14,7 @@ done
 
 export TERM=xterm-256color
 
-SERVICES_SYSTEMD=("ds-converter.service" "ds-docservice.service" "ds-metrics.service")
+SERVICES_SYSTEMD=("ds-converter.service" "ds-docservice.service")
 
 get_colors() {
   COLOR_BLUE=$'\e[34m'
@@ -139,7 +139,6 @@ services_logs() {
   local DOCS_LOGS_DIR="${MAIN_LOGS_DIR}/documentserver"
   local DOCSERVICE_LOGS_DIR="${DOCS_LOGS_DIR}/docservice"
   local CONVERTER_LOGS_DIR="${DOCS_LOGS_DIR}/converter"
-  local METRICS_LOGS_DIR="${DOCS_LOGS_DIR}/metrics"
 
   shopt -s nullglob
 
@@ -157,16 +156,6 @@ services_logs() {
   echo "${COLOR_YELLOW} Check logs for Converter ${COLOR_RESET}"
   echo "-----------------------------------"
   for file in "${CONVERTER_LOGS_DIR}"/*; do
-    echo ---------------------------------------
-    echo "${COLOR_GREEN}logs from file $(basename "$file")${COLOR_RESET}"
-    echo ---------------------------------------
-    cat "$file" || true
-  done
-
-  echo "-----------------------------------"
-  echo "${COLOR_YELLOW} Start logs for Metrics ${COLOR_RESET}"
-  echo "-----------------------------------"
-  for file in "${METRICS_LOGS_DIR}"/*; do
     echo ---------------------------------------
     echo "${COLOR_GREEN}logs from file $(basename "$file")${COLOR_RESET}"
     echo ---------------------------------------
