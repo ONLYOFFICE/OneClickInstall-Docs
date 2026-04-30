@@ -182,7 +182,7 @@ jobs:
         timeout_minutes: 25
         command: |
           set -eux
-          sudo bash tests/vagrant/install.sh -ds true -arg '--skiphardwarecheck true --makeswap false'
+          sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh -ds true -arg '--skiphardwarecheck true --makeswap false'
 
     - name: "Test Local scripts with ver: ${{ needs.get-version.outputs.ds-ver }}"
       if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
@@ -192,4 +192,4 @@ jobs:
         timeout_minutes: 25
         command: |
           set -eux
-          sudo bash tests/vagrant/install.sh -ds false -v "${VER}" -tr true -arg '--skiphardwarecheck true --makeswap false --localscripts true'
+          sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh -ds false -v "${VER}" -tr true -arg '--skiphardwarecheck true --makeswap false --localscripts true'
