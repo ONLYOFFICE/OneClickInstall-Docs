@@ -44,13 +44,12 @@ fi
 echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
 
 # install
+[ "$INSTALLATION_TYPE" != "COMMUNITY" ] && _ee_pkgs="redis-server postgresql rabbitmq-server" || _ee_pkgs=
 apt-get install -yq wget \
                 nano \
-                postgresql \
-                redis-server \
-                rabbitmq-server \
                 nginx-extras \
-                expect
+                expect \
+                ${_ee_pkgs}
 
 if [ -e /etc/redis/redis.conf ]; then
     sed -i "s/bind .*/bind 127.0.0.1/g" /etc/redis/redis.conf

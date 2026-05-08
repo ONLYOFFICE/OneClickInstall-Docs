@@ -8,7 +8,7 @@ echo "
 #######################################
 "
 
-read -r -p "Uninstall all dependencies (PostgreSQL, RabbitMQ and others)? (y/N): " DEP_CHOICE
+read -r -p "Uninstall all dependencies (PostgreSQL, RabbitMQ, Redis and others)? (y/N): " DEP_CHOICE
 DEP_CHOICE=${DEP_CHOICE,,}
 
 DOCS_PACKAGE=$(rpm -qa --qf '%{NAME}\n' | grep -E '^onlyoffice-documentserver(-ee|-de)?$' | head -n 1 || true)
@@ -20,7 +20,9 @@ fi
 [ -n "$DOCS_PACKAGE" ] && ${package_manager} -y remove "$DOCS_PACKAGE"
 
 if [[ "$DEP_CHOICE" =~ ^(y|yes)$ ]]; then
-    systemctl stop postgresql rabbitmq-server redis valkey >/dev/null 2>&1 || true
+    for svc in postgresql rabbitmq-server redis valkey; do
+        systemctl stop "$svc" >/dev/null 2>&1 || true
+    done
     [ ${#DEP_PACKAGES[@]} -gt 0 ] && ${package_manager} -y remove "${DEP_PACKAGES[@]}"
     ${package_manager} -y autoremove
     ${package_manager} clean all

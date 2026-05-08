@@ -36,28 +36,28 @@ fi
 if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
     declare -x DS_PORT=${DS_PORT:-80}
 
-    DS_RABBITMQ_HOST=localhost
-    DS_RABBITMQ_USER=guest
-    DS_RABBITMQ_PWD=guest
-
-    DS_REDIS_HOST=localhost
-
     DS_COMMON_NAME=${DS_COMMON_NAME:-"ds"}
 
-    DS_DB_HOST=localhost
-    DS_DB_NAME=$DS_COMMON_NAME
-    DS_DB_USER=$DS_COMMON_NAME
-    DS_DB_PWD=$DS_COMMON_NAME
+    if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
+        DS_DB_HOST=localhost
+        DS_DB_NAME=$DS_COMMON_NAME
+        DS_DB_USER=$DS_COMMON_NAME
+        DS_DB_PWD=$DS_COMMON_NAME
+        DS_REDIS_HOST=localhost
+        DS_RABBITMQ_HOST=localhost
+        DS_RABBITMQ_USER=guest
+        DS_RABBITMQ_PWD=guest
+
+        if ! su - postgres -s /bin/bash -c "psql -lqt" | cut -d \| -f 1 | grep -q ${DS_DB_NAME}; then
+            su - postgres -s /bin/bash -c "psql -c \"CREATE USER ${DS_DB_USER} WITH password '${DS_DB_PWD}';\""
+            su - postgres -s /bin/bash -c "psql -c \"CREATE DATABASE ${DS_DB_NAME} OWNER ${DS_DB_USER};\""
+        fi
+    fi
 
     declare -x JWT_ENABLED=${JWT_ENABLED:-true}
     declare -x JWT_SECRET=${JWT_SECRET:-$(cat /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)}
     declare -x JWT_HEADER=${JWT_HEADER:-AuthorizationJwt}
     [ -n "${WOPI_ENABLED}" ] && declare -x WOPI_ENABLED
-
-    if ! su - postgres -s /bin/bash -c "psql -lqt" | cut -d \| -f 1 | grep -q ${DS_DB_NAME}; then
-        su - postgres -s /bin/bash -c "psql -c \"CREATE USER ${DS_DB_USER} WITH password '${DS_DB_PWD}';\""
-        su - postgres -s /bin/bash -c "psql -c \"CREATE DATABASE ${DS_DB_NAME} OWNER ${DS_DB_USER};\""
-    fi
 
     ${package_manager} -y install ${ds_pkg_name} --nobest # --nobest for rhel 8 compatibility
 
@@ -68,34 +68,34 @@ expect << EOF
 
     spawn documentserver-configure.sh
 
-    expect "Configuring database access..."
-
-    expect -re "Host"
-    send "\025$DS_DB_HOST\r"
-
-    expect -re "Database name"
-    send "\025$DS_DB_NAME\r"
-
-    expect -re "User"
-    send "\025$DS_DB_USER\r"
-
-    expect -re "Password"
-    send "\025$DS_DB_PWD\r"
-
     if { "${INSTALLATION_TYPE}" == "ENTERPRISE" || "${INSTALLATION_TYPE}" == "DEVELOPER" } {
+        expect "Configuring database access..."
+
+        expect -re "Host"
+        send "\025$DS_DB_HOST\r"
+
+        expect -re "Database name"
+        send "\025$DS_DB_NAME\r"
+
+        expect -re "User"
+        send "\025$DS_DB_USER\r"
+
+        expect -re "Password"
+        send "\025$DS_DB_PWD\r"
+
         expect "Configuring redis access..."
         send "\025$DS_REDIS_HOST\r"
+
+        expect "Configuring AMQP access... "
+        expect -re "Host"
+        send "\025$DS_RABBITMQ_HOST\r"
+
+        expect -re "User"
+        send "\025$DS_RABBITMQ_USER\r"
+
+        expect -re "Password"
+        send "\025$DS_RABBITMQ_PWD\r"
     }
-
-    expect "Configuring AMQP access... "
-    expect -re "Host"
-    send "\025$DS_RABBITMQ_HOST\r"
-
-    expect -re "User"
-    send "\025$DS_RABBITMQ_USER\r"
-
-    expect -re "Password"
-    send "\025$DS_RABBITMQ_PWD\r"
 
     expect eof
 
