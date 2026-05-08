@@ -737,7 +737,8 @@ install_document_server () {
                     WOPI_ENABLED="${WOPI_ENABLED:-$PARAMETER_VALUE}"
                 fi
 
-                check_bindings $DOCUMENT_SERVER_ID "/etc/$PRODUCT,/var/lib/$PRODUCT,/var/lib/postgresql,/usr/share/fonts/truetype/custom,/var/lib/rabbitmq,/var/lib/redis";
+                _ee_bindings=$( [ "$INSTALLATION_TYPE" != "COMMUNITY" ] && echo ",/var/lib/postgresql,/var/lib/rabbitmq,/var/lib/redis" )
+                check_bindings $DOCUMENT_SERVER_ID "/etc/$PRODUCT,/var/lib/$PRODUCT,/usr/share/fonts/truetype/custom${_ee_bindings}";
                 docker exec ${DOCUMENT_CONTAINER_NAME} bash /usr/bin/documentserver-prepare4shutdown.sh
                 remove_container ${DOCUMENT_CONTAINER_NAME}
             else
@@ -785,6 +786,13 @@ install_document_server () {
         args+=(-v "$BASE_DIR/DocumentServer/logs:/var/log/$PRODUCT")
         args+=(-v "$BASE_DIR/DocumentServer/fonts:/usr/share/fonts/truetype/custom")
         args+=(-v "$BASE_DIR/DocumentServer/forgotten:/var/lib/$PRODUCT/documentserver/App_Data/cache/files/forgotten")
+
+        if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
+            args+=(-v "$BASE_DIR/DocumentServer/db:/var/lib/postgresql")
+            args+=(-v "$BASE_DIR/DocumentServer/rabbitmq:/var/lib/rabbitmq")
+            args+=(-v "$BASE_DIR/DocumentServer/redis:/var/lib/redis")
+        fi
+
         args+=("$DOCUMENT_IMAGE_NAME:$DOCUMENT_VERSION")
 
         docker run --net ${NETWORK} -i -t -d --restart=always "${args[@]}"
@@ -987,6 +995,8 @@ create_network () {
 set_installation_type_data () {
     if [ "$INSTALLATION_TYPE" == "COMMUNITY" ]; then
         DOCUMENT_IMAGE_NAME="onlyoffice/documentserver"
+    elif [ "$INSTALLATION_TYPE" == "ENTERPRISE" ]; then
+        DOCUMENT_IMAGE_NAME="onlyoffice/documentserver-ee"
     elif [ "$INSTALLATION_TYPE" == "DEVELOPER" ]; then
         DOCUMENT_IMAGE_NAME="onlyoffice/documentserver-de"
     fi
