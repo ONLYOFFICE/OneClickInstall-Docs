@@ -33,24 +33,6 @@ if [ "$SKIP_HARDWARE_CHECK" != "true" ]; then
 	check_hardware
 fi
 
-read_unsupported_installation () {
-    read -p "$RES_CHOICE_INSTALLATION " CHOICE_INSTALLATION
-    case "$CHOICE_INSTALLATION" in
-        y|Y )
-            yum -y install $DIST*-release
-        ;;
-
-        n|N )
-            exit 0
-        ;;
-
-        * )
-            echo $RES_CHOICE
-            read_unsupported_installation
-        ;;
-    esac
-}
-
 read_rabbitmq_update () {
     read -p "$RES_CHOICE_RABBITMQ " CHOICE_INSTALLATION
     case "$CHOICE_INSTALLATION" in
@@ -75,10 +57,6 @@ REV=$(sed -n 's/.*release\ \([0-9]*\).*/\1/p' /etc/redhat-release) || true
 DIST=${DIST:-$(awk -F= '/^ID=/ {gsub(/"/, "", $2); print tolower($2)}' /etc/os-release)}
 REV=${REV:-$(awk -F= '/^VERSION_ID=/ {gsub(/"/, "", $2); print tolower($2)}' /etc/os-release)}
 REDIS_PACKAGE=$( [[ "$REV" == "10" ]] && echo "valkey" || echo "redis" )
-RABBIT_DIST_NAME=$( [[ "$REV" == "10" ]] && echo "el" || echo "$DIST" )
-RABBIT_DIST_VER=$( [[ "$REV" == "10" ]] && echo "9" || echo "$REV" )
-ERLANG_DIST_NAME=$( [[ "$REV" == "10" ]] && echo "el" || echo "$DIST" )
-ERLANG_DIST_VER=$( [[ "$REV" == "10" ]] && echo "9" || echo "$REV" )
 
 # On EL8 the repo contains EL9-built xorg packages (GLIBC_2.34+) that break `yum update`.
 [ "$REV" = "8" ] && echo "excludepkgs=xorg-x11-server-Xvfb,xorg-x11-server-common" >> /etc/yum.repos.d/onlyoffice.repo || true

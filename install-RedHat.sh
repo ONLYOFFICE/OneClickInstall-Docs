@@ -13,13 +13,6 @@ RES_CHECK_PORTS="Please make sure that the ports are free."
 RES_INSTALL_SUCCESS="Thank you for installing ONLYOFFICE Docs."
 RES_QUESTIONS="In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://forum.onlyoffice.com"
 
-res_unsupported_version () {
-    RES_CHOICE="Please, enter Y or N"
-    RES_CHOICE_INSTALLATION="Continue installation [Y/N]? "
-    RES_UNSUPPORTED_VERSION="You have an unsupported version of $DIST installed"
-    RES_SELECT_INSTALLATION="Select 'N' to cancel the ONLYOFFICE installation (recommended). Select 'Y' to continue installing ONLYOFFICE"
-    RES_ERROR_REMINDER="Please note, that if you continue with the installation, there may be errors"
-}
 
 res_rabbitmq_update () {
     RES_RABBITMQ_VERSION="You have an old version of RabbitMQ installed. The update will cause the RabbitMQ database to be deleted."
@@ -169,13 +162,11 @@ END
 
 if [ "$LOCAL_SCRIPTS" == "true" ]; then
     source install-RedHat/tools.sh
-    source install-RedHat/bootstrap.sh
     source install-RedHat/check-ports.sh
     [ -f /etc/amazon-linux-release ] && source install-RedHat/install-preq-amzn.sh || source install-RedHat/install-preq.sh
     source install-RedHat/install-app.sh
 else
     source <(curl ${DOWNLOAD_URL_PREFIX}/tools.sh)
-    source <(curl ${DOWNLOAD_URL_PREFIX}/bootstrap.sh)
     source <(curl ${DOWNLOAD_URL_PREFIX}/check-ports.sh)
     [ -f /etc/amazon-linux-release ] && source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq-amzn.sh) || source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq.sh)
     source <(curl ${DOWNLOAD_URL_PREFIX}/install-app.sh)

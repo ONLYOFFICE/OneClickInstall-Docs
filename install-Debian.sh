@@ -144,11 +144,10 @@ if [ "${UNINSTALL}" = "true" ]; then
     exit 0
 fi
 
-if [ "${LOCAL_SCRIPTS}" == "true" ]; then
-    source install-Debian/bootstrap.sh
-else
-    source <(curl ${DOWNLOAD_URL_PREFIX}/bootstrap.sh)
-fi
+timeout 60s bash -c 'while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done' || { echo "Error: Lock not released"; exit 1; }
+
+apt-get -y update
+apt-get install -yq sudo dirmngr
 
 # add onlyoffice repo
 mkdir -p -m 700 $HOME/.gnupg

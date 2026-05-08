@@ -14,14 +14,12 @@ install.sh            — Docker installation script (1033 lines)
 install-Debian.sh     — Debian/Ubuntu package installer wrapper
 install-RedHat.sh     — RHEL/CentOS/Amazon package installer wrapper
 install-Debian/       — Debian-specific scripts
-  bootstrap.sh        — Debian setup
   install-preq.sh     — Prerequisites
   install-app.sh      — App installation (APT)
   check-ports.sh      — Port checks
   tools.sh            — Utility functions
   uninstall.sh        — Uninstall
 install-RedHat/       — RedHat-specific scripts
-  bootstrap.sh        — RedHat setup
   install-preq.sh     — Prerequisites (standard)
   install-preq-amzn.sh — Prerequisites (Amazon Linux)
   install-app.sh      — App installation (YUM/DNF)

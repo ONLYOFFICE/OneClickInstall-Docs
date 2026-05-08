@@ -11,11 +11,19 @@ cat<<EOF
 EOF
 
 
+if ! dpkg -l net-tools 2>/dev/null | grep -q '^ii'; then
+    apt-get install -yq net-tools
+fi
+
+[ "${INSTALLATION_TYPE}" != "COMMUNITY" ] && _ee=1 || _ee=
+PORT_PATTERN="${_ee:+:5432$|:5672$|}:6379$|:8000$|:${DS_PORT:-80}$"
+PORT_LIST="${_ee:+5432, 5672, }6379, 8000, ${DS_PORT:-80}"
+
 if dpkg -l | grep -q "${package_sysname}-documentserver"; then
     echo "${package_sysname}-documentserver $RES_APP_INSTALLED"
     DOCUMENT_SERVER_INSTALLED="true"
-elif [ $UPDATE != "true" ] && netstat -lnp | awk '{print $4}' | grep -qE ":5432$|:5672$|:6379$|:8000$|:${DS_PORT:-80}$"; then
-    echo "${package_sysname}-documentserver $RES_APP_CHECK_PORTS: 5432, 5672, 6379, 8000, ${DS_PORT:-80}"
+elif [ $UPDATE != "true" ] && netstat -lnp | awk '{print $4}' | grep -qE "${PORT_PATTERN}"; then
+    echo "${package_sysname}-documentserver $RES_APP_CHECK_PORTS: ${PORT_LIST}"
     echo "$RES_CHECK_PORTS"
     exit
 else
