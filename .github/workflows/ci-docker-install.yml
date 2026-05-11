@@ -1,4 +1,4 @@
-name: OneClickDocs-Docker-Install
+name: Install OCI Docker
 
 on:
   schedule:
@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  Install-Docs-Docker:
+  Install:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
