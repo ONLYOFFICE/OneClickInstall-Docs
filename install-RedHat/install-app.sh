@@ -61,6 +61,7 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
 
     ${package_manager} -y install ${ds_pkg_name} --nobest # --nobest for rhel 8 compatibility
 
+if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
 expect << EOF
 
     set timeout -1
@@ -68,38 +69,39 @@ expect << EOF
 
     spawn documentserver-configure.sh
 
-    if { "${INSTALLATION_TYPE}" == "ENTERPRISE" || "${INSTALLATION_TYPE}" == "DEVELOPER" } {
-        expect "Configuring database access..."
+    expect "Configuring database access..."
 
-        expect -re "Host"
-        send "\025$DS_DB_HOST\r"
+    expect -re "Host"
+    send "\025$DS_DB_HOST\r"
 
-        expect -re "Database name"
-        send "\025$DS_DB_NAME\r"
+    expect -re "Database name"
+    send "\025$DS_DB_NAME\r"
 
-        expect -re "User"
-        send "\025$DS_DB_USER\r"
+    expect -re "User"
+    send "\025$DS_DB_USER\r"
 
-        expect -re "Password"
-        send "\025$DS_DB_PWD\r"
+    expect -re "Password"
+    send "\025$DS_DB_PWD\r"
 
-        expect "Configuring redis access..."
-        send "\025$DS_REDIS_HOST\r"
+    expect "Configuring redis access..."
+    send "\025$DS_REDIS_HOST\r"
 
-        expect "Configuring AMQP access... "
-        expect -re "Host"
-        send "\025$DS_RABBITMQ_HOST\r"
+    expect "Configuring AMQP access... "
+    expect -re "Host"
+    send "\025$DS_RABBITMQ_HOST\r"
 
-        expect -re "User"
-        send "\025$DS_RABBITMQ_USER\r"
+    expect -re "User"
+    send "\025$DS_RABBITMQ_USER\r"
 
-        expect -re "Password"
-        send "\025$DS_RABBITMQ_PWD\r"
-    }
+    expect -re "Password"
+    send "\025$DS_RABBITMQ_PWD\r"
 
     expect eof
 
 EOF
+else
+    documentserver-configure.sh
+fi
     systemctl restart nginx
     systemctl enable nginx
 
