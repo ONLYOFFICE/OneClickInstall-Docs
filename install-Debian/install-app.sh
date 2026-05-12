@@ -73,25 +73,6 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
     apt-get install -yq ${ds_pkg_name}
 fi
 
-NGINX_ROOT_DIR="/etc/nginx"
-NGINX_WORKER_PROCESSES=${NGINX_WORKER_PROCESSES:-$(grep processor /proc/cpuinfo | wc -l)}
-NGINX_WORKER_CONNECTIONS=${NGINX_WORKER_CONNECTIONS:-$(ulimit -n)}
-
-sed 's/^worker_processes.*/'"worker_processes ${NGINX_WORKER_PROCESSES};"'/' -i ${NGINX_ROOT_DIR}/nginx.conf
-sed 's/worker_connections.*/'"worker_connections ${NGINX_WORKER_CONNECTIONS};"'/' -i ${NGINX_ROOT_DIR}/nginx.conf
-
-if ! id "nginx" &>/dev/null; then
-    systemctl stop nginx
-
-    rm -dfr /var/log/nginx/*
-    rm -dfr /var/cache/nginx/*
-    useradd -s /bin/false nginx
-
-    systemctl start nginx
-else
-    systemctl reload nginx
-fi
-
 echo ""
 echo "$RES_INSTALL_SUCCESS"
 echo "$RES_QUESTIONS"

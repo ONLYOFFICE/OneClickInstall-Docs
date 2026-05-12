@@ -102,18 +102,8 @@ EOF
 else
     documentserver-configure.sh
 fi
-    systemctl restart nginx
-    systemctl enable nginx
-
     DOCUMENT_SERVER_INSTALLED="true"
 fi
-
-NGINX_ROOT_DIR="/etc/nginx"
-NGINX_WORKER_PROCESSES=${NGINX_WORKER_PROCESSES:-$(grep processor /proc/cpuinfo | wc -l)}
-NGINX_WORKER_CONNECTIONS=${NGINX_WORKER_CONNECTIONS:-$(ulimit -n)}
-
-sed 's/^worker_processes.*/'"worker_processes ${NGINX_WORKER_PROCESSES};"'/' -i ${NGINX_ROOT_DIR}/nginx.conf
-sed 's/worker_connections.*/'"worker_connections ${NGINX_WORKER_CONNECTIONS};"'/' -i ${NGINX_ROOT_DIR}/nginx.conf
 
 if systemctl is-active --quiet firewalld; then
     firewall-cmd --permanent --zone=public --add-service=http
@@ -121,8 +111,6 @@ if systemctl is-active --quiet firewalld; then
     firewall-cmd --permanent --zone=public --add-port=${DS_PORT:-80}/tcp
     firewall-cmd --reload
 fi
-
-systemctl restart nginx
 
 echo ""
 echo "$RES_INSTALL_SUCCESS"
