@@ -136,6 +136,7 @@ expect << EOF
 EOF
 else
     documentserver-configure.sh
+    sed -i "s/ default_server//" /etc/nginx/nginx.conf && systemctl reload nginx # drop default_server from nginx.conf so nginx binds port 80 without conflicts
 fi
     DOCUMENT_SERVER_INSTALLED="true"
 fi
