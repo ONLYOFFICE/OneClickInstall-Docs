@@ -62,7 +62,7 @@ jobs:
           set -eux
           export DOWNLOAD_SCRIPT='-ds false'
           export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false'"
-          vagrant up
+          vagrant up --provider=virtualbox
 
       - name: Health check
         run: |

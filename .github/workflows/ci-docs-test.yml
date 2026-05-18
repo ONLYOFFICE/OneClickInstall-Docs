@@ -172,7 +172,7 @@ jobs:
             export VER="-v ${VER}"
             export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'"
           fi
-          vagrant up
+          vagrant up --provider=virtualbox
 
       - name: Health check
         run: |

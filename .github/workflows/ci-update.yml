@@ -142,7 +142,7 @@ jobs:
           export TEST_REPO='-tr true'
           export VER="-v ${VER}"
           export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true --update true'"
-          vagrant up
+          vagrant up --provider=virtualbox
 
       - name: Health check
         run: |
