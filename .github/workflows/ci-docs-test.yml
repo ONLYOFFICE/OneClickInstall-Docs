@@ -182,6 +182,16 @@ jobs:
             echo "VM is not running, skipping health check"
           fi
 
+      - name: Uninstall
+        timeout-minutes: 20
+        run: |
+          if vagrant status | grep -q "running"; then
+            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh uninstall ${{ github.event_name != 'schedule' && '--localscripts true' || '' }}"
+          else
+            echo "VM is not running, cannot run uninstall test"
+            exit 1
+          fi
+
       - name: Collect logs
         if: always()
         run: |
@@ -217,3 +227,8 @@ jobs:
         else
           sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh -ds false -v "${VER}" -tr true -arg '--skiphardwarecheck true --makeswap false --localscripts true'
         fi
+
+    - name: Uninstall
+      timeout-minutes: 20
+      run: |
+        sudo bash tests/vagrant/post-install.sh uninstall ${{ github.event_name != 'schedule' && '--localscripts true' || '' }}

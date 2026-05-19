@@ -63,6 +63,13 @@ healthcheck_curl() {
   return 1
 }
 
+uninstall_docs() {
+  cd "$(dirname "$0")/../.."
+  # Answer "no" to dependency removal and keep Debian purge noninteractive
+  DEBIAN_FRONTEND=noninteractive bash docs-install.sh --uninstall true "$@" <<< "N"
+  echo "${COLOR_GREEN}[OK] Package uninstalled${COLOR_RESET}"
+}
+
 main() {
   get_colors
 
@@ -74,6 +81,12 @@ main() {
       healthcheck_curl
       healthcheck_systemd_services
       ;;
+    uninstall)
+      echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
+      echo "${COLOR_BLUE}UNINSTALL${COLOR_RESET}"
+      echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
+      uninstall_docs "${@:2}"
+      ;;
     logs)
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
       echo "${COLOR_BLUE}COLLECTING SERVICE LOGS${COLOR_RESET}"
@@ -81,7 +94,7 @@ main() {
       services_logs
       ;;
     *)
-      echo "Usage: $0 [healthcheck|logs]"
+      echo "Usage: $0 [healthcheck|uninstall|logs]"
       exit 1
       ;;
   esac
