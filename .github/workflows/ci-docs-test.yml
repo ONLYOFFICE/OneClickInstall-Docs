@@ -1,4 +1,4 @@
-name: OneClickDocs-Install
+name: Install OCI Docs
 
 on:
   push:
@@ -7,153 +7,234 @@ on:
       - 'release/**'
       - 'develop'
       - 'master'
+    paths:
+      - '.github/workflows/ci-docs-test.yml'
+      - 'docs-install.sh'
+      - 'install-*.sh'
+      - 'install-*/**'
+      - 'tests/**'
 
   workflow_dispatch:
+    inputs:
+      distros:
+        type: string
+        description: Select distros (comma-separated)
+        default: |
+          rhel8,
+          rhel9,
+          centos8s,
+          centos9s,
+          centos10,
+          amazonlinux2023,
+          debian10,
+          debian11,
+          debian12,
+          debian13,
+          ubuntu2004,
+          ubuntu2204,
+          ubuntu2404,
+          ubuntu2604,
+          ubuntu2404-arm
+      deb_build:
+        type: boolean
+        description: "Override: All DEB-based distros"
+        default: false
+      rpm_build:
+        type: boolean
+        description: "Override: All RPM-based distros"
+        default: false
 
   schedule:
     - cron: '0 21 * * 0'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
-  get-version:
-    name: "Get ds version for test"
+  prepare:
     runs-on: ubuntu-latest
     outputs:
-      ds-ver: ${{ steps.get-version.outputs.ds-ver }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      version: ${{ steps.get-version.outputs.version }}
     steps:
-    - name: get-version
-      id: get-version
-      shell: bash
-      run: |
-        VERSION=$(curl -sL -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ github.token }}" https://api.github.com/repos/ONLYOFFICE/document-server-package/branches?per_page=100 \
-          | jq -r '.[] | select(.name|test("^(release|hotfix)/")) | .name' | sort -Vr | head -n1 | awk -F '/' '{print $2}' | sed 's/^v//')
-        echo "ds-ver=${VERSION:-99.99.99}" >> "$GITHUB_OUTPUT"
+
+      - name: Set matrix names
+        id: set-matrix
+        env:
+          OS_ORDER: rhel8 rhel9 centos8s centos9s centos10 amazonlinux2023 debian10 debian11 debian12 debian13 ubuntu2004 ubuntu2204 ubuntu2404 ubuntu2604
+          OS_MAP: |
+            {
+              "rhel8":           ["RHEL 8",            "generic",    "rhel8"],
+              "rhel9":           ["RHEL 9",            "onlyoffice", "base-rhel9"],
+              "centos8s":        ["CentOS 8 Stream",   "onlyoffice", "base-centos8s"],
+              "centos9s":        ["CentOS 9 Stream",   "onlyoffice", "base-centos9s"],
+              "centos10":        ["CentOS 10 Stream",  "onlyoffice", "base-centos10"],
+              "amazonlinux2023": ["Amazon Linux 2023", "bento",      "amazonlinux-2023"],
+              "debian10":        ["Debian 10",         "onlyoffice", "base-debian10"],
+              "debian11":        ["Debian 11",         "onlyoffice", "base-debian11"],
+              "debian12":        ["Debian 12",         "onlyoffice", "base-debian12"],
+              "debian13":        ["Debian 13",         "onlyoffice", "base-debian13"],
+              "ubuntu2004":      ["Ubuntu 20.04",      "onlyoffice", "base-ubuntu2004"],
+              "ubuntu2204":      ["Ubuntu 22.04",      "onlyoffice", "base-ubuntu2204"],
+              "ubuntu2404":      ["Ubuntu 24.04",      "onlyoffice", "base-ubuntu2404"],
+              "ubuntu2604":      ["Ubuntu 26.04",      "cloud-image", "ubuntu-26.04"]
+            }
+        run: |
+          declare -A os_set
+
+          # For scheduled or push runs, use all distros
+          if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event_name }}" == "push" ]]; then
+            for os in $(jq -r 'keys[]' <<< "$OS_MAP"); do os_set["$os"]=1; done
+          # Handle individual distro selection (only when no override flags set)
+          elif [[ "${{ github.event.inputs.deb_build }}" != "true" && "${{ github.event.inputs.rpm_build }}" != "true" ]]; then
+            DISTROS_INPUT="${{ github.event.inputs.distros }}"
+            for os in ${DISTROS_INPUT//,/ }; do
+              os_trimmed="$(echo "$os" | xargs)"
+              [[ -n "$os_trimmed" ]] && os_set["$os_trimmed"]=1
+            done
+          fi
+
+          # Override: All DEB-based distros (Debian/Ubuntu)
+          [[ "${{ github.event.inputs.deb_build }}" == "true" ]] && \
+            for os in $(jq -r 'to_entries[] | select(.value[0] | test("Debian|Ubuntu")) | .key' <<< "$OS_MAP"); do os_set["$os"]=1; done
+
+          # Override: All RPM-based distros (CentOS/RHEL/Amazon)
+          [[ "${{ github.event.inputs.rpm_build }}" == "true" ]] && \
+            for os in $(jq -r 'to_entries[] | select(.value[0] | test("CentOS|RHEL|Amazon")) | .key' <<< "$OS_MAP"); do os_set["$os"]=1; done
+
+          # Build matrix in defined order
+          matrix=$(jq -c -n --argjson map "$OS_MAP" --arg order "$OS_ORDER" \
+            --argjson list "$(printf '%s\n' "${!os_set[@]}" | jq -R . | jq -s .)" \
+            '{include: [($order | split(" "))[] | select(. as $k | $list[] == $k) | {name: $map[.][0], os: ($map[.][2] // .), distr: $map[.][1]}]}')
+
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
+      - id: get-version
+        run: |
+          VERSION=$(curl -sL -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ github.token }}" \
+            https://api.github.com/repos/ONLYOFFICE/document-server-package/branches?per_page=100 \
+            | jq -r '.[] | select(.name|test("^(release|hotfix)/")) | .name' | sort -Vr | head -n1 | sed 's#.*/v##')
+          echo "version=${VERSION:-99.99.99}" >> "$GITHUB_OUTPUT"
 
   vagrant-up:
-    name: "Test Docs with ${{matrix.name}}"
-    needs: [get-version]
+    name: "Install (${{ matrix.name }})"
+    needs: [prepare]
     runs-on: ubuntu-22.04
+    defaults:
+      run:
+        working-directory: tests/vagrant
     env:
-      VER: ${{ needs.get-version.outputs.ds-ver }}
+      VER: ${{ needs.prepare.outputs.version }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - distr: generic
-            os: rhel8
-            name: "RHEL 8"
+      matrix: ${{fromJSON(needs.prepare.outputs.matrix)}}
 
-          - distr: onlyoffice
-            os: base-rhel9
-            name: "RHEL 9"
+    steps:
+      - name: Free Disk Space
+        working-directory: ${{ github.workspace }}
+        run: |
+          sudo docker image prune --all --force
+          sudo rm -rf /usr/local/lib/android || true
 
-          - distr: onlyoffice
-            os: base-centos8s
-            name: "CentOS 8 Stream"
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-          - distr: onlyoffice
-            os: base-centos9s
-            name: "CentOS 9 Stream"
+      - name: Get update and install vagrant
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -eux
+          sudo wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+          sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+          sudo apt update -y
+          sudo apt-get install -y vagrant
+          # Temporary install VBox 7.1.12 via curl (.deb) to avoid SSH/NAT issues in 7.1.14
+          VBOX_DEB=$(curl -fsSL https://download.virtualbox.org/virtualbox/7.1.12/MD5SUMS | grep -oE 'virtualbox-7\.1_7\.1\.12-[0-9]+~Ubuntu~jammy_amd64\.deb' | head -n1)
+          [ -n "$VBOX_DEB" ] || { echo "ERROR: could not detect VBox .deb filename"; exit 1; }
+          curl -fsSL "https://download.virtualbox.org/virtualbox/7.1.12/${VBOX_DEB}" -o /tmp/vbox.deb
+          sudo apt-get install -y /tmp/vbox.deb
 
-          - distr: onlyoffice
-            os: base-centos10
-            name: "CentOS 10 Stream"
+      - name: Install
+        timeout-minutes: 90
+        env:
+          DISTR: ${{ matrix.distr }}
+          RAM: '4096'
+          CPU: '2'
+          OS: ${{ matrix.os }}
+          IT: '-it enterprise'
+        run: |
+          set -eux
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            export DOWNLOAD_SCRIPT='-ds true'
+            export TEST_CASE='--production-install'
+            export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false'"
+          else
+            export DOWNLOAD_SCRIPT='-ds false'
+            export TEST_REPO='-tr true'
+            export VER="-v ${VER}"
+            export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'"
+          fi
+          vagrant up --provider=virtualbox
 
-          - distr: bento
-            os: amazonlinux-2023
-            name: "Amazon Linux 2023"
+      - name: Health check
+        run: |
+          if vagrant status | grep -q "running"; then
+            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh healthcheck" || true
+          else
+            echo "VM is not running, skipping health check"
+          fi
 
-          - distr: onlyoffice
-            os: base-debian10
-            name: "Debian 10"
+      - name: Uninstall
+        timeout-minutes: 20
+        run: |
+          if vagrant status | grep -q "running"; then
+            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh uninstall ${{ github.event_name != 'schedule' && '--localscripts true' || '' }}"
+          else
+            echo "VM is not running, cannot run uninstall test"
+            exit 1
+          fi
 
-          - distr: onlyoffice
-            os: base-debian11
-            name: "Debian 11"
+      - name: Collect logs
+        if: always()
+        run: |
+          if vagrant status | grep -q "running"; then
+            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh logs" || true
+          else
+            echo "VM is not running, skipping log collection"
+          fi
 
-          - distr: onlyoffice
-            os: base-debian12
-            name: "Debian 12"
+      - name: Cleanup
+        if: always()
+        run: |
+          vagrant destroy --force || true
+          vagrant global-status --prune || true
 
-          - distr: onlyoffice
-            os: base-debian13
-            name: "Debian 13"
-
-          - distr: onlyoffice
-            os: base-ubuntu2004
-            name: "Ubuntu 20.04"
-
-          - distr: onlyoffice
-            os: base-ubuntu2204
-            name: "Ubuntu 22.04"
-
-          - distr: onlyoffice
-            os: base-ubuntu2404
-            name: "Ubuntu 24.04"
+  arm-native:
+    name: "Install (Ubuntu 24.04) [ARM]"
+    needs: [prepare]
+    if: github.event_name == 'schedule' || github.event_name == 'push' || contains(github.event.inputs.distros, 'ubuntu2404-arm')
+    runs-on: ubuntu-24.04-arm
+    env:
+      VER: ${{ needs.prepare.outputs.version }}
     steps:
     - name: Free Disk Space
       run: |
         sudo rm -rf /usr/local/lib/android || true
 
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v6
 
-    - name: Set up vagrant and virtualbox
+    - name: Install
+      timeout-minutes: 25
       run: |
-           gpg --keyserver keyserver.ubuntu.com --recv-keys A2F683C52980AECF && gpg --export A2F683C52980AECF > /usr/share/keyrings/virtualbox.gpg
-           echo "deb [arch=amd64 signed-by=/usr/share/keyrings/virtualbox.gpg] https://download.virtualbox.org/virtualbox/debian $(. /etc/os-release && echo $UBUNTU_CODENAME) contrib" | sudo tee /etc/apt/sources.list.d/virtualbox.list
-           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-           echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-           sudo apt update -y
-           sudo apt install vagrant -y
-           # Temporary install VBox 7.1.12 via curl (.deb) to avoid SSH/NAT issues in 7.1.14
-           curl -fsSL "https://download.virtualbox.org/virtualbox/7.1.12/virtualbox-7.1_7.1.12-169651~Ubuntu~jammy_amd64.deb" -o /tmp/vbox.deb && sudo apt-get install -y /tmp/vbox.deb
+        set -eux
+        if [[ "${{ github.event_name }}" == "schedule" ]]; then
+          sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh -ds true -arg '--skiphardwarecheck true --makeswap false'
+        else
+          sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh -ds false -v "${VER}" -tr true -arg '--skiphardwarecheck true --makeswap false --localscripts true'
+        fi
 
-    - name: Test production scripts
-      if: ${{ github.event_name == 'schedule' }}
-      uses: nick-fields/retry@v3
-      with:
-        max_attempts: 2
-        timeout_minutes: 25
-        command: |
-                set -eux
-                cd tests/vagrant
-                   TEST_CASE='--production-install' \
-                   DISTR='${{ matrix.distr }}' \
-                   OS='${{ matrix.os }}' \
-                   DOWNLOAD_SCRIPT='-ds true' \
-                   RAM='4096' \
-                   CPU='2' \
-                   ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false'" \
-                   timeout --signal=SIGTERM --kill-after=60s 24m \
-                   vagrant up
-        on_retry_command: |
-              echo "RUN CLEAN UP: Destroy vagrant and one more try"
-              cd tests/vagrant
-              sleep 10
-              vagrant destroy --force
-
-    - name: "Test Local scripts with ver: ${{ needs.get-version.outputs.ds-ver }}"
-      if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
-      uses: nick-fields/retry@v3
-      with:
-         max_attempts: 2
-         timeout_minutes: 25
-         command: |
-                  set -eux
-                  cd tests/vagrant
-                    TEST_CASE='--local-install' \
-                    DISTR='${{ matrix.distr }}' \
-                    OS='${{ matrix.os }}' \
-                    RAM='4096' \
-                    CPU='2' \
-                    VER='-v ${{ env.VER }}' \
-                    DOWNLOAD_SCRIPT='-ds false' \
-                    TEST_REPO='-tr true' \
-                    ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'" \
-                    timeout --signal=SIGTERM --kill-after=60s 24m \
-                    vagrant up
-         on_retry_command: |
-                    echo "RUN CLEAN UP: Destroy vagrant and one more try"
-                    cd tests/vagrant
-                    sleep 10
-                    vagrant destroy --force
+    - name: Uninstall
+      timeout-minutes: 20
+      run: |
+        sudo bash tests/vagrant/post-install.sh uninstall ${{ github.event_name != 'schedule' && '--localscripts true' || '' }}
