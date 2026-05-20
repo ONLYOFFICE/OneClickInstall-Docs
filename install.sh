@@ -1,34 +1,38 @@
 #!/bin/bash
 
  #
- # (c) Copyright Ascensio System SIA 2026
+ # Copyright (C) Ascensio System SIA, 2009-2026
  #
  # This program is a free software product. You can redistribute it and/or
  # modify it under the terms of the GNU Affero General Public License (AGPL)
- # version 3 as published by the Free Software Foundation. In accordance with
- # Section 7(a) of the GNU AGPL its Section 15 shall be amended to the effect
- # that Ascensio System SIA expressly excludes the warranty of non-infringement
- # of any third-party rights.
+ # version 3 as published by the Free Software Foundation, together with the
+ # additional terms provided in the LICENSE file.
  #
  # This program is distributed WITHOUT ANY WARRANTY; without even the implied
  # warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. For
- # details, see the GNU AGPL at: http://www.gnu.org/licenses/agpl-3.0.html
+ # details, see the GNU AGPL at: https://www.gnu.org/licenses/agpl-3.0.html
  #
- # You can contact Ascensio System SIA at 20A-12 Ernesta Birznieka-Upisha
- # street, Riga, Latvia, EU, LV-1050.
+ # You can contact Ascensio System SIA by email at info@onlyoffice.com
+ # or by postal mail at 20A-6 Ernesta Birznieka-Upisha Street, Riga,
+ # LV-1050, Latvia, European Union.
  #
- # The interactive user interfaces in modified source and object code versions
- # of the Program must display Appropriate Legal Notices, as required under
+ # The interactive user interfaces in modified versions of the Program
+ # are required to display Appropriate Legal Notices in accordance with
  # Section 5 of the GNU AGPL version 3.
  #
- # Pursuant to Section 7(b) of the License you must retain the original Product
- # logo when distributing the program. Pursuant to Section 7(e) we decline to
- # grant you any rights under trademark law for use of our trademarks.
+ # No trademark rights are granted under this License.
  #
- # All the Product's GUI elements, including illustrations and icon sets, as
- # well as technical writing content are licensed under the terms of the
- # Creative Commons Attribution-ShareAlike 4.0 International. See the License
- # terms at http://creativecommons.org/licenses/by-sa/4.0/legalcode
+ # All non-code elements of the Product, including illustrations,
+ # icon sets, and technical writing content, are licensed under the
+ # Creative Commons Attribution-ShareAlike 4.0 International License:
+ # https://creativecommons.org/licenses/by-sa/4.0/legalcode
+ #
+ # This license applies only to such non-code elements and does not
+ # modify or replace the licensing terms applicable to the Program's
+ # source code, which remains licensed under the GNU Affero General
+ # Public License v3.
+ #
+ # SPDX-License-Identifier: AGPL-3.0-only
  #
 
 DISK_REQUIREMENTS=10240
@@ -197,6 +201,13 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        -we | --wopienabled )
+            if [ "$2" != "" ]; then
+                WOPI_ENABLED=$2
+                shift
+            fi
+        ;;
+
         -led | --letsencryptdomain )
             if [ "$2" != "" ]; then
                 LETS_ENCRYPT_DOMAIN=$2
@@ -233,6 +244,7 @@ while [ "$1" != "" ]; do
             echo "--installdocs            <true|false|pull>  Install or update Document Server"
             echo "--docsport               <PORT>             Port for ONLYOFFICE Docs (default: $DOCS_PORT)"
             echo "--externalserver         <true|false>       Expose Docs externally (default: true)"
+            echo "--wopienabled            <true|false>       Enable WOPI protocol"
             echo
             echo "JWT AUTHENTICATION:"
             echo "--jwtenabled             <true|false>       Enable JWT validation"
@@ -438,8 +450,9 @@ check_ports () {
         install_netstat
     fi
 
-    if [[ ! -z "${LETS_ENCRYPT_DOMAIN}" ]]; then
-        RESERVED_PORTS+=(443) && ARRAY_PORTS+=(443)
+    if [ "${USE_AS_EXTERNAL_SERVER}" == "true" ]; then
+        ARRAY_PORTS=(${ARRAY_PORTS[@]} "$DOCS_PORT")
+        RESERVED_PORTS+=(443) ARRAY_PORTS+=(443)
     fi
 
     if [ "${DOCS_PORT//[0-9]}" = "" ]; then
@@ -453,10 +466,6 @@ check_ports () {
     else
         echo "Invalid Docs port $DOCS_PORT"
         exit 1
-    fi
-
-    if [ "${USE_AS_EXTERNAL_SERVER}" == "true" ]; then
-        ARRAY_PORTS=(${ARRAY_PORTS[@]} "$DOCS_PORT")
     fi
 
     for PORT in "${ARRAY_PORTS[@]}"
@@ -727,7 +736,13 @@ install_document_server () {
                     LETS_ENCRYPT_MAIL="${LETS_ENCRYPT_MAIL:-$PARAMETER_VALUE}"
                 fi
 
-                check_bindings $DOCUMENT_SERVER_ID "/etc/$PRODUCT,/var/lib/$PRODUCT,/var/lib/postgresql,/usr/share/fonts/truetype/custom,/var/lib/rabbitmq,/var/lib/redis";
+                PARAMETER_VALUE=$(get_container_env_parameter "$DOCUMENT_CONTAINER_NAME" "WOPI_ENABLED")
+                if [[ -n ${PARAMETER_VALUE} ]]; then
+                    WOPI_ENABLED="${WOPI_ENABLED:-$PARAMETER_VALUE}"
+                fi
+
+                _ee_bindings=$( [ "$INSTALLATION_TYPE" != "COMMUNITY" ] && echo ",/var/lib/postgresql,/var/lib/rabbitmq,/var/lib/redis" )
+                check_bindings $DOCUMENT_SERVER_ID "/etc/$PRODUCT,/var/lib/$PRODUCT,/usr/share/fonts/truetype/custom${_ee_bindings}";
                 docker exec ${DOCUMENT_CONTAINER_NAME} bash /usr/bin/documentserver-prepare4shutdown.sh
                 remove_container ${DOCUMENT_CONTAINER_NAME}
             else
@@ -748,6 +763,7 @@ install_document_server () {
 
         if [ "${USE_AS_EXTERNAL_SERVER}" == "true" ]; then
             args+=(-p $DOCS_PORT:80)
+            args+=(-p 443:443)
         fi
 
         if [[ -n ${JWT_SECRET} ]]; then
@@ -760,17 +776,27 @@ install_document_server () {
 
         if [[ -n ${LETS_ENCRYPT_DOMAIN} ]]; then
             args+=(-e "LETS_ENCRYPT_DOMAIN=$LETS_ENCRYPT_DOMAIN")
-            args+=(-p 443:443)
         fi
 
         if [[ -n ${LETS_ENCRYPT_MAIL} ]]; then
             args+=(-e "LETS_ENCRYPT_MAIL=$LETS_ENCRYPT_MAIL")
         fi
 
+        if [[ -n ${WOPI_ENABLED} ]]; then
+            args+=(-e "WOPI_ENABLED=$WOPI_ENABLED")
+        fi
+
         args+=(-v "$BASE_DIR/DocumentServer/data:/var/www/$PRODUCT/Data")
         args+=(-v "$BASE_DIR/DocumentServer/logs:/var/log/$PRODUCT")
         args+=(-v "$BASE_DIR/DocumentServer/fonts:/usr/share/fonts/truetype/custom")
         args+=(-v "$BASE_DIR/DocumentServer/forgotten:/var/lib/$PRODUCT/documentserver/App_Data/cache/files/forgotten")
+
+        if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
+            args+=(-v "$BASE_DIR/DocumentServer/db:/var/lib/postgresql")
+            args+=(-v "$BASE_DIR/DocumentServer/rabbitmq:/var/lib/rabbitmq")
+            args+=(-v "$BASE_DIR/DocumentServer/redis:/var/lib/redis")
+        fi
+
         args+=("$DOCUMENT_IMAGE_NAME:$DOCUMENT_VERSION")
 
         docker run --net ${NETWORK} -i -t -d --restart=always "${args[@]}"
@@ -973,6 +999,8 @@ create_network () {
 set_installation_type_data () {
     if [ "$INSTALLATION_TYPE" == "COMMUNITY" ]; then
         DOCUMENT_IMAGE_NAME="onlyoffice/documentserver"
+    elif [ "$INSTALLATION_TYPE" == "ENTERPRISE" ]; then
+        DOCUMENT_IMAGE_NAME="onlyoffice/documentserver-ee"
     elif [ "$INSTALLATION_TYPE" == "DEVELOPER" ]; then
         DOCUMENT_IMAGE_NAME="onlyoffice/documentserver-de"
     fi
