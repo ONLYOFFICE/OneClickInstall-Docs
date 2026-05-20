@@ -193,6 +193,7 @@ The installation scripts support the following operating systems, which are **re
 - Ubuntu 20.04
 - Ubuntu 22.04
 - Ubuntu 24.04
+- Ubuntu 26.04
 <!-- OS-SUPPORT-LIST-END -->
 
 ## 📚 Additional Resources
