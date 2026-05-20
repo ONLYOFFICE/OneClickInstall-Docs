@@ -33,6 +33,7 @@ on:
           ubuntu2004,
           ubuntu2204,
           ubuntu2404,
+          ubuntu2604,
           ubuntu2404-arm
       deb_build:
         type: boolean
@@ -61,7 +62,7 @@ jobs:
       - name: Set matrix names
         id: set-matrix
         env:
-          OS_ORDER: rhel8 rhel9 centos8s centos9s centos10 amazonlinux2023 debian10 debian11 debian12 debian13 ubuntu2004 ubuntu2204 ubuntu2404
+          OS_ORDER: rhel8 rhel9 centos8s centos9s centos10 amazonlinux2023 debian10 debian11 debian12 debian13 ubuntu2004 ubuntu2204 ubuntu2404 ubuntu2604
           OS_MAP: |
             {
               "rhel8":           ["RHEL 8",            "generic",    "rhel8"],
@@ -76,7 +77,8 @@ jobs:
               "debian13":        ["Debian 13",         "onlyoffice", "base-debian13"],
               "ubuntu2004":      ["Ubuntu 20.04",      "onlyoffice", "base-ubuntu2004"],
               "ubuntu2204":      ["Ubuntu 22.04",      "onlyoffice", "base-ubuntu2204"],
-              "ubuntu2404":      ["Ubuntu 24.04",      "onlyoffice", "base-ubuntu2404"]
+              "ubuntu2404":      ["Ubuntu 24.04",      "onlyoffice", "base-ubuntu2404"],
+              "ubuntu2604":      ["Ubuntu 26.04",      "cloud-image", "ubuntu-26.04"]
             }
         run: |
           declare -A os_set

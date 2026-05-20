@@ -59,7 +59,7 @@ TEST_CASE='--local-install' OS='base-ubuntu2404' vagrant up
 sudo bash install.sh --skiphardwarecheck true
 ```
 
-Supported OS: RHEL 8/9, CentOS 8-10 Stream, Amazon Linux 2023, Debian 10-13, Ubuntu 20.04/22.04/24.04, ARM64
+Supported OS: RHEL 8/9, CentOS 8-10 Stream, Amazon Linux 2023, Debian 10-13, Ubuntu 20.04/22.04/24.04/26.04, ARM64
 
 ## Key Patterns
 
