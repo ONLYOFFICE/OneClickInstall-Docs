@@ -217,6 +217,10 @@ jobs:
     env:
       VER: ${{ needs.prepare.outputs.version }}
     steps:
+    - name: Free Disk Space
+      run: |
+        sudo rm -rf /usr/local/lib/android || true
+
     - name: Checkout code
       uses: actions/checkout@v6
 
