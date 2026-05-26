@@ -43,6 +43,14 @@ on:
         type: boolean
         description: "Override: All RPM-based distros"
         default: false
+      installationtype:
+        type: choice
+        description: 'Installation type'
+        default: 'enterprise'
+        options:
+          - enterprise
+          - community
+          - developer
 
   schedule:
     - cron: '0 21 * * 0'
@@ -161,7 +169,7 @@ jobs:
           RAM: '4096'
           CPU: '2'
           OS: ${{ matrix.os }}
-          IT: '-it enterprise'
+          IT: '-it ${{ github.event.inputs.installationtype || ''enterprise'' }}'
         run: |
           set -eux
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
@@ -229,9 +237,9 @@ jobs:
       run: |
         set -eux
         if [[ "${{ github.event_name }}" == "schedule" ]]; then
-          sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh -ds true -arg '--skiphardwarecheck true --makeswap false'
+          sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh -ds true -it '${{ github.event.inputs.installationtype || 'enterprise' }}' -arg '--skiphardwarecheck true --makeswap false'
         else
-          sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh -ds false -v "${VER}" -tr true -arg '--skiphardwarecheck true --makeswap false --localscripts true'
+          sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh -ds false -v "${VER}" -tr true -it '${{ github.event.inputs.installationtype || 'enterprise' }}' -arg '--skiphardwarecheck true --makeswap false --localscripts true'
         fi
 
     - name: Uninstall
