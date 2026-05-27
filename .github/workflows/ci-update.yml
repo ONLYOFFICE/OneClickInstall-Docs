@@ -64,6 +64,7 @@ jobs:
           # Handle individual distro selection (only when no override flags set)
           if [[ "${{ github.event.inputs.deb_build }}" != "true" && "${{ github.event.inputs.rpm_build }}" != "true" ]]; then
             DISTROS_INPUT="${{ github.event.inputs.distros }}"
+            [[ -z "$DISTROS_INPUT" ]] && DISTROS_INPUT="$OS_ORDER"
             for os in ${DISTROS_INPUT//,/ }; do
               os_trimmed="$(echo "$os" | xargs)"
               [[ -n "$os_trimmed" ]] && os_set["$os_trimmed"]=1
