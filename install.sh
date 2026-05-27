@@ -44,7 +44,7 @@ BASE_DIR="/app/$PRODUCT"
 NETWORK="$PRODUCT"
 
 DOCUMENT_CONTAINER_NAME="onlyoffice-document-server"
-DOCUMENT_IMAGE_NAME="onlyoffice/documentserver-ee"
+DOCUMENT_IMAGE_NAME=""
 DOCUMENT_VERSION=""
 
 DIST=""
@@ -997,6 +997,10 @@ create_network () {
 }
 
 set_installation_type_data () {
+    if [ -n "$DOCUMENT_IMAGE_NAME" ]; then
+        return
+    fi
+
     if [ "$INSTALLATION_TYPE" == "COMMUNITY" ]; then
         DOCUMENT_IMAGE_NAME="onlyoffice/documentserver"
     elif [ "$INSTALLATION_TYPE" == "ENTERPRISE" ]; then
