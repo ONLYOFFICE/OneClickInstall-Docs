@@ -7,6 +7,7 @@ export TERM=xterm-256color
 SERVICES_SYSTEMD=(
   "ds-converter.service"
   "ds-docservice.service"
+  "ds-adminpanel.service"
 )
 
 get_colors() {
