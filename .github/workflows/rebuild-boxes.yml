@@ -26,6 +26,10 @@ jobs:
             os: "base-ubuntu2404"
             box_name: "ubuntu2404"
 
+          - distr: "onlyoffice"
+            os: "base-ubuntu2604"
+            box_name: "ubuntu2604"
+
     steps:
       - name: Free Disk Space
         working-directory: ${{ github.workspace }}
