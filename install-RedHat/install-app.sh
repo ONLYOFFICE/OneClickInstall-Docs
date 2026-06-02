@@ -95,7 +95,12 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
     [ -n "${WOPI_ENABLED}" ] && declare -x WOPI_ENABLED
 
     ${package_manager} -y install ${ds_pkg_name} --nobest # --nobest for rhel 8 compatibility
-    sed -i "s/ default_server//" /etc/nginx/nginx.conf # drop default_server from nginx.conf so nginx binds port 80 without conflicts
+
+    sed -i "s/ default_server//" /etc/nginx/nginx.conf && \
+        echo "Note: removed default_server from /etc/nginx/nginx.conf to avoid conflict with ${ds_pkg_name}."
+    [ -e /etc/nginx/conf.d/default.conf ] && \
+        mv -f /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.disabled && \
+        echo "Note: nginx default site disabled to avoid conflict with ${ds_pkg_name}."
 
 if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
 expect << EOF
