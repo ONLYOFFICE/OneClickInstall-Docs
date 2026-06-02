@@ -96,7 +96,7 @@ jobs:
           BOX_VERSION=$(vagrant ssh -c "command -v rpm >/dev/null 2>&1 \
             && rpm -q onlyoffice-documentserver-ee --queryformat '%{VERSION}' 2>/dev/null \
             || dpkg-query -W -f='\${Version}' onlyoffice-documentserver-ee 2>/dev/null" \
-            2>/dev/null | tr -d '\r\n ' | cut -d. -f1-3)
+            2>/dev/null | tr -d '\r\n ' | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')
           export BOX_VERSION
           [[ "$BOX_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "BOX_VERSION is invalid: '${BOX_VERSION}'"; exit 1; }
           vagrant package ubuntu --output ${PRODUCT}-${OS_NAME}.box
