@@ -80,7 +80,7 @@ echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select tr
 [ "$INSTALLATION_TYPE" != "COMMUNITY" ] && _ee_pkgs="redis-server postgresql rabbitmq-server" || _ee_pkgs=
 apt-get install -yq wget \
                 nano \
-                nginx-extras \
+                nginx \
                 expect \
                 ${_ee_pkgs}
 
