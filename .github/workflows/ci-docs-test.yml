@@ -86,7 +86,7 @@ jobs:
               "ubuntu2004":      ["Ubuntu 20.04",      "onlyoffice", "base-ubuntu2004"],
               "ubuntu2204":      ["Ubuntu 22.04",      "onlyoffice", "base-ubuntu2204"],
               "ubuntu2404":      ["Ubuntu 24.04",      "onlyoffice", "base-ubuntu2404"],
-              "ubuntu2604":      ["Ubuntu 26.04",      "cloud-image", "ubuntu-26.04"]
+              "ubuntu2604":      ["Ubuntu 26.04",      "onlyoffice", "base-ubuntu2604"]
             }
         run: |
           declare -A os_set

@@ -56,6 +56,7 @@ if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
 
     # setup Erlang repo
     if [[ "$(uname -m)" =~ (arm|aarch) ]]; then
+        yum -y install jq
         ERLANG_LATEST_URL=$(curl -s https://api.github.com/repos/rabbitmq/erlang-rpm/releases | \
             jq -r '.[] | .assets[]? | select(.name | test("erlang-[0-9\\.]+-1\\.el9\\.aarch64\\.rpm$")) | .browser_download_url' | head -n1)
         yum install -y "${ERLANG_LATEST_URL}"

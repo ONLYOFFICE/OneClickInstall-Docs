@@ -16,7 +16,8 @@ on:
           debian13,
           ubuntu2004,
           ubuntu2204,
-          ubuntu2404
+          ubuntu2404,
+          ubuntu2604
       deb_build:
         type: boolean
         description: "Override: All DEB-based distros"
@@ -44,7 +45,7 @@ jobs:
       - name: Set matrix names
         id: set-matrix
         env:
-          OS_ORDER: centos8s centos9s centos10 debian10 debian11 debian12 debian13 ubuntu2004 ubuntu2204 ubuntu2404
+          OS_ORDER: centos8s centos9s centos10 debian10 debian11 debian12 debian13 ubuntu2004 ubuntu2204 ubuntu2404 ubuntu2604
           OS_MAP: |
             {
               "centos8s":   ["CentOS 8 Stream", "onlyoffice", "docs-centos8s"],
@@ -56,7 +57,8 @@ jobs:
               "debian13":   ["Debian 13",       "onlyoffice", "docs-debian13"],
               "ubuntu2004": ["Ubuntu 20.04",    "onlyoffice", "docs-ubuntu2004"],
               "ubuntu2204": ["Ubuntu 22.04",    "onlyoffice", "docs-ubuntu2204"],
-              "ubuntu2404": ["Ubuntu 24.04",    "onlyoffice", "docs-ubuntu2404"]
+              "ubuntu2404": ["Ubuntu 24.04",    "onlyoffice", "docs-ubuntu2404"],
+              "ubuntu2604": ["Ubuntu 26.04",    "onlyoffice", "docs-ubuntu2604"]
             }
         run: |
           declare -A os_set

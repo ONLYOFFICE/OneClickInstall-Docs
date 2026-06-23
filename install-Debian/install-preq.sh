@@ -46,8 +46,13 @@ cat<<EOF
 EOF
 
 if [ "$DIST" = "debian" ] && [ $(apt-cache search ttf-mscorefonts-installer | wc -l) -eq 0 ]; then
-    REPO_URL=$([ "$DISTRIB_CODENAME" = "buster" ] && echo "http://archive.debian.org/debian/" || echo "http://ftp.uk.debian.org/debian/")
+    REPO_URL=$([ "$DISTRIB_CODENAME" = "buster" ] && echo "http://archive.debian.org/debian/" || echo "http://deb.debian.org/debian/")
     echo -e "deb $REPO_URL $DISTRIB_CODENAME main contrib\ndeb-src $REPO_URL $DISTRIB_CODENAME main contrib" > /etc/apt/sources.list
+fi
+
+# Disable legacy nginx.org repo on Bookworm to avoid mixing with Debian nginx-extras
+if [ "$DISTRIB_CODENAME" = "bookworm" ] && [ -f /etc/apt/sources.list.d/nginx.list ]; then
+    mv -f /etc/apt/sources.list.d/nginx.list /etc/apt/sources.list.d/nginx.list.disabled
 fi
 
 apt-get -y update
@@ -67,12 +72,10 @@ fi
 locale-gen en_US.UTF-8
 
 #add nginx repo
-if [[ "$DISTRIB_CODENAME" != noble ]]; then
+if [[ "$DISTRIB_CODENAME" != noble ]] && [[ "$DISTRIB_CODENAME" != "bookworm" ]]; then
     curl -s http://nginx.org/keys/nginx_signing.key | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/nginx.gpg --import
     chmod 644 /usr/share/keyrings/nginx.gpg
     echo "deb [signed-by=/usr/share/keyrings/nginx.gpg] http://nginx.org/packages/$DIST/ $DISTRIB_CODENAME nginx" | tee /etc/apt/sources.list.d/nginx.list
-    #Temporary fix for missing nginx repository for debian bookworm
-    [ "$DISTRIB_CODENAME" = "bookworm" ] && sed -i "s/$DISTRIB_CODENAME/buster/g" /etc/apt/sources.list.d/nginx.list
 fi
 
 # setup msttcorefonts

@@ -60,9 +60,9 @@ while [ "$1" != "" ]; do
 
         -gb | --gitbranch )
             if [ "$2" != "" ]; then
-                PARAMETERS="$PARAMETERS ${1}"
                 GIT_BRANCH=$2
-                shift
+                shift 2
+                continue
             fi
         ;;
 
