@@ -43,6 +43,14 @@ on:
         type: boolean
         description: "Override: All RPM-based distros"
         default: false
+      installationtype:
+        type: choice
+        description: 'Installation type'
+        default: 'enterprise'
+        options:
+          - enterprise
+          - community
+          - developer
 
   schedule:
     - cron: '0 21 * * 0'
@@ -78,7 +86,7 @@ jobs:
               "ubuntu2004":      ["Ubuntu 20.04",      "onlyoffice", "base-ubuntu2004"],
               "ubuntu2204":      ["Ubuntu 22.04",      "onlyoffice", "base-ubuntu2204"],
               "ubuntu2404":      ["Ubuntu 24.04",      "onlyoffice", "base-ubuntu2404"],
-              "ubuntu2604":      ["Ubuntu 26.04",      "cloud-image", "ubuntu-26.04"]
+              "ubuntu2604":      ["Ubuntu 26.04",      "onlyoffice", "base-ubuntu2604"]
             }
         run: |
           declare -A os_set
@@ -112,9 +120,8 @@ jobs:
 
       - id: get-version
         run: |
-          VERSION=$(curl -sL -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ github.token }}" \
-            https://api.github.com/repos/ONLYOFFICE/document-server-package/branches?per_page=100 \
-            | jq -r '.[] | select(.name|test("^(release|hotfix)/")) | .name' | sort -Vr | head -n1 | sed 's#.*/v##')
+          VERSION=$(git ls-remote --heads "https://${{ secrets.GITEA_TOKEN }}@${{ secrets.GITEA_HOST }}/ONLYOFFICE/document-server-package" \
+            'refs/heads/release/v*' 'refs/heads/hotfix/v*' | awk -F/ '{print $NF}' | sed 's/^v//' | sort -Vr | head -n1)
           echo "version=${VERSION:-99.99.99}" >> "$GITHUB_OUTPUT"
 
   vagrant-up:
@@ -161,7 +168,7 @@ jobs:
           RAM: '4096'
           CPU: '2'
           OS: ${{ matrix.os }}
-          IT: '-it enterprise'
+          IT: '-it ${{ github.event.inputs.installationtype || ''enterprise'' }}'
         run: |
           set -eux
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
@@ -229,9 +236,9 @@ jobs:
       run: |
         set -eux
         if [[ "${{ github.event_name }}" == "schedule" ]]; then
-          sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh -ds true -arg '--skiphardwarecheck true --makeswap false'
+          sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh -ds true -it '${{ github.event.inputs.installationtype || 'enterprise' }}' -arg '--skiphardwarecheck true --makeswap false'
         else
-          sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh -ds false -v "${VER}" -tr true -arg '--skiphardwarecheck true --makeswap false --localscripts true'
+          sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh -ds false -v "${VER}" -tr true -it '${{ github.event.inputs.installationtype || 'enterprise' }}' -arg '--skiphardwarecheck true --makeswap false --localscripts true'
         fi
 
     - name: Uninstall
