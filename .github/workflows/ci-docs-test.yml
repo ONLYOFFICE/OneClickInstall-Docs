@@ -162,7 +162,7 @@ jobs:
           sudo apt-get install -y /tmp/vbox.deb
 
       - name: Install
-        timeout-minutes: 90
+        timeout-minutes: 25
         env:
           DISTR: ${{ matrix.distr }}
           RAM: '4096'
