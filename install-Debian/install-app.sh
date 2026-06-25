@@ -56,9 +56,11 @@ fi
 apt-get -y update
 
 if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
-    ds_pkg_installed_name=$(dpkg -l | grep ${package_sysname}-documentserver | tail -n1 | awk '{print $2}')
+    ds_pkg_installed_name=$(dpkg -l | awk -v pkg="${package_sysname}-documentserver" '$1 == "ii" && index($2, pkg) == 1 {print $2}' | tail -n1)
 
-    if [ ${ds_pkg_installed_name} != ${ds_pkg_name} ]; then
+    if [ -z "${ds_pkg_installed_name}" ]; then
+        DOCUMENT_SERVER_INSTALLED="false"
+    elif [ ${ds_pkg_installed_name} != ${ds_pkg_name} ]; then
         apt-get remove -yq ${ds_pkg_installed_name}
         DOCUMENT_SERVER_INSTALLED="false"
     else
