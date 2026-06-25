@@ -162,7 +162,7 @@ jobs:
           sudo apt-get install -y /tmp/vbox.deb
 
       - name: Install
-        timeout-minutes: 25
+        timeout-minutes: 60
         env:
           DISTR: ${{ matrix.distr }}
           RAM: '4096'
@@ -181,7 +181,14 @@ jobs:
             export VER="-v ${VER}"
             export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'"
           fi
-          vagrant up --provider=virtualbox
+          timeout --kill-after=60s 25m vagrant up --provider=virtualbox || {
+            echo "vagrant up failed or timed out after 25 minutes, retrying..."
+            pkill -TERM -f '[v]agrant|[r]uby.*vagrant' || true
+            sleep 5
+            pkill -KILL -f '[v]agrant|[r]uby.*vagrant' || true
+            vagrant destroy --force || true
+            timeout --kill-after=60s 25m vagrant up --provider=virtualbox
+          }
 
       - name: Health check
         run: |
