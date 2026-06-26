@@ -110,8 +110,11 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
     apt-get install -yq ${ds_pkg_name}
 
     [ -e /etc/nginx/sites-enabled/default ] && \
-        mv -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default.disabled && \
-        echo "Note: nginx default site disabled to avoid conflict with ${ds_pkg_name}."
+        mv -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default.disabled
+    [ -e /etc/nginx/conf.d/default.conf ] && \
+        mv -f /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.disabled
+    echo "Note: nginx default sites disabled to avoid conflict with ${ds_pkg_name}."
+    service nginx reload
 fi
 
 echo ""
