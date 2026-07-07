@@ -47,6 +47,37 @@ services_logs() {
   done
 }
 
+healthcheck_nginx() {
+  local failed=0
+
+  if nginx -t &>/dev/null; then
+    echo "${COLOR_GREEN}[OK] nginx config test passed${COLOR_RESET}"
+  else
+    echo "${COLOR_RED}[FAILED] nginx config test failed${COLOR_RESET}"
+    nginx -t || true
+    echo "::error::nginx -t failed"
+    failed=1
+  fi
+
+  if nginx -V 2>&1 | grep -q -- '--with-http_secure_link_module'; then
+    echo "${COLOR_GREEN}[OK] nginx has http_secure_link_module${COLOR_RESET}"
+  else
+    echo "${COLOR_RED}[FAILED] nginx is missing http_secure_link_module (nginx-core instead of nginx-extras/nginx.org build?)${COLOR_RESET}"
+    echo "::error::nginx is missing http_secure_link_module"
+    failed=1
+  fi
+
+  if nginx -V 2>&1 | grep -q -- '--with-http_gzip_static_module'; then
+    echo "${COLOR_GREEN}[OK] nginx has http_gzip_static_module${COLOR_RESET}"
+  else
+    echo "${COLOR_RED}[FAILED] nginx is missing http_gzip_static_module (nginx-core instead of nginx-extras/nginx.org build?)${COLOR_RESET}"
+    echo "::error::nginx is missing http_gzip_static_module"
+    failed=1
+  fi
+
+  return $failed
+}
+
 healthcheck_curl() {
   local url="${url:-http://localhost}"
   local res attempts=24
@@ -79,6 +110,7 @@ main() {
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
       echo "${COLOR_BLUE}HEALTH CHECK${COLOR_RESET}"
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
+      healthcheck_nginx
       healthcheck_curl
       healthcheck_systemd_services
       ;;

@@ -46,7 +46,7 @@ cat<<EOF
 EOF
 
 if ! rpm -q net-tools &>/dev/null; then
-    yum -y install net-tools
+    dnf -y install net-tools
 fi
 
 [ "${INSTALLATION_TYPE}" != "COMMUNITY" ] && _ee=1 || _ee=

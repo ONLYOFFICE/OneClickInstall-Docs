@@ -37,10 +37,8 @@
 
 set -e
 
-package_manager="yum"
 package_sysname="onlyoffice"
 
-package_services=""
 DS_COMMON_NAME="onlyoffice"
 RES_APP_INSTALLED="is already installed"
 RES_APP_CHECK_PORTS="Application uses the following ports"

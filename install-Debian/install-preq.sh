@@ -45,43 +45,25 @@ cat<<EOF
 
 EOF
 
-if [ "$DIST" = "debian" ] && [ $(apt-cache search ttf-mscorefonts-installer | wc -l) -eq 0 ]; then
-    REPO_URL=$([ "$DISTRIB_CODENAME" = "buster" ] && echo "http://archive.debian.org/debian/" || echo "http://deb.debian.org/debian/")
-    echo -e "deb $REPO_URL $DISTRIB_CODENAME main contrib\ndeb-src $REPO_URL $DISTRIB_CODENAME main contrib" > /etc/apt/sources.list
-fi
-
-# Disable legacy nginx.org repo to avoid mixing it with distro nginx-extras
-if [[ "$DISTRIB_CODENAME" = "bookworm" || "$DISTRIB_CODENAME" = "resolute" ]] && [ -f /etc/apt/sources.list.d/nginx.list ]; then
-    mv -f /etc/apt/sources.list.d/nginx.list /etc/apt/sources.list.d/nginx.list.disabled
-fi
-
 apt-get -y update
-
-if ! command -v locale-gen &> /dev/null; then
-    apt-get install -yq locales
-fi
-
-if ! dpkg -l | grep -q "dirmngr"; then
-    apt-get install -yq dirmngr
-fi
-
-if [ $(dpkg-query -W -f='${Status}' curl 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
-    apt-get install -yq curl
-fi
+apt-get install -yq locales dirmngr curl
 
 locale-gen en_US.UTF-8
 
-#add nginx repo
-if [[ "$DISTRIB_CODENAME" != noble ]] && [[ "$DISTRIB_CODENAME" != "bookworm" ]] && [[ "$DISTRIB_CODENAME" != "resolute" ]]; then
-    curl -s http://nginx.org/keys/nginx_signing.key | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/nginx.gpg --import
-    chmod 644 /usr/share/keyrings/nginx.gpg
-    echo "deb [signed-by=/usr/share/keyrings/nginx.gpg] http://nginx.org/packages/$DIST/ $DISTRIB_CODENAME nginx" | tee /etc/apt/sources.list.d/nginx.list
-fi
-
 # setup msttcorefonts
 echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
+if [ "$DIST" = "debian" ] && ! apt-cache show ttf-mscorefonts-installer &>/dev/null; then
+    REPO_URL=$([ "$DISTRIB_CODENAME" = "buster" ] && echo "http://archive.debian.org/debian/" || echo "http://deb.debian.org/debian/")
+    printf 'deb %s %s main contrib\ndeb-src %s %s main contrib\n' \
+        "$REPO_URL" "$DISTRIB_CODENAME" "$REPO_URL" "$DISTRIB_CODENAME" > /etc/apt/sources.list
+fi
 
-# install
+#add nginx repo
+curl -fsSL https://nginx.org/keys/nginx_signing.key | gpg --dearmor -o /usr/share/keyrings/nginx.gpg
+echo "deb [signed-by=/usr/share/keyrings/nginx.gpg] https://nginx.org/packages/$DIST/ $DISTRIB_CODENAME nginx" | tee /etc/apt/sources.list.d/nginx.list
+
+apt-get -y update
+
 [ "$INSTALLATION_TYPE" != "COMMUNITY" ] && _ee_pkgs="redis-server postgresql rabbitmq-server" || _ee_pkgs=
 apt-get install -yq wget \
                 nano \
@@ -90,7 +72,6 @@ apt-get install -yq wget \
                 ${_ee_pkgs}
 
 if [ -e /etc/redis/redis.conf ]; then
-    sed -i "s/bind .*/bind 127.0.0.1/g" /etc/redis/redis.conf
-    sed -r "/^save\s[0-9]+/d" -i /etc/redis/redis.conf
-    service redis-server restart
+    sed -E -i "s_^bind.*_bind 127.0.0.1_; /^save\s[0-9]+/d" /etc/redis/redis.conf
+    systemctl restart redis-server
 fi
