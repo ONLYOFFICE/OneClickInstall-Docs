@@ -8,6 +8,7 @@ SERVICES_SYSTEMD=(
   "ds-converter.service"
   "ds-docservice.service"
   "ds-adminpanel.service"
+  "nginx.service"
 )
 
 get_colors() {
