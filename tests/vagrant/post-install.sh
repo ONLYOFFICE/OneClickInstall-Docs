@@ -38,9 +38,9 @@ services_logs() {
   local MAIN_LOGS_DIR="/var/log/onlyoffice"
   local DOCS_LOGS_DIR="${MAIN_LOGS_DIR}/documentserver"
 
-  for LOGS_DIR in "${MAIN_LOGS_DIR}" "${DOCS_LOGS_DIR}"; do
+  for LOGS_DIR in "${MAIN_LOGS_DIR}" "${DOCS_LOGS_DIR}" "/var/log/nginx"; do
     echo $LINE_SEPARATOR && echo "${COLOR_YELLOW}Check logs for $(basename "${LOGS_DIR}" | tr '[:lower:]' '[:upper:]')${COLOR_RESET}" && echo $LINE_SEPARATOR
-    find "${LOGS_DIR}" -maxdepth 2 -type f -name "*.log" ! -name "*sql*" ! -name "*nginx*" 2>/dev/null | while read -r FILE; do
+    find "${LOGS_DIR}" -maxdepth 2 -type f -name "*.log" ! -name "*sql*" 2>/dev/null | while read -r FILE; do
       echo $LINE_SEPARATOR && echo "${COLOR_GREEN}Logs from file: ${FILE}${COLOR_RESET}" && echo $LINE_SEPARATOR
       tail -30 "${FILE}" || true
     done
