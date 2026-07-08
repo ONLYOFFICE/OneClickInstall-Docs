@@ -83,7 +83,7 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
     
     dnf -y install "${ds_pkg_name}" --nobest # --nobest for rhel 8 compatibility
 
-    if [ "${DS_PORT}" = "80" ] && ss -tlnp 2>/dev/null | grep -q ":80 "; then
+    if [ "${DS_PORT}" = "80" ]; then
         [ -e /etc/nginx/nginx.conf ] && sed -i "s/ default_server//" /etc/nginx/nginx.conf && \
             echo "Note: removed default_server from /etc/nginx/nginx.conf to avoid conflict with ${ds_pkg_name}."
         [ -e /etc/nginx/conf.d/default.conf ] && \
