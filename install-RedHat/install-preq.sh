@@ -48,7 +48,7 @@ EOF
 dnf clean all
 dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
 [ "$REV" = "9" ] && update-crypto-policies --set DEFAULT:SHA1
-dnf -y install jq yum-utils nano policycoreutils-python*
+dnf -y install jq yum-utils policycoreutils-python*
 
 semanage permissive -a httpd_t
 
@@ -78,10 +78,7 @@ if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
         curl -s https://packagecloud.io/install/repositories/rabbitmq/erlang/script.rpm.sh | os="${_rabbit_dist}" dist="${_rabbit_ver}" bash
     fi
 
-    dnf -y install ${REDIS_PACKAGE} \
-                   postgresql \
-                   postgresql-server \
-                   rabbitmq-server
+    dnf -y install ${REDIS_PACKAGE} postgresql postgresql-server rabbitmq-server
 
     # configure Redis
     REDIS_CONF="/etc/${REDIS_PACKAGE}.conf"; [ -e "$REDIS_CONF" ] || REDIS_CONF="/etc/${REDIS_PACKAGE}/${REDIS_PACKAGE}.conf"
