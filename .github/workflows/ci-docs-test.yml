@@ -26,7 +26,6 @@ on:
           centos9s,
           centos10,
           amazonlinux2023,
-          debian10,
           debian11,
           debian12,
           debian13,
@@ -70,7 +69,7 @@ jobs:
       - name: Set matrix names
         id: set-matrix
         env:
-          OS_ORDER: rhel8 rhel9 centos8s centos9s centos10 amazonlinux2023 debian10 debian11 debian12 debian13 ubuntu2004 ubuntu2204 ubuntu2404 ubuntu2604
+          OS_ORDER: rhel8 rhel9 centos8s centos9s centos10 amazonlinux2023 debian11 debian12 debian13 ubuntu2004 ubuntu2204 ubuntu2404 ubuntu2604
           OS_MAP: |
             {
               "rhel8":           ["RHEL 8",            "generic",    "rhel8"],
@@ -79,7 +78,6 @@ jobs:
               "centos9s":        ["CentOS 9 Stream",   "onlyoffice", "base-centos9s"],
               "centos10":        ["CentOS 10 Stream",  "onlyoffice", "base-centos10"],
               "amazonlinux2023": ["Amazon Linux 2023", "bento",      "amazonlinux-2023"],
-              "debian10":        ["Debian 10",         "onlyoffice", "base-debian10"],
               "debian11":        ["Debian 11",         "onlyoffice", "base-debian11"],
               "debian12":        ["Debian 12",         "onlyoffice", "base-debian12"],
               "debian13":        ["Debian 13",         "onlyoffice", "base-debian13"],

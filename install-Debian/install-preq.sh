@@ -53,9 +53,8 @@ locale-gen en_US.UTF-8
 # setup msttcorefonts
 echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
 if [ "$DIST" = "debian" ] && ! apt-cache show ttf-mscorefonts-installer &>/dev/null; then
-    REPO_URL=$([ "$DISTRIB_CODENAME" = "buster" ] && echo "http://archive.debian.org/debian/" || echo "http://deb.debian.org/debian/")
-    printf 'deb %s %s main contrib\ndeb-src %s %s main contrib\n' \
-        "$REPO_URL" "$DISTRIB_CODENAME" "$REPO_URL" "$DISTRIB_CODENAME" > /etc/apt/sources.list
+    printf 'deb http://deb.debian.org/debian/ %s main contrib\ndeb-src http://deb.debian.org/debian/ %s main contrib\n' \
+        "$DISTRIB_CODENAME" "$DISTRIB_CODENAME" > /etc/apt/sources.list
 fi
 
 #add nginx repo

@@ -32,13 +32,6 @@ prepare_vm() {
 
   if grep -qi 'debian\|ubuntu' /etc/os-release; then
     . /etc/os-release
-    if [ "$VERSION_CODENAME" = buster ]; then
-      find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) -exec sed -Ei \
-        -e 's|http://deb\.debian\.org/debian/?|http://archive.debian.org/debian/|g' \
-        -e 's|http://security\.debian\.org/debian-security/?|http://archive.debian.org/debian-security/|g' \
-        -e 's|http://ftp\.uk\.debian\.org/debian/?|http://archive.debian.org/debian/|g' {} +
-      echo "${COLOR_GREEN}[OK] PREPARE_VM: Debian 10 sources switched to archive.debian.org${COLOR_RESET}"
-    fi
 
     if [ "${TEST_REPO_ENABLE:-}" = 'true' ]; then
       echo "deb [trusted=yes] https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/repo/debian stable ${VER}" | sudo tee /etc/apt/sources.list.d/onlyoffice-dev.list
