@@ -92,6 +92,14 @@ EOF
     fi
   fi
 
+  # cloud-image-derived boxes ship a policy-rc.d that blocks service autostart
+  # until cloud-init runs, which never happens in a bare Vagrant VM
+  if [ -f /usr/sbin/policy-rc.d ]; then
+    echo "${COLOR_YELLOW}[INFO] PREPARE_VM: removing policy-rc.d (was blocking service autostart):${COLOR_RESET}"
+    cat /usr/sbin/policy-rc.d
+    rm -f /usr/sbin/policy-rc.d
+  fi
+
   rm -rf /home/vagrant/*
   if [ -d /tmp/docs ]; then
     mv /tmp/docs/* /home/vagrant

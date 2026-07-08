@@ -97,7 +97,7 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
         [ -e /etc/nginx/conf.d/default.conf ] && \
             mv -f /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.disabled
         echo "Note: nginx default sites disabled to avoid conflict with ${ds_pkg_name}."
-        service nginx reload || service nginx start || true
+        systemctl is-active --quiet nginx && systemctl reload nginx || systemctl start nginx
     fi
 
     apt-get install -yq ${ds_pkg_name}
