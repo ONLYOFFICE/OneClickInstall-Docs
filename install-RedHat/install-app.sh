@@ -106,7 +106,8 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
 fi
 
 if systemctl is-active --quiet firewalld; then
-    firewall-cmd --permanent --zone=public --add-service=http --add-service=https --add-port="${DS_PORT:-80}/tcp"
+    firewall-cmd --permanent --zone=public --add-service=http --add-service=https
+    firewall-cmd --permanent --zone=public --add-port="${DS_PORT:-80}/tcp"
     firewall-cmd --reload
 fi
 
