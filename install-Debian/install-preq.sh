@@ -58,7 +58,7 @@ if [ "$DIST" = "debian" ] && ! apt-cache show ttf-mscorefonts-installer &>/dev/n
 fi
 
 #add nginx repo
-curl -fsSL https://nginx.org/keys/nginx_signing.key | gpg --dearmor -o /usr/share/keyrings/nginx.gpg
+curl -fsSL https://nginx.org/keys/nginx_signing.key | gpg --batch --yes --dearmor -o /usr/share/keyrings/nginx.gpg
 echo "deb [signed-by=/usr/share/keyrings/nginx.gpg] https://nginx.org/packages/$DIST/ $DISTRIB_CODENAME nginx" | tee /etc/apt/sources.list.d/nginx.list
 
 apt-get -y update
