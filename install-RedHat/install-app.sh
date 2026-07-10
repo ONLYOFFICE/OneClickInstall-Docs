@@ -105,7 +105,7 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
             --databasepassword "$DS_DB_PWD"
         )
     fi
-    documentserver-configure.sh "${ds_configure_args[@]}"
+    documentserver-configure "${ds_configure_args[@]}"
 fi
 
 if systemctl is-active --quiet firewalld; then

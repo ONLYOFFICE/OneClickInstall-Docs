@@ -743,7 +743,11 @@ install_document_server () {
 
                 _ee_bindings=$( [ "$INSTALLATION_TYPE" != "COMMUNITY" ] && echo ",/var/lib/postgresql,/var/lib/rabbitmq,/var/lib/redis" )
                 check_bindings $DOCUMENT_SERVER_ID "/etc/$PRODUCT,/var/lib/$PRODUCT,/usr/share/fonts/truetype/custom${_ee_bindings}";
-                docker exec ${DOCUMENT_CONTAINER_NAME} bash /usr/bin/documentserver-prepare4shutdown.sh
+                if docker exec ${DOCUMENT_CONTAINER_NAME} test -x /usr/bin/documentserver-prepare4shutdown; then
+                    docker exec ${DOCUMENT_CONTAINER_NAME} /usr/bin/documentserver-prepare4shutdown
+                else
+                    docker exec ${DOCUMENT_CONTAINER_NAME} bash /usr/bin/documentserver-prepare4shutdown.sh
+                fi
                 remove_container ${DOCUMENT_CONTAINER_NAME}
             else
                 RUN_DOCUMENT_SERVER="false"
@@ -853,7 +857,7 @@ set_jwt_secret () {
 
     if [[ -z ${JWT_SECRET} ]] && [[ "$UPDATE" != "true" ]]; then
         JWT_SECRET=$(get_random_str 32)
-        [ $JWT_ENABLED = "true" ] && JWT_MESSAGE='JWT is enabled by default. A random secret is generated automatically. Run the command "docker exec $(sudo docker ps -q) sudo documentserver-jwt-status.sh" to get information about JWT.'
+        [ $JWT_ENABLED = "true" ] && JWT_MESSAGE='JWT is enabled by default. A random secret is generated automatically. Run the command "docker exec $(sudo docker ps -q) sudo documentserver-jwt-status" to get information about JWT.'
     fi
 }
 
