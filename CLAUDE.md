@@ -10,7 +10,7 @@ Bash/Shell, Docker, Vagrant (testing), GitHub Actions, jq
 
 ```
 docs-install.sh       — Community Edition wrapper (detects OS, routes to installer)
-install.sh            — Docker installation script (1033 lines)
+install.sh            — Docker installation script
 install-Debian.sh     — Debian/Ubuntu package installer wrapper
 install-RedHat.sh     — RHEL/CentOS/Amazon package installer wrapper
 install-Debian/       — Debian-specific scripts
