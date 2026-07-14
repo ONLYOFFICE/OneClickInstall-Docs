@@ -96,6 +96,23 @@ healthcheck_curl() {
   return 1
 }
 
+healthcheck_example() {
+  if systemctl start ds-example.service; then
+    sleep 2
+  fi
+
+  if systemctl is-active --quiet ds-example.service; then
+    echo "${COLOR_GREEN}[OK] ds-example.service started${COLOR_RESET}"
+    return 0
+  fi
+
+  echo "${COLOR_RED}[FAILED] ds-example.service failed to start${COLOR_RESET}"
+  journalctl -u ds-example.service -n 50 || true
+  tail -50 /var/log/onlyoffice/documentserver-example/out.log 2>/dev/null || true
+  echo "::error::ds-example.service failed to start"
+  return 1
+}
+
 uninstall_docs() {
   cd "$(dirname "$0")/../.."
   # Answer "no" to dependency removal and keep Debian purge noninteractive
@@ -114,6 +131,7 @@ main() {
       healthcheck_nginx
       healthcheck_curl
       healthcheck_systemd_services
+      healthcheck_example
       ;;
     uninstall)
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"

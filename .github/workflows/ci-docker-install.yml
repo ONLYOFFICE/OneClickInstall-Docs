@@ -68,6 +68,15 @@ jobs:
           echo "container_status=timeout" >> "$GITHUB_ENV"
           exit 1
 
+      - name: Start Docs example
+        run: |
+          if ! docker exec "$container" supervisorctl start ds:example; then
+            docker exec "$container" supervisorctl status ds:example || true
+            docker exec "$container" sh -lc 'tail -100 /var/log/onlyoffice/documentserver-example/out.log 2>/dev/null || true'
+            echo "::error::ds:example failed to start"
+            exit 1
+          fi
+
       - name: Print logs for crashed container
         if: failure()
         run: |
