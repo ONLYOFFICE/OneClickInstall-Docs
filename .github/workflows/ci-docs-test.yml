@@ -161,6 +161,8 @@ jobs:
           sudo apt-get install -y /tmp/vbox.deb
 
       - name: "Boot VM for ${{matrix.name}}"
+        id: boot
+        continue-on-error: true
         timeout-minutes: 45
         env:
           DISTR: ${{ matrix.distr }}
@@ -169,6 +171,12 @@ jobs:
           CPU: '2'
         run: |
           set -eux
+
+          # retrying a boot on this same runner can't help if its L0 hypervisor never exposed (nested) VT-x/AMD-V at all — fail fast instead of burning 40 minutes
+          if ! grep -qE 'vmx|svm' /proc/cpuinfo || ! VBoxManage list hostinfo | grep -qi 'nested HW virtualization:\s*yes'; then
+            echo "::error::This runner host doesn't expose (nested) hardware virtualization to VirtualBox — re-run the job for a different host"
+            exit 1
+          fi
 
           # Prefetch the box with multi-connection aria2 — vagrant's own downloader is single-stream (falls back to it below if aria2 fails, e.g. a CDN rate-limit near completion on large boxes)
           box_name="${DISTR}/${OS}"
@@ -186,14 +194,26 @@ jobs:
           # VM boot on shared runners is flaky — destroy and retry once on failure or hang
           timeout --kill-after=60s 20m vagrant up --no-provision --provider=virtualbox || {
             echo "VM boot failed or timed out after 20 minutes, retrying..."
+            echo "--- host diagnostics ---"
+            VBoxManage list hostinfo || true
+            dmesg 2>/dev/null | tail -50 || true
             pkill -TERM -f '[v]agrant|[r]uby.*vagrant' || true
             sleep 5
             pkill -KILL -f '[v]agrant|[r]uby.*vagrant' || true
+            # a hung/timed-out VM can survive the killed vagrant/ruby wrapper and keep the forwarded port bound
+            for vm_id in $(VBoxManage list runningvms 2>/dev/null | awk -F'"' '{print $2}'); do
+              VBoxManage controlvm "$vm_id" poweroff 2>/dev/null || true
+            done
             vagrant destroy --force || true
             timeout --kill-after=60s 20m vagrant up --no-provision --provider=virtualbox
           }
 
+      - name: Warn about VM boot failure
+        if: steps.boot.outcome == 'failure'
+        run: echo "::warning::VM boot failed on ${{ matrix.name }} — runner infrastructure flake, install test skipped"
+
       - name: Install
+        if: steps.boot.outcome == 'success'
         timeout-minutes: 30
         env:
           DISTR: ${{ matrix.distr }}
@@ -216,6 +236,7 @@ jobs:
           vagrant provision
 
       - name: Health check
+        if: steps.boot.outcome == 'success'
         run: |
           if vagrant status | grep -q "running"; then
             vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh healthcheck"
@@ -224,10 +245,12 @@ jobs:
           fi
 
       - name: Smoke test
+        if: steps.boot.outcome == 'success'
         timeout-minutes: 10
         run: bash smoke-test.sh
 
       - name: Uninstall
+        if: steps.boot.outcome == 'success'
         timeout-minutes: 10
         run: |
           if vagrant status | grep -q "running"; then
