@@ -160,8 +160,41 @@ jobs:
           curl -fsSL "https://download.virtualbox.org/virtualbox/7.1.12/${VBOX_DEB}" -o /tmp/vbox.deb
           sudo apt-get install -y /tmp/vbox.deb
 
-      - name: Install
+      - name: "Boot VM for ${{matrix.name}}"
         timeout-minutes: 45
+        env:
+          DISTR: ${{ matrix.distr }}
+          OS: ${{ matrix.os }}
+          RAM: '4096'
+          CPU: '2'
+        run: |
+          set -eux
+
+          # Prefetch the box with multi-connection aria2 — vagrant's own downloader is single-stream (falls back to it below if aria2 fails, e.g. a CDN rate-limit near completion on large boxes)
+          box_name="${DISTR}/${OS}"
+          box_url=$(curl -fsSL "https://vagrantcloud.com/api/v2/vagrant/${box_name}" \
+            | jq -r '[.versions[0].providers[] | select(.name == "virtualbox" and (.architecture // "amd64") == "amd64")][0].url // empty' || true)
+          if [ -n "$box_url" ]; then
+            aria2_opts=(-x16 -s16 -k4M --max-tries=5 --retry-wait=3 --file-allocation=none --console-log-level=warn --summary-interval=30 -d /tmp -o vagrant.box)
+            # a failure typically happens near completion — resume with -c instead of restarting from scratch
+            (aria2c "${aria2_opts[@]}" "$box_url" || aria2c -c "${aria2_opts[@]}" "$box_url") \
+              && vagrant box add --name "${box_name}" /tmp/vagrant.box \
+              || echo "Box prefetch failed, vagrant will download it itself"
+            rm -f /tmp/vagrant.box /tmp/vagrant.box.aria2
+          fi
+
+          # VM boot on shared runners is flaky — destroy and retry once on failure or hang
+          timeout --kill-after=60s 20m vagrant up --no-provision --provider=virtualbox || {
+            echo "VM boot failed or timed out after 20 minutes, retrying..."
+            pkill -TERM -f '[v]agrant|[r]uby.*vagrant' || true
+            sleep 5
+            pkill -KILL -f '[v]agrant|[r]uby.*vagrant' || true
+            vagrant destroy --force || true
+            timeout --kill-after=60s 20m vagrant up --no-provision --provider=virtualbox
+          }
+
+      - name: Install
+        timeout-minutes: 30
         env:
           DISTR: ${{ matrix.distr }}
           RAM: '4096'
@@ -180,28 +213,7 @@ jobs:
             export VER="-v ${VER}"
             export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'"
           fi
-
-          # Prefetch the box with multi-connection aria2 — vagrant's own downloader is single-stream (falls back to it below if aria2 fails, e.g. a CDN rate-limit near completion on large boxes)
-          box_name="${DISTR}/${OS}"
-          box_url=$(curl -fsSL "https://vagrantcloud.com/api/v2/vagrant/${box_name}" \
-            | jq -r '[.versions[0].providers[] | select(.name == "virtualbox" and (.architecture // "amd64") == "amd64")][0].url // empty' || true)
-          if [ -n "$box_url" ]; then
-            aria2_opts=(-x16 -s16 -k4M --max-tries=5 --retry-wait=3 --file-allocation=none --console-log-level=warn --summary-interval=30 -d /tmp -o vagrant.box)
-            # a failure typically happens near completion — resume with -c instead of restarting from scratch
-            (aria2c "${aria2_opts[@]}" "$box_url" || aria2c -c "${aria2_opts[@]}" "$box_url") \
-              && vagrant box add --name "${box_name}" /tmp/vagrant.box \
-              || echo "Box prefetch failed, vagrant will download it itself"
-            rm -f /tmp/vagrant.box /tmp/vagrant.box.aria2
-          fi
-
-          timeout --kill-after=60s 25m vagrant up --provider=virtualbox || {
-            echo "vagrant up failed or timed out after 25 minutes, retrying..."
-            pkill -TERM -f '[v]agrant|[r]uby.*vagrant' || true
-            sleep 5
-            pkill -KILL -f '[v]agrant|[r]uby.*vagrant' || true
-            vagrant destroy --force || true
-            timeout --kill-after=60s 25m vagrant up --provider=virtualbox
-          }
+          vagrant provision
 
       - name: Health check
         run: |

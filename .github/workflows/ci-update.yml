@@ -130,20 +130,15 @@ jobs:
           curl -fsSL "https://download.virtualbox.org/virtualbox/7.1.12/${VBOX_DEB}" -o /tmp/vbox.deb
           sudo apt-get install -y /tmp/vbox.deb
 
-      - name: Update
+      - name: "Boot VM for ${{matrix.name}}"
         timeout-minutes: 45
         env:
           DISTR: ${{ matrix.distr }}
+          OS: ${{ matrix.os }}
           RAM: '4096'
           CPU: '2'
-          OS: ${{ matrix.os }}
-          IT: '-it enterprise'  # docs-* boxes are pre-built with the EE edition
         run: |
           set -eux
-          export DOWNLOAD_SCRIPT='-ds false'
-          export TEST_REPO='-tr true'
-          export VER="-v ${VER}"
-          export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true --update true'"
 
           # Prefetch the box with multi-connection aria2 — vagrant's own downloader is single-stream (falls back to it below if aria2 fails, e.g. a CDN rate-limit near completion on large boxes)
           box_name="${DISTR}/${OS}"
@@ -158,14 +153,31 @@ jobs:
             rm -f /tmp/vagrant.box /tmp/vagrant.box.aria2
           fi
 
-          timeout --kill-after=60s 25m vagrant up --provider=virtualbox || {
-            echo "vagrant up failed or timed out after 25 minutes, retrying..."
+          # VM boot on shared runners is flaky — destroy and retry once on failure or hang
+          timeout --kill-after=60s 20m vagrant up --no-provision --provider=virtualbox || {
+            echo "VM boot failed or timed out after 20 minutes, retrying..."
             pkill -TERM -f '[v]agrant|[r]uby.*vagrant' || true
             sleep 5
             pkill -KILL -f '[v]agrant|[r]uby.*vagrant' || true
             vagrant destroy --force || true
-            timeout --kill-after=60s 25m vagrant up --provider=virtualbox
+            timeout --kill-after=60s 20m vagrant up --no-provision --provider=virtualbox
           }
+
+      - name: Update
+        timeout-minutes: 30
+        env:
+          DISTR: ${{ matrix.distr }}
+          RAM: '4096'
+          CPU: '2'
+          OS: ${{ matrix.os }}
+          IT: '-it enterprise'  # docs-* boxes are pre-built with the EE edition
+        run: |
+          set -eux
+          export DOWNLOAD_SCRIPT='-ds false'
+          export TEST_REPO='-tr true'
+          export VER="-v ${VER}"
+          export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true --update true'"
+          vagrant provision
 
       - name: Health check
         timeout-minutes: 10
@@ -179,6 +191,16 @@ jobs:
       - name: Smoke test
         timeout-minutes: 10
         run: EXPECTED_VERSION="${VER}" bash smoke-test.sh
+
+      - name: "Uninstall on ${{matrix.name}}"
+        timeout-minutes: 20
+        run: |
+          if vagrant status | grep -q "running"; then
+            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh uninstall --localscripts true"
+          else
+            echo "VM is not running, cannot run uninstall test"
+            exit 1
+          fi
 
       - name: Collect logs
         if: always()
