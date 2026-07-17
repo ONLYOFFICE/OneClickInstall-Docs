@@ -21,13 +21,21 @@ concurrency:
 
 jobs:
   Install:
-    name: "Install (${{ matrix.edition }})"
-    runs-on: ubuntu-latest
+    name: "Install (${{ matrix.edition }}) [${{ matrix.arch }}]"
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         edition: [community, enterprise]
+        include:
+          - runner: ubuntu-latest
+            arch: amd
+          - runner: ubuntu-24.04-arm
+            arch: arm
+        runner:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
@@ -83,4 +91,13 @@ jobs:
       - name: Smoke test
         timeout-minutes: 15
         run: |
+          # arm64 runners have no Chrome/chromedriver builds — fall back to the selenium container there
+          if ! command -v google-chrome >/dev/null; then
+            docker pull -q selenium/standalone-chromium:latest
+            docker run -d --name selenium --network host --shm-size 2g selenium/standalone-chromium:latest
+            timeout 60 bash -c 'until curl -sf http://localhost:4444/status | grep -qE "\"ready\":\s*true"; do sleep 2; done' \
+              || { echo "::error::selenium container is not ready"; exit 1; }
+            export SELENIUM_REMOTE_URL=http://localhost:4444
+          fi
+
           PIP_BREAK_SYSTEM_PACKAGES=1 pip install -q --disable-pip-version-check -r tests/smoke/requirements.txt && python3 -m pytest tests/smoke/test_docs_smoke.py -v -s
