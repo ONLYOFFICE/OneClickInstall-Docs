@@ -11,7 +11,8 @@ if ! vagrant status | grep -q "running"; then
 fi
 
 # make the Host header the tests use (localhost:8080) reachable from inside the VM
-vagrant ssh -c "sudo sed -i '0,/listen 0.0.0.0:80/s//&;\n  &80/' /etc/onlyoffice/documentserver/nginx/ds.conf && sudo systemctl reload nginx && curl -sf http://localhost:8080/healthcheck >/dev/null" \
+# the curl retries briefly — nginx workers need a moment to bind the new listener after reload
+vagrant ssh -c "sudo sed -i '0,/listen 0.0.0.0:80/s//&;\n  &80/' /etc/onlyoffice/documentserver/nginx/ds.conf && sudo systemctl reload nginx && timeout 20 bash -c 'until curl -sf http://localhost:8080/healthcheck >/dev/null; do sleep 1; done'" \
   || { echo "::error::failed to expose port 8080 inside the VM"; exit 1; }
 
 PIP_BREAK_SYSTEM_PACKAGES=1 pip install -q --disable-pip-version-check -r ../smoke/requirements.txt
