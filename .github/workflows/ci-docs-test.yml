@@ -153,7 +153,7 @@ jobs:
           wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
           sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
           sudo apt update -y
-          sudo apt-get install -y vagrant
+          sudo apt-get install -y vagrant aria2
           # Temporary install VBox 7.1.12 via curl (.deb) to avoid SSH/NAT issues in 7.1.14
           VBOX_DEB=$(curl -fsSL https://download.virtualbox.org/virtualbox/7.1.12/MD5SUMS | grep -oE 'virtualbox-7\.1_7\.1\.12-[0-9]+~Ubuntu~jammy_amd64\.deb' | head -n1)
           [ -n "$VBOX_DEB" ] || { echo "ERROR: could not detect VBox .deb filename"; exit 1; }
@@ -180,6 +180,20 @@ jobs:
             export VER="-v ${VER}"
             export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'"
           fi
+
+          # Prefetch the box with multi-connection aria2 — vagrant's own downloader is single-stream (falls back to it below if aria2 fails, e.g. a CDN rate-limit near completion on large boxes)
+          box_name="${DISTR}/${OS}"
+          box_url=$(curl -fsSL "https://vagrantcloud.com/api/v2/vagrant/${box_name}" \
+            | jq -r '[.versions[0].providers[] | select(.name == "virtualbox" and (.architecture // "amd64") == "amd64")][0].url // empty' || true)
+          if [ -n "$box_url" ]; then
+            aria2_opts=(-x16 -s16 -k4M --max-tries=5 --retry-wait=3 --file-allocation=none --console-log-level=warn --summary-interval=30 -d /tmp -o vagrant.box)
+            # a failure typically happens near completion — resume with -c instead of restarting from scratch
+            (aria2c "${aria2_opts[@]}" "$box_url" || aria2c -c "${aria2_opts[@]}" "$box_url") \
+              && vagrant box add --name "${box_name}" /tmp/vagrant.box \
+              || echo "Box prefetch failed, vagrant will download it itself"
+            rm -f /tmp/vagrant.box /tmp/vagrant.box.aria2
+          fi
+
           timeout --kill-after=60s 25m vagrant up --provider=virtualbox || {
             echo "vagrant up failed or timed out after 25 minutes, retrying..."
             pkill -TERM -f '[v]agrant|[r]uby.*vagrant' || true
