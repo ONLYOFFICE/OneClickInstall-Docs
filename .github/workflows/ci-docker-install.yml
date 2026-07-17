@@ -12,6 +12,7 @@ on:
     paths:
       - '.github/workflows/ci-docker-install.yml'
       - 'install.sh'
+      - 'tests/smoke/**'
   workflow_dispatch:
 
 concurrency:
@@ -20,8 +21,13 @@ concurrency:
 
 jobs:
   Install:
+    name: "Install (${{ matrix.edition }})"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        edition: [community, enterprise]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
@@ -43,8 +49,13 @@ jobs:
 
       - name: Test Docs Docker scripts
         run: |
-          extra_args=""
-          [ "${{ github.ref }}" = "refs/heads/master" ] || extra_args="-di onlyoffice/4testing-documentserver"
+          case "${{ matrix.edition }}" in
+            community)  image="documentserver" ;;
+            enterprise) image="documentserver-ee" ;;
+            developer)  image="documentserver-de" ;;
+          esac
+          [ "${{ github.ref }}" = "refs/heads/master" ] || image="4testing-${image}"
+          extra_args="-it ${{ matrix.edition }} -di onlyoffice/${image}"
           sudo bash -x install.sh -un "${{ steps.decode.outputs.username }}" -p "${{ steps.decode.outputs.password }}" -skiphc true $extra_args </dev/null
 
       - name: Wait for container to become healthy
@@ -52,37 +63,24 @@ jobs:
           container=$(docker ps --all --format "{{.Names}}" | head -n1)
           echo "container=$container" >> "$GITHUB_ENV"
 
-          for i in $(seq 1 60); do
-            status=$(docker inspect -f '{{.State.Status}}' "$container")
-            [ "$status" = "running" ] || { echo -e "\033[0;31m$container is NOT running. Status: $status.\033[0m"; exit 1; }
+          timeout 5m bash -c 'while :; do
+            state=$(docker inspect -f "{{.State.Status}}/{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}" "$1")
+            case "$state" in running/starting) sleep 5 ;; running/healthy|running/none) echo "$1 is $state"; exit 0 ;; *) echo "$1 is $state"; exit 1 ;; esac
+          done' -- "$container" \
+            || { echo "::error::$container failed to become healthy"; exit 1; }
 
-            health=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container")
-            case "$health" in
-              starting) sleep 5 ;;
-              healthy|none) echo -e "\033[0;32m$container is $health.\033[0m"; exit 0 ;;
-              *) echo -e "\033[0;31m$container is $health.\033[0m"; exit 1 ;;
-            esac
-          done
+          # log tailing is the entrypoint's last step — its start means fonts/static/plugins are done
+          timeout 5m bash -c 'until docker exec "$1" pgrep -f "tail -F" >/dev/null; do sleep 5; done' -- "$container" \
+            || { echo "::error::Timed out waiting for container initialization"; exit 1; }
 
-          echo -e "\033[0;31mTimed out waiting for $container to become healthy.\033[0m"
-          echo "container_status=timeout" >> "$GITHUB_ENV"
-          exit 1
-
-      - name: Start Docs example
-        run: |
-          if ! docker exec "$container" supervisorctl start ds:example; then
-            docker exec "$container" supervisorctl status ds:example || true
-            docker exec "$container" sh -lc 'tail -100 /var/log/onlyoffice/documentserver-example/out.log 2>/dev/null || true'
-            echo "::error::ds:example failed to start"
-            exit 1
-          fi
+          docker exec "$container" supervisorctl start ds:example \
+            || { docker exec "$container" sh -lc 'supervisorctl status ds:example; tail -100 /var/log/onlyoffice/documentserver-example/out.log'; echo "::error::ds:example failed to start"; exit 1; }
 
       - name: Print logs for crashed container
         if: failure()
-        run: |
-          docker logs "${{ env.container }}" | sed "s/^/\t/"
-          if [ "${{ env.container_status }}" = "timeout" ]; then
-            echo "Timeout. Container failed"
-            exit 1
-          fi
+        run: docker logs "$container" | sed "s/^/\t/"
 
+      - name: Smoke test
+        timeout-minutes: 15
+        run: |
+          PIP_BREAK_SYSTEM_PACKAGES=1 pip install -q --disable-pip-version-check -r tests/smoke/requirements.txt && python3 -m pytest tests/smoke/test_docs_smoke.py -v -s

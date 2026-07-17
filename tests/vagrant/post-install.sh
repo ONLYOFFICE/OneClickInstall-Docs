@@ -103,6 +103,8 @@ healthcheck_example() {
 
   if systemctl is-active --quiet ds-example.service; then
     echo "${COLOR_GREEN}[OK] ds-example.service started${COLOR_RESET}"
+    # Warm up /meta/config cache, unreachable via the Host header of forwarded-port requests
+    curl -sfL -o /dev/null "http://localhost/example/editor?fileExt=docx" || true
     return 0
   fi
 

@@ -27,6 +27,7 @@ install-RedHat/       — RedHat-specific scripts
   tools.sh            — Utility functions
   uninstall.sh        — Uninstall
 tests/vagrant/        — Vagrant multi-OS test infrastructure
+tests/smoke/          — Selenium smoke tests: editors open/edit/save via the test example
 ```
 
 ## Usage
@@ -57,7 +58,15 @@ TEST_CASE='--local-install' OS='base-ubuntu2404' vagrant up
 
 # Docker installation test
 sudo bash install.sh --skiphardwarecheck true
+
+# Browser smoke tests against any installed Docs (local Chrome, driver via Selenium Manager)
+pip install -r tests/smoke/requirements.txt
+SERVER_URL=http://<host> CHECK_ADMINPANEL=true python3 -m pytest tests/smoke/test_docs_smoke.py -v -s
 ```
+
+Smoke test env vars: `SERVER_URL` (default `http://localhost`), `CHECK_ADMINPANEL=true` (strict: DEB/RPM always ship the admin panel, 404 fails), `EXPECTED_VERSION` (assert version after update), `SELENIUM_REMOTE_URL` (remote WebDriver, e.g. selenium container on ARM), `CHROME_BIN`/`CHROMEDRIVER_PATH` (explicit browser paths). On Windows also set `PYTHONUTF8=1`.
+
+CI coverage: docker workflow tests a community+enterprise matrix (`4testing-*` images on branches, stable on `master`) and waits for real readiness — container healthy, then the entrypoint's final log-tail process (fonts/static/plugins generation finished). Vagrant jobs reach the VM through forwarded `localhost:8080`; nginx inside the VM also listens on 8080 so server-side URLs built from the Host header resolve.
 
 Supported OS: RHEL 8/9, CentOS 8-10 Stream, Amazon Linux 2023, Debian 11-13, Ubuntu 20.04/22.04/24.04/26.04, ARM64
 
