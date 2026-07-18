@@ -254,7 +254,13 @@ jobs:
         timeout-minutes: 10
         run: |
           if vagrant status | grep -q "running"; then
-            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh uninstall ${{ github.event_name != 'schedule' && '--localscripts true' || '' }}"
+            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh uninstall ${{ github.event_name != 'schedule' && '--localscripts true' || '' }}" || {
+              uninstall_status=$?
+              # exit 255 is ssh's own code — probe whether sshd inside the guest is still reachable
+              vagrant ssh -c "echo SSH is alive" \
+                || echo "::error::SSH to the VM is dead (guest sshd crashed, likely OOM, or NAT forward broke) — uninstall never ran"
+              exit $uninstall_status
+            }
           else
             echo "VM is not running, cannot run uninstall test"
             exit 1
@@ -264,7 +270,8 @@ jobs:
         if: always()
         run: |
           if vagrant status | grep -q "running"; then
-            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh logs" || true
+            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh logs" \
+              || echo "::warning::Could not collect logs — SSH to the VM failed"
           else
             echo "VM is not running, skipping log collection"
           fi
