@@ -75,6 +75,8 @@ def make_driver():
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--window-size=1920,1080')
+    # capture the browser console so editor-load timeouts can show the actual JS error
+    chrome_options.set_capability('goog:loggingPrefs', {'browser': 'ALL'})
 
     # Remote WebDriver (e.g. selenium/standalone-chromium container on ARM)
     remote_url = os.environ.get('SELENIUM_REMOTE_URL')
@@ -103,6 +105,12 @@ def dump_page_state(driver):
         print_info(f"Page state: {state}")
     except WebDriverException as e:
         print_info(f"Could not collect page state: {e}")
+    try:
+        print_info("Browser console (last 30 entries):")
+        for entry in driver.get_log('browser')[-30:]:
+            print(f"  [{entry.get('level')}] {entry.get('message')}")
+    except WebDriverException as e:
+        print_info(f"Could not collect browser console: {e}")
     print_info("Current page source:")
     print(driver.page_source[:1000])
 
@@ -136,6 +144,31 @@ def wait_for_js(driver, script, timeout, description):
         time.sleep(1)
     fail(f"timeout after {timeout}s")
     raise TimeoutException(f"Timed out waiting for {description}")
+
+def wait_editor_loaded(driver, attempts=3, editor_timeout=30):
+    """Enter the editor iframe and wait until the document renders;
+    a stuck editor never recovers on its own — reload between short waits."""
+    for attempt in range(1, attempts + 1):
+        if attempt > 1:
+            driver.refresh()
+        step("Editor iframe" + (f" (attempt {attempt})" if attempt > 1 else ""))
+        WebDriverWait(driver, 60).until(
+            EC.frame_to_be_available_and_switch_to_it((By.TAG_NAME, "iframe")))
+        done()
+
+        step("Loading document in the editor")
+        start = time.time()
+        while time.time() - start < editor_timeout:
+            try:
+                if driver.execute_script(LOAD_COMPLETE_JS):
+                    done(f"done in {time.time() - start:.1f}s")
+                    return
+            except WebDriverException:
+                pass
+            time.sleep(1)
+        fail(f"not loaded within {editor_timeout}s" + (", reloading" if attempt < attempts else ""))
+        driver.switch_to.default_content()
+    raise TimeoutException(f"Editor did not load in {attempts} attempts of {editor_timeout}s")
 
 def test_healthcheck():
     """Core services must answer the healthcheck endpoint with "true"."""
@@ -222,12 +255,7 @@ def test_document_editor():
         done(driver.current_url)
 
         # The editor itself lives in an iframe created by api.js
-        step("Editor iframe")
-        WebDriverWait(driver, 60).until(
-            EC.frame_to_be_available_and_switch_to_it((By.TAG_NAME, "iframe")))
-        done()
-
-        wait_for_js(driver, LOAD_COMPLETE_JS, 120, "Loading document in the editor")
+        wait_editor_loaded(driver)
         time.sleep(3)
         dismiss_dialogs(driver)
 
@@ -270,10 +298,8 @@ def test_create_new_document(file_ext):
     try:
         step(f"New {file_ext}: opening {SERVER_URL}/example/editor?fileExt={file_ext}")
         driver.get(f"{SERVER_URL}/example/editor?fileExt={file_ext}")
-        WebDriverWait(driver, 60).until(
-            EC.frame_to_be_available_and_switch_to_it((By.TAG_NAME, "iframe")))
         done()
-        wait_for_js(driver, LOAD_COMPLETE_JS, 120, f"New {file_ext}: loading document")
+        wait_editor_loaded(driver)
     except Exception as e:
         print(flush=True)
         fail(f"{file_ext} editor failed: {e}")
