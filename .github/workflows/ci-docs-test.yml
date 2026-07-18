@@ -1,4 +1,4 @@
-name: Install OCI Docs
+name: OCI Docs
 
 on:
   push:
@@ -124,7 +124,7 @@ jobs:
           echo "version=${VERSION:-99.99.99}" >> "$GITHUB_OUTPUT"
 
   vagrant-up:
-    name: "Install (${{ matrix.name }})"
+    name: "${{ matrix.name }}"
     needs: [prepare]
     runs-on: ubuntu-22.04
     defaults:
@@ -283,7 +283,7 @@ jobs:
           vagrant global-status --prune || true
 
   arm-native:
-    name: "Install (Ubuntu 24.04) [ARM]"
+    name: "Ubuntu 24.04 [ARM]"
     needs: [prepare]
     if: github.event_name == 'schedule' || github.event_name == 'push' || contains(github.event.inputs.distros, 'ubuntu2404-arm')
     runs-on: ubuntu-24.04-arm

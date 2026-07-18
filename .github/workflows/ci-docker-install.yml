@@ -1,4 +1,4 @@
-name: Install OCI Docker
+name: OCI Docker
 
 on:
   schedule:

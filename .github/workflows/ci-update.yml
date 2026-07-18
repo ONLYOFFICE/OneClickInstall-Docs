@@ -1,4 +1,4 @@
-name: Update OCI Docs
+name: OCI Docs Update
 
 on:
   workflow_dispatch:
@@ -94,7 +94,7 @@ jobs:
           echo "version=${VERSION:-99.99.99}" >> "$GITHUB_OUTPUT"
 
   update-test:
-    name: "Update (${{ matrix.name }})"
+    name: "${{ matrix.name }}"
     runs-on: ubuntu-22.04
     needs: [prepare]
     defaults:
