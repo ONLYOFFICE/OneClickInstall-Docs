@@ -46,7 +46,7 @@ cat<<EOF
 EOF
 
 if ! rpm -q net-tools &>/dev/null; then
-    dnf -y install net-tools
+    ${package_manager} -y install net-tools
 fi
 
 [ "${INSTALLATION_TYPE}" != "COMMUNITY" ] && _ee=1 || _ee=

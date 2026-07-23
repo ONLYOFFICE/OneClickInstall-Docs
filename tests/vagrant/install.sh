@@ -68,6 +68,30 @@ gpgcheck=0
 EOF
     fi
 
+    if [ "$REV" = "7" ]; then
+      if grep -qi 'centos' /etc/redhat-release 2>/dev/null; then
+        sudo sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-* || true
+      else
+        cat <<'EOF' | sudo tee /etc/yum.repos.d/CentOS-Vault.repo >/dev/null
+[base]
+name=CentOS-7 - Base
+baseurl=http://vault.centos.org/7.9.2009/os/x86_64/
+gpgcheck=0
+enabled=1
+[updates]
+name=CentOS-7 - Updates
+baseurl=http://vault.centos.org/7.9.2009/updates/x86_64/
+gpgcheck=0
+enabled=1
+[extras]
+name=CentOS-7 - Extras
+baseurl=http://vault.centos.org/7.9.2009/extras/x86_64/
+gpgcheck=0
+enabled=1
+EOF
+      fi
+    fi
+
     if [ "$REV" = "8" ]; then
       if grep -qi 'centos' /etc/redhat-release 2>/dev/null; then
         sudo sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-*

@@ -20,8 +20,10 @@ on:
         type: string
         description: Select distros (comma-separated)
         default: |
+          rhel7,
           rhel8,
           rhel9,
+          centos7,
           centos8s,
           centos9s,
           centos10,
@@ -69,11 +71,13 @@ jobs:
       - name: Set matrix names
         id: set-matrix
         env:
-          OS_ORDER: rhel8 rhel9 centos8s centos9s centos10 amazonlinux2023 debian11 debian12 debian13 ubuntu2004 ubuntu2204 ubuntu2404 ubuntu2604
+          OS_ORDER: rhel7 rhel8 rhel9 centos7 centos8s centos9s centos10 amazonlinux2023 debian11 debian12 debian13 ubuntu2004 ubuntu2204 ubuntu2404 ubuntu2604
           OS_MAP: |
             {
+              "rhel7":           ["RHEL 7",            "generic",    "rhel7"],
               "rhel8":           ["RHEL 8",            "generic",    "rhel8"],
               "rhel9":           ["RHEL 9",            "onlyoffice", "base-rhel9"],
+              "centos7":         ["CentOS 7",          "onlyoffice", "base-centos7"],
               "centos8s":        ["CentOS 8 Stream",   "onlyoffice", "base-centos8s"],
               "centos9s":        ["CentOS 9 Stream",   "onlyoffice", "base-centos9s"],
               "centos10":        ["CentOS 10 Stream",  "onlyoffice", "base-centos10"],

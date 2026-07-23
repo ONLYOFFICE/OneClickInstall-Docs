@@ -51,13 +51,14 @@ case "${INSTALLATION_TYPE}" in
     "ENTERPRISE") ds_pkg_name+="-ee" ;;
 esac
 
+[ "$package_manager" = "dnf" ] && _nobest="--nobest"
 if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
     ds_pkg_installed_name=$(rpm -qa --qf '%{NAME}\n' | grep "${package_sysname}-documentserver")
     if [ "${ds_pkg_installed_name}" != "${ds_pkg_name}" ]; then
-        dnf -y remove "${ds_pkg_installed_name}"
+        ${package_manager} -y remove "${ds_pkg_installed_name}"
         DOCUMENT_SERVER_INSTALLED="false"
     else
-        dnf -y update "${ds_pkg_installed_name}" --nobest # --no-best for rhel 8 compatibility
+        ${package_manager} -y update "${ds_pkg_installed_name}" ${_nobest} # --nobest for rhel 8 compatibility
     fi
 fi
 
@@ -81,7 +82,7 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
         fi
     fi
     
-    dnf -y install "${ds_pkg_name}" --nobest # --nobest for rhel 8 compatibility
+    ${package_manager} -y install "${ds_pkg_name}" ${_nobest}
 
     if [ "${DS_PORT}" = "80" ]; then
         [ -e /etc/nginx/nginx.conf ] && sed -i "s/ default_server//" /etc/nginx/nginx.conf && \

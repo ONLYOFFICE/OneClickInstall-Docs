@@ -72,7 +72,7 @@ read_rabbitmq_update () {
     read -p "$RES_CHOICE_RABBITMQ " CHOICE_INSTALLATION
     case "$CHOICE_INSTALLATION" in
         y|Y )
-            dnf -y remove rabbitmq-server erlang*
+            ${package_manager} -y remove rabbitmq-server erlang*
             rm -rf /var/lib/rabbitmq/mnesia/*@localhost
         ;;
 

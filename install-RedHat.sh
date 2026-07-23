@@ -38,6 +38,7 @@
 set -e
 
 package_sysname="onlyoffice"
+command -v dnf >/dev/null 2>&1 && package_manager="dnf" || package_manager="yum"
 
 DS_COMMON_NAME="onlyoffice"
 RES_APP_INSTALLED="is already installed"
