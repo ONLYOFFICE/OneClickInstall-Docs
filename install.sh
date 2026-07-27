@@ -1066,7 +1066,7 @@ start_installation () {
     [ -n "$JWT_MESSAGE" ] && [ -n "$DOCUMENT_SERVER_ID" ] && JWT_MESSAGE=$(echo "$JWT_MESSAGE" | sed 's/$(sudo docker ps -q)/'"${DOCUMENT_SERVER_ID::12}"'/') && echo -e "\n$JWT_MESSAGE"
     echo ""
     echo "Thank you for installing ONLYOFFICE Docs."
-    echo "In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://forum.onlyoffice.com"
+    echo "In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://community.onlyoffice.com"
     echo ""
 
     exit 0;

@@ -204,7 +204,7 @@ The installation scripts support the following operating systems, which are **re
 | Docker image     | <https://github.com/ONLYOFFICE/Docker-DocumentServer>            |
 | Help Center      | <https://helpcenter.onlyoffice.com/docs/installation>            |
 | Product page     | <https://www.onlyoffice.com/office-suite.aspx>                   |
-| Community Forum  | <https://forum.onlyoffice.com>                                   |
+| Community Forum  | <https://community.onlyoffice.com>                               |
 | Stack Overflow   | <https://stackoverflow.com/questions/tagged/onlyoffice>          |
 
 ## 📝 License
