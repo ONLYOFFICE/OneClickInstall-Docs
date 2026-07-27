@@ -1019,6 +1019,10 @@ set_installation_type_data () {
 start_installation () {
     root_checking
 
+    # Suppress interactive apt/needrestart prompts during automated installs (Debian/Ubuntu only; no effect on RedHat/Amazon Linux)
+    export DEBIAN_FRONTEND=noninteractive
+    export NEEDRESTART_MODE=a
+
     set_installation_type_data
 
     set_jwt_enabled

@@ -163,6 +163,10 @@ if [ -z "${LOCAL_SCRIPTS}" ]; then
     LOCAL_SCRIPTS="false"
 fi
 
+# Suppress interactive apt/needrestart prompts during automated installs
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+
 if [ $(dpkg-query -W -f='${Status}' curl 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
     apt-get install -yq curl
 fi
