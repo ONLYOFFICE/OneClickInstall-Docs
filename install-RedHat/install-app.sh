@@ -50,6 +50,7 @@ case "${INSTALLATION_TYPE}" in
     "DEVELOPER") ds_pkg_name+="-de" ;;
     "ENTERPRISE") ds_pkg_name+="-ee" ;;
 esac
+ds_pkg_source="${DS_PACKAGE_PATH:-$ds_pkg_name}"
 
 [ "$package_manager" = "dnf" ] && _nobest="--nobest"
 if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
@@ -58,7 +59,11 @@ if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
         ${package_manager} -y remove "${ds_pkg_installed_name}"
         DOCUMENT_SERVER_INSTALLED="false"
     else
-        ${package_manager} -y update "${ds_pkg_installed_name}" ${_nobest} # --nobest for rhel 8 compatibility
+        if [ -n "${DS_PACKAGE_PATH}" ]; then
+            ${package_manager} -y install "${ds_pkg_source}" ${_nobest}
+        else
+            ${package_manager} -y update "${ds_pkg_installed_name}" ${_nobest} # --nobest for rhel 8 compatibility
+        fi
     fi
 fi
 
@@ -82,7 +87,7 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
         fi
     fi
     
-    ${package_manager} -y install "${ds_pkg_name}" ${_nobest}
+    ${package_manager} -y install "${ds_pkg_source}" ${_nobest}
 
     if [ "${DS_PORT}" = "80" ]; then
         [ -e /etc/nginx/nginx.conf ] && sed -i "s/ default_server//" /etc/nginx/nginx.conf && \

@@ -66,6 +66,14 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        --packagepath )
+            [ -n "$2" ] || { echo "Error: --packagepath requires a file path" >&2; exit 1; }
+            export DS_PACKAGE_PATH="$2"
+            DOCKER="false"
+            shift 2
+            continue
+        ;;
+
         "-?" | -h | --help )
             HELP="true"
             DOCKER="true"

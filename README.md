@@ -103,6 +103,12 @@ sudo bash docs-install.sh --help
 | `--letsencryptdomain`      | `<DOMAIN>`                   | -                            | Domain for Let's Encrypt cert                             |
 | `--letsencryptmail`        | `<EMAIL>`                    | -                            | Admin email for Let's Encrypt                             |
 
+### Local package
+
+Use `--packagepath <file.deb|file.rpm>` to install a local package. Add `--update true` when ONLYOFFICE Docs is already installed.
+
+In Actions, set `package_url` and select `deb_build` or `rpm_build` to test it on all matching distributions.
+
 ## 💡 Examples
 
 Typical usage scenarios with different combinations of flags.  

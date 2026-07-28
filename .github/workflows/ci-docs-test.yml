@@ -52,6 +52,10 @@ on:
           - enterprise
           - community
           - developer
+      package_url:
+        type: string
+        description: 'Package URL (.deb/.rpm)'
+        default: ''
 
   schedule:
     - cron: '0 21 * * 0'
@@ -150,6 +154,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Download package
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.package_url != ''
+        working-directory: ${{ github.workspace }}
+        run: |
+          PACKAGE_URL=$(jq -r '.inputs.package_url' "$GITHUB_EVENT_PATH")
+          echo "::add-mask::$PACKAGE_URL"
+          case "${PACKAGE_URL%%[?#]*}" in
+            *.deb) PACKAGE_FILE='local-package.deb' ;;
+            *.rpm) PACKAGE_FILE='local-package.rpm' ;;
+            *) echo "package_url must point to a .deb or .rpm file" >&2; exit 1 ;;
+          esac
+          curl -fsSL --retry 3 "$PACKAGE_URL" -o "$PACKAGE_FILE"
+          echo "PACKAGE_FILE=$PACKAGE_FILE" >> "$GITHUB_ENV"
+
       - name: Get update and install vagrant
         working-directory: ${{ github.workspace }}
         run: |
@@ -234,9 +252,13 @@ jobs:
             export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false'"
           else
             export DOWNLOAD_SCRIPT='-ds false'
-            export TEST_REPO='-tr true'
             export VER="-v ${VER}"
-            export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'"
+            if [ -n "${PACKAGE_FILE:-}" ]; then
+              export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true --packagepath /home/vagrant/${PACKAGE_FILE}'"
+            else
+              export TEST_REPO='-tr true'
+              export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'"
+            fi
           fi
           vagrant provision
 
@@ -290,7 +312,7 @@ jobs:
   arm-native:
     name: "Ubuntu 24.04 [ARM]"
     needs: [prepare]
-    if: github.event.inputs.rpm_build != 'true' && (github.event_name == 'schedule' || github.event_name == 'push' || contains(github.event.inputs.distros, 'ubuntu2404-arm'))
+    if: github.event.inputs.rpm_build != 'true' && github.event.inputs.package_url == '' && (github.event_name == 'schedule' || github.event_name == 'push' || contains(github.event.inputs.distros, 'ubuntu2404-arm'))
     runs-on: ubuntu-24.04-arm
     env:
       VER: ${{ needs.prepare.outputs.version }}

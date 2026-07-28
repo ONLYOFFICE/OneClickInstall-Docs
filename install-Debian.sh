@@ -125,6 +125,16 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        --packagepath )
+            if [ "$2" != "" ]; then
+                DS_PACKAGE_PATH=$2
+                shift
+            else
+                echo "Error: --packagepath requires a file path" >&2
+                exit 1
+            fi
+        ;;
+
         -? | -h | --help )
             echo "  Usage $0 [PARAMETER] [[PARAMETER], ...]"
             echo "    Parameters:"
@@ -138,6 +148,7 @@ while [ "$1" != "" ]; do
             echo "      -we, --wopienabled                specifies whether WOPI protocol is enabled (true|false)"
             echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
             echo "      -dp, --docsport                   docs port (default value 80)"
+            echo "      --packagepath                     path to a local .deb package"
             echo "      -?, -h, --help                    this help"
             echo
             exit 0
@@ -163,6 +174,11 @@ if [ -z "${LOCAL_SCRIPTS}" ]; then
     LOCAL_SCRIPTS="false"
 fi
 
+if [ -n "${DS_PACKAGE_PATH}" ]; then
+    [ -f "${DS_PACKAGE_PATH}" ] || { echo "Error: package not found: ${DS_PACKAGE_PATH}" >&2; exit 1; }
+    [[ "${DS_PACKAGE_PATH}" = *.deb ]] || { echo "Error: expected a .deb package: ${DS_PACKAGE_PATH}" >&2; exit 1; }
+    DS_PACKAGE_PATH=$(readlink -f "${DS_PACKAGE_PATH}")
+fi
 # Suppress interactive apt/needrestart prompts during automated installs
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a

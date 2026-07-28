@@ -50,6 +50,7 @@ case "${INSTALLATION_TYPE}" in
     "DEVELOPER") ds_pkg_name+="-de" ;;
     "ENTERPRISE") ds_pkg_name+="-ee" ;;
 esac
+ds_pkg_source="${DS_PACKAGE_PATH:-$ds_pkg_name}"
 
 if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
     ds_pkg_installed_name=$(dpkg -l | awk -v pkg="${package_sysname}-documentserver" '$1=="ii" && index($2,pkg)==1{print $2}' | tail -n1)
@@ -59,7 +60,11 @@ if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
         apt-get remove -yq "${ds_pkg_installed_name}"
         DOCUMENT_SERVER_INSTALLED="false"
     else
-        apt-get install -y --only-upgrade "${ds_pkg_name}"
+        if [ -n "${DS_PACKAGE_PATH}" ]; then
+            apt-get install -yq "${ds_pkg_source}"
+        else
+            apt-get install -y --only-upgrade "${ds_pkg_name}"
+        fi
     fi
 fi
 
@@ -100,7 +105,7 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
         systemctl is-active --quiet nginx && systemctl reload nginx || systemctl start nginx
     fi
 
-    apt-get install -yq ${ds_pkg_name}
+    apt-get install -yq "${ds_pkg_source}"
 fi
 
 echo ""
