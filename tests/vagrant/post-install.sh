@@ -102,16 +102,20 @@ healthcheck_example() {
   fi
 
   if systemctl is-active --quiet ds-example.service; then
-    echo "${COLOR_GREEN}[OK] ds-example.service started${COLOR_RESET}"
-    # Warm up /meta/config cache, unreachable via the Host header of forwarded-port requests
-    curl -sfL -o /dev/null "http://localhost/example/editor?fileExt=docx" || true
-    return 0
+    # Wait for the example endpoint and warm its /meta/config cache
+    for _ in $(seq 1 60); do
+      if curl -sfL -o /dev/null "http://localhost/example/editor?fileExt=docx"; then
+        echo "${COLOR_GREEN}[OK] ds-example.service is ready${COLOR_RESET}"
+        return 0
+      fi
+      sleep 1
+    done
   fi
 
-  echo "${COLOR_RED}[FAILED] ds-example.service failed to start${COLOR_RESET}"
+  echo "${COLOR_RED}[FAILED] ds-example.service failed to become ready${COLOR_RESET}"
   journalctl -u ds-example.service -n 50 || true
   tail -50 /var/log/onlyoffice/documentserver-example/out.log 2>/dev/null || true
-  echo "::error::ds-example.service failed to start"
+  echo "::error::ds-example.service failed to become ready"
   return 1
 }
 
