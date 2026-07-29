@@ -102,6 +102,7 @@ jobs:
         working-directory: tests/vagrant
     env:
       VER: ${{ needs.prepare.outputs.version }}
+      LICENSE_ENTERPRISE: ${{ secrets.LICENSE_ENTERPRISE }}
     strategy:
       fail-fast: false
       matrix: ${{fromJSON(needs.prepare.outputs.matrix)}}
@@ -199,6 +200,11 @@ jobs:
           export VER="-v ${VER}"
           export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true --update true'"
           vagrant provision
+
+      - name: Install Enterprise license
+        if: steps.boot.outcome == 'success'
+        timeout-minutes: 2
+        run: printf '%s' "$LICENSE_ENTERPRISE" | vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh license"
 
       - name: Health check
         if: steps.boot.outcome == 'success'

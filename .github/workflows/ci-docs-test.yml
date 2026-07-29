@@ -140,6 +140,8 @@ jobs:
         working-directory: tests/vagrant
     env:
       VER: ${{ needs.prepare.outputs.version }}
+      LICENSE_ENTERPRISE: ${{ secrets.LICENSE_ENTERPRISE }}
+      INSTALLATION_TYPE: ${{ github.event.inputs.installationtype || 'enterprise' }}
     strategy:
       fail-fast: false
       matrix: ${{fromJSON(needs.prepare.outputs.matrix)}}
@@ -262,6 +264,11 @@ jobs:
           fi
           vagrant provision
 
+      - name: Install Enterprise license
+        if: steps.boot.outcome == 'success' && env.INSTALLATION_TYPE == 'enterprise'
+        timeout-minutes: 2
+        run: printf '%s' "$LICENSE_ENTERPRISE" | vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh license"
+
       - name: Health check
         if: steps.boot.outcome == 'success'
         run: |
@@ -316,6 +323,8 @@ jobs:
     runs-on: ubuntu-24.04-arm
     env:
       VER: ${{ needs.prepare.outputs.version }}
+      LICENSE_ENTERPRISE: ${{ secrets.LICENSE_ENTERPRISE }}
+      INSTALLATION_TYPE: ${{ github.event.inputs.installationtype || 'enterprise' }}
     steps:
     - name: Free Disk Space
       run: |
@@ -331,6 +340,11 @@ jobs:
         install_args="--skiphardwarecheck true --makeswap false"
         [[ "${{ github.event_name }}" == "schedule" ]] && source_args="-ds true" || { source_args="-ds false -v ${VER} -tr true"; install_args+=" --localscripts true"; }
         sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh $source_args -it '${{ github.event.inputs.installationtype || 'enterprise' }}' -arg "$install_args"
+
+    - name: Install Enterprise license
+      if: env.INSTALLATION_TYPE == 'enterprise'
+      timeout-minutes: 2
+      run: printf '%s' "$LICENSE_ENTERPRISE" | sudo bash tests/vagrant/post-install.sh license
 
     - name: Smoke test
       timeout-minutes: 10

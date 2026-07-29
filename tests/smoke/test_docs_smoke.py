@@ -203,17 +203,19 @@ def test_version_info():
     step(f"GET {SERVER_URL}/index.html")
     status, body = http_get('/index.html')
     text = body.decode('utf-8', 'replace').strip()
+    # Customer Id identifies the real license (when one is installed) — never print it, CI logs are public
+    safe_text = re.sub(r'Customer Id: [^.]*\.', 'Customer Id: [redacted].', text)
     if status != 200 or 'Server is functioning normally' not in text:
-        fail(f"HTTP {status}: {text[:200]!r}")
+        fail(f"HTTP {status}: {safe_text[:200]!r}")
     assert status == 200 and 'Server is functioning normally' in text, \
-        f"Unexpected /index.html response: HTTP {status}, body: {text[:200]!r}"
+        f"Unexpected /index.html response: HTTP {status}, body: {safe_text[:200]!r}"
 
     expected_version = os.environ.get('EXPECTED_VERSION')
     if expected_version and f"Version: {expected_version}." not in text:
-        fail(f"expected version {expected_version}, got: {text[:120]}")
+        fail(f"expected version {expected_version}, got: {safe_text[:120]}")
     assert not expected_version or f"Version: {expected_version}." in text, \
-        f"Expected version {expected_version}, got: {text[:200]!r}"
-    done(text)
+        f"Expected version {expected_version}, got: {safe_text[:200]!r}"
+    done(safe_text)
 
 def test_adminpanel():
     """Admin panel must respond when shipped: 404 skips (not shipped, e.g. CE Docker)
