@@ -45,67 +45,67 @@ cat<<EOF
 
 EOF
 
-if [ "$INSTALLATION_TYPE" = "COMMUNITY" ]; then
-    ds_pkg_name="${package_sysname}-documentserver"
-elif [ "$INSTALLATION_TYPE" = "ENTERPRISE" ]; then
-    ds_pkg_name="${package_sysname}-documentserver-ee"
-elif [ "$INSTALLATION_TYPE" = "DEVELOPER" ]; then
-    ds_pkg_name="${package_sysname}-documentserver-de"
-fi
-
-apt-get -y update
+ds_pkg_name="${package_sysname}-documentserver"
+case "${INSTALLATION_TYPE}" in
+    "DEVELOPER") ds_pkg_name+="-de" ;;
+    "ENTERPRISE") ds_pkg_name+="-ee" ;;
+esac
+ds_pkg_source="${DS_PACKAGE_PATH:-$ds_pkg_name}"
 
 if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
-    ds_pkg_installed_name=$(dpkg -l | grep ${package_sysname}-documentserver | tail -n1 | awk '{print $2}')
-
-    if [ ${ds_pkg_installed_name} != ${ds_pkg_name} ]; then
-        apt-get remove -yq ${ds_pkg_installed_name}
+    ds_pkg_installed_name=$(dpkg -l | awk -v pkg="${package_sysname}-documentserver" '$1=="ii" && index($2,pkg)==1{print $2}' | tail -n1)
+    if [ -z "${ds_pkg_installed_name}" ]; then
+        DOCUMENT_SERVER_INSTALLED="false"
+    elif [ -n "${ds_pkg_installed_name}" ] && [ "${ds_pkg_installed_name}" != "${ds_pkg_name}" ]; then
+        apt-get remove -yq "${ds_pkg_installed_name}"
         DOCUMENT_SERVER_INSTALLED="false"
     else
-        apt-get install -y --only-upgrade ${ds_pkg_installed_name}
+        if [ -n "${DS_PACKAGE_PATH}" ]; then
+            apt-get install -yq "${ds_pkg_source}"
+        else
+            apt-get install -y --only-upgrade "${ds_pkg_name}"
+        fi
     fi
 fi
 
 if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
-    DS_PORT=${DS_PORT:-80}
     DS_COMMON_NAME=${DS_COMMON_NAME:-"ds"}
-
+    DS_PORT=${DS_PORT:-80}
     DS_JWT_ENABLED=${DS_JWT_ENABLED:-true}
     DS_JWT_SECRET=${DS_JWT_SECRET:-$(cat /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)}
     DS_JWT_HEADER=${DS_JWT_HEADER:-AuthorizationJwt}
 
-    echo ${package_sysname}-documentserver $DS_COMMON_NAME/ds-port select $DS_PORT | sudo debconf-set-selections
-    echo ${ds_pkg_name} $DS_COMMON_NAME/jwt-enabled select ${DS_JWT_ENABLED} | sudo debconf-set-selections
-    echo ${ds_pkg_name} $DS_COMMON_NAME/jwt-secret select ${DS_JWT_SECRET} | sudo debconf-set-selections
-    echo ${ds_pkg_name} $DS_COMMON_NAME/jwt-header select ${DS_JWT_HEADER} | sudo debconf-set-selections
+    echo ${ds_pkg_name} $DS_COMMON_NAME/ds-port select $DS_PORT | sudo debconf-set-selections
+    echo ${ds_pkg_name} $DS_COMMON_NAME/jwt-enabled boolean ${DS_JWT_ENABLED} | sudo debconf-set-selections
+    echo ${ds_pkg_name} $DS_COMMON_NAME/jwt-secret password ${DS_JWT_SECRET} | sudo debconf-set-selections
+    echo ${ds_pkg_name} $DS_COMMON_NAME/jwt-header string ${DS_JWT_HEADER} | sudo debconf-set-selections
     [ -n "${WOPI_ENABLED}" ] && echo ${ds_pkg_name} $DS_COMMON_NAME/wopi-enabled boolean ${WOPI_ENABLED} | sudo debconf-set-selections
 
     if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
-        DS_DB_HOST=localhost
-        DS_DB_NAME=$DS_COMMON_NAME
-        DS_DB_USER=$DS_COMMON_NAME
-        DS_DB_PWD=$DS_COMMON_NAME
+        echo ${ds_pkg_name} $DS_COMMON_NAME/db-pwd password "${DS_DB_PWD:-$DS_COMMON_NAME}" | sudo debconf-set-selections
+        echo ${ds_pkg_name} $DS_COMMON_NAME/db-user string "${DS_DB_USER:-$DS_COMMON_NAME}" | sudo debconf-set-selections
+        echo ${ds_pkg_name} $DS_COMMON_NAME/db-name string "${DS_DB_NAME:-$DS_COMMON_NAME}" | sudo debconf-set-selections
+        echo ${ds_pkg_name} $DS_COMMON_NAME/redis-host string "${DS_REDIS_HOST:-localhost}" | sudo debconf-set-selections
+        echo ${ds_pkg_name} $DS_COMMON_NAME/rabbitmq-host string "${DS_RABBITMQ_HOST:-localhost}" | sudo debconf-set-selections
+        echo ${ds_pkg_name} $DS_COMMON_NAME/rabbitmq-user string "${DS_RABBITMQ_USER:-guest}" | sudo debconf-set-selections
+        echo ${ds_pkg_name} $DS_COMMON_NAME/rabbitmq-pwd password "${DS_RABBITMQ_PWD:-guest}" | sudo debconf-set-selections
 
-        DS_REDIS_HOST=localhost
-        DS_RABBITMQ_HOST=localhost
-        DS_RABBITMQ_USER=guest
-        DS_RABBITMQ_PWD=guest
-
-        echo ${package_sysname}-documentserver $DS_COMMON_NAME/db-pwd select $DS_DB_PWD | sudo debconf-set-selections
-        echo ${package_sysname}-documentserver $DS_COMMON_NAME/db-user $DS_DB_USER | sudo debconf-set-selections
-        echo ${package_sysname}-documentserver $DS_COMMON_NAME/db-name $DS_DB_NAME | sudo debconf-set-selections
-        echo ${ds_pkg_name} $DS_COMMON_NAME/redis-host select $DS_REDIS_HOST | sudo debconf-set-selections
-        echo ${ds_pkg_name} $DS_COMMON_NAME/rabbitmq-host select $DS_RABBITMQ_HOST | sudo debconf-set-selections
-        echo ${ds_pkg_name} $DS_COMMON_NAME/rabbitmq-user select $DS_RABBITMQ_USER | sudo debconf-set-selections
-        echo ${ds_pkg_name} $DS_COMMON_NAME/rabbitmq-pwd select $DS_RABBITMQ_PWD | sudo debconf-set-selections
-
-        if ! su - postgres -s /bin/bash -c "psql -lqt" | cut -d \| -f 1 | grep -q ${DS_DB_NAME}; then
-            su - postgres -s /bin/bash -c "psql -c \"CREATE USER ${DS_DB_USER} WITH password '${DS_DB_PWD}';\""
-            su - postgres -s /bin/bash -c "psql -c \"CREATE DATABASE ${DS_DB_NAME} OWNER ${DS_DB_USER};\""
+        if ! su - postgres -s /bin/bash -c "psql -lqt" | cut -d \| -f 1 | grep -q "${DS_DB_NAME:-$DS_COMMON_NAME}"; then
+            su - postgres -s /bin/bash -c "psql -c \"CREATE USER ${DS_DB_USER:-$DS_COMMON_NAME} WITH password '${DS_DB_PWD:-$DS_COMMON_NAME}';\""
+            su - postgres -s /bin/bash -c "psql -c \"CREATE DATABASE ${DS_DB_NAME:-$DS_COMMON_NAME} OWNER ${DS_DB_USER:-$DS_COMMON_NAME};\""
         fi
     fi
 
-    apt-get install -yq ${ds_pkg_name}
+    if [ "${DS_PORT}" = "80" ]; then
+        [ -e /etc/nginx/sites-enabled/default ] && \
+            mv -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default.disabled
+        [ -e /etc/nginx/conf.d/default.conf ] && \
+            mv -f /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.disabled
+        echo "Note: nginx default sites disabled to avoid conflict with ${ds_pkg_name}."
+        systemctl is-active --quiet nginx && systemctl reload nginx || systemctl start nginx
+    fi
+
+    apt-get install -yq "${ds_pkg_source}"
 fi
 
 echo ""

@@ -8,6 +8,7 @@ SERVICES_SYSTEMD=(
   "ds-converter.service"
   "ds-docservice.service"
   "ds-adminpanel.service"
+  "nginx.service"
 )
 
 get_colors() {
@@ -38,13 +39,44 @@ services_logs() {
   local MAIN_LOGS_DIR="/var/log/onlyoffice"
   local DOCS_LOGS_DIR="${MAIN_LOGS_DIR}/documentserver"
 
-  for LOGS_DIR in "${MAIN_LOGS_DIR}" "${DOCS_LOGS_DIR}"; do
+  for LOGS_DIR in "${MAIN_LOGS_DIR}" "${DOCS_LOGS_DIR}" "/var/log/nginx"; do
     echo $LINE_SEPARATOR && echo "${COLOR_YELLOW}Check logs for $(basename "${LOGS_DIR}" | tr '[:lower:]' '[:upper:]')${COLOR_RESET}" && echo $LINE_SEPARATOR
-    find "${LOGS_DIR}" -maxdepth 2 -type f -name "*.log" ! -name "*sql*" ! -name "*nginx*" 2>/dev/null | while read -r FILE; do
+    find "${LOGS_DIR}" -maxdepth 2 -type f -name "*.log" ! -name "*sql*" 2>/dev/null | while read -r FILE; do
       echo $LINE_SEPARATOR && echo "${COLOR_GREEN}Logs from file: ${FILE}${COLOR_RESET}" && echo $LINE_SEPARATOR
       tail -30 "${FILE}" || true
     done
   done
+}
+
+healthcheck_nginx() {
+  local failed=0
+
+  if nginx -t &>/dev/null; then
+    echo "${COLOR_GREEN}[OK] nginx config test passed${COLOR_RESET}"
+  else
+    echo "${COLOR_RED}[FAILED] nginx config test failed${COLOR_RESET}"
+    nginx -t || true
+    echo "::error::nginx -t failed"
+    failed=1
+  fi
+
+  if nginx -V 2>&1 | grep -q -- '--with-http_secure_link_module'; then
+    echo "${COLOR_GREEN}[OK] nginx has http_secure_link_module${COLOR_RESET}"
+  else
+    echo "${COLOR_RED}[FAILED] nginx is missing http_secure_link_module (nginx-core instead of nginx-extras/nginx.org build?)${COLOR_RESET}"
+    echo "::error::nginx is missing http_secure_link_module"
+    failed=1
+  fi
+
+  if nginx -V 2>&1 | grep -q -- '--with-http_gzip_static_module'; then
+    echo "${COLOR_GREEN}[OK] nginx has http_gzip_static_module${COLOR_RESET}"
+  else
+    echo "${COLOR_RED}[FAILED] nginx is missing http_gzip_static_module (nginx-core instead of nginx-extras/nginx.org build?)${COLOR_RESET}"
+    echo "::error::nginx is missing http_gzip_static_module"
+    failed=1
+  fi
+
+  return $failed
 }
 
 healthcheck_curl() {
@@ -64,11 +96,52 @@ healthcheck_curl() {
   return 1
 }
 
+healthcheck_example() {
+  if systemctl start ds-example.service; then
+    sleep 2
+  fi
+
+  if systemctl is-active --quiet ds-example.service; then
+    # Wait for the example endpoint and warm its /meta/config cache
+    for _ in $(seq 1 60); do
+      if curl -sfL -o /dev/null "http://localhost/example/editor?fileExt=docx"; then
+        echo "${COLOR_GREEN}[OK] ds-example.service is ready${COLOR_RESET}"
+        return 0
+      fi
+      sleep 1
+    done
+  fi
+
+  echo "${COLOR_RED}[FAILED] ds-example.service failed to become ready${COLOR_RESET}"
+  journalctl -u ds-example.service -n 50 || true
+  tail -50 /var/log/onlyoffice/documentserver-example/out.log 2>/dev/null || true
+  echo "::error::ds-example.service failed to become ready"
+  return 1
+}
+
 uninstall_docs() {
   cd "$(dirname "$0")/../.."
   # Answer "no" to dependency removal and keep Debian purge noninteractive
   DEBIAN_FRONTEND=noninteractive bash docs-install.sh --uninstall true "$@" <<< "N"
   echo "${COLOR_GREEN}[OK] Package uninstalled${COLOR_RESET}"
+}
+
+install_license() {
+  local data_dir="/var/www/onlyoffice/Data"
+  local license_file="${data_dir}/license.lic"
+  local content
+  content="$(cat)"
+
+  if [ -z "${content}" ]; then
+    echo "${COLOR_YELLOW}[SKIP] No license content provided${COLOR_RESET}"
+    return 0
+  fi
+
+  mkdir -p "${data_dir}"
+  printf '%s' "${content}" > "${license_file}"
+  chown --reference="${data_dir}" "${license_file}"
+  chmod 640 "${license_file}"
+  echo "${COLOR_GREEN}[OK] License installed at ${license_file}${COLOR_RESET}"
 }
 
 main() {
@@ -79,14 +152,22 @@ main() {
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
       echo "${COLOR_BLUE}HEALTH CHECK${COLOR_RESET}"
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
+      healthcheck_nginx
       healthcheck_curl
       healthcheck_systemd_services
+      healthcheck_example
       ;;
     uninstall)
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
       echo "${COLOR_BLUE}UNINSTALL${COLOR_RESET}"
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
       uninstall_docs "${@:2}"
+      ;;
+    license)
+      echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
+      echo "${COLOR_BLUE}INSTALL LICENSE${COLOR_RESET}"
+      echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
+      install_license
       ;;
     logs)
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
@@ -95,7 +176,7 @@ main() {
       services_logs
       ;;
     *)
-      echo "Usage: $0 [healthcheck|uninstall|logs]"
+      echo "Usage: $0 [healthcheck|uninstall|logs|license]"
       exit 1
       ;;
   esac

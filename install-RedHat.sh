@@ -37,16 +37,15 @@
 
 set -e
 
-package_manager="yum"
 package_sysname="onlyoffice"
+command -v dnf >/dev/null 2>&1 && package_manager="dnf" || package_manager="yum"
 
-package_services=""
 DS_COMMON_NAME="onlyoffice"
 RES_APP_INSTALLED="is already installed"
 RES_APP_CHECK_PORTS="Application uses the following ports"
 RES_CHECK_PORTS="Please make sure that the ports are free."
 RES_INSTALL_SUCCESS="Thank you for installing ONLYOFFICE Docs."
-RES_QUESTIONS="In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://forum.onlyoffice.com"
+RES_QUESTIONS="In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://community.onlyoffice.com"
 
 
 res_rabbitmq_update () {
@@ -136,6 +135,16 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        --packagepath )
+            if [ "$2" != "" ]; then
+                DS_PACKAGE_PATH=$2
+                shift
+            else
+                echo "Error: --packagepath requires a file path" >&2
+                exit 1
+            fi
+        ;;
+
         -? | -h | --help )
             echo "  Usage $0 [PARAMETER] [[PARAMETER], ...]"
             echo "    Parameters:"
@@ -149,6 +158,7 @@ while [ "$1" != "" ]; do
             echo "      -we, --wopienabled                specifies whether WOPI protocol is enabled (true|false)"
             echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
             echo "      -dp, --docsport                   docs port (default value 80)"
+            echo "      --packagepath                     path to a local .rpm package"
             echo "      -?, -h, --help                    this help"
             echo
             exit 0
@@ -172,6 +182,12 @@ fi
 
 if [ -z "${LOCAL_SCRIPTS}" ]; then
     LOCAL_SCRIPTS="false"
+fi
+
+if [ -n "${DS_PACKAGE_PATH}" ]; then
+    [ -f "${DS_PACKAGE_PATH}" ] || { echo "Error: package not found: ${DS_PACKAGE_PATH}" >&2; exit 1; }
+    [[ "${DS_PACKAGE_PATH}" = *.rpm ]] || { echo "Error: expected an .rpm package: ${DS_PACKAGE_PATH}" >&2; exit 1; }
+    DS_PACKAGE_PATH=$(readlink -f "${DS_PACKAGE_PATH}")
 fi
 
 DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs/install-RedHat"

@@ -420,23 +420,25 @@ check_kernel () {
 
 check_hardware () {
     AVAILABLE_DISK_SPACE=$(df -m /  | tail -1 | awk '{ print $4 }')
-
-    if [ ${AVAILABLE_DISK_SPACE} -lt ${DISK_REQUIREMENTS} ]; then
-        echo "Minimal requirements are not met: need at least $DISK_REQUIREMENTS MB of free HDD space"
-        exit 1
-    fi
-
     TOTAL_MEMORY=$(free --mega | grep -oP '\d+' | head -n 1)
-
-    if [ ${TOTAL_MEMORY} -lt ${MEMORY_REQUIREMENTS} ]; then
-        echo "Minimal requirements are not met: need at least $MEMORY_REQUIREMENTS MB of RAM"
-        exit 1
-    fi
-
     CPU_CORES_NUMBER=$(grep -c '^processor' /proc/cpuinfo)
 
+    REQUIREMENTS_NOT_MET=""
+
+    if [ ${AVAILABLE_DISK_SPACE} -lt ${DISK_REQUIREMENTS} ]; then
+        REQUIREMENTS_NOT_MET="${REQUIREMENTS_NOT_MET}\n  - at least $DISK_REQUIREMENTS MB of free HDD space (available: ${AVAILABLE_DISK_SPACE} MB)"
+    fi
+
+    if [ ${TOTAL_MEMORY} -lt ${MEMORY_REQUIREMENTS} ]; then
+        REQUIREMENTS_NOT_MET="${REQUIREMENTS_NOT_MET}\n  - at least $MEMORY_REQUIREMENTS MB of RAM (available: ${TOTAL_MEMORY} MB)"
+    fi
+
     if [ ${CPU_CORES_NUMBER} -lt ${CORE_REQUIREMENTS} ]; then
-        echo "The system does not meet the minimal hardware requirements. CPU with at least $CORE_REQUIREMENTS cores is required"
+        REQUIREMENTS_NOT_MET="${REQUIREMENTS_NOT_MET}\n  - a CPU with at least $CORE_REQUIREMENTS cores (available: ${CPU_CORES_NUMBER})"
+    fi
+
+    if [ -n "${REQUIREMENTS_NOT_MET}" ]; then
+        printf "Minimal requirements are not met, your system needs:%b\n\nTo skip this check, use the --skiphardwarecheck true parameter\n" "${REQUIREMENTS_NOT_MET}"
         exit 1
     fi
 }
@@ -597,7 +599,7 @@ install_docker () {
 
 docker_login () {
     if [[ -n ${USERNAME} && -n ${PASSWORD}  ]]; then
-        docker login ${REGISTRY_URL} --username ${USERNAME} --password ${PASSWORD}
+        echo "$PASSWORD" | docker login ${REGISTRY_URL} --username ${USERNAME} --password-stdin || { echo "Docker authentication failed"; exit 1; }
     fi
 }
 
@@ -743,7 +745,11 @@ install_document_server () {
 
                 _ee_bindings=$( [ "$INSTALLATION_TYPE" != "COMMUNITY" ] && echo ",/var/lib/postgresql,/var/lib/rabbitmq,/var/lib/redis" )
                 check_bindings $DOCUMENT_SERVER_ID "/etc/$PRODUCT,/var/lib/$PRODUCT,/usr/share/fonts/truetype/custom${_ee_bindings}";
-                docker exec ${DOCUMENT_CONTAINER_NAME} bash /usr/bin/documentserver-prepare4shutdown.sh
+                if docker exec ${DOCUMENT_CONTAINER_NAME} test -x /usr/bin/documentserver-prepare4shutdown; then
+                    docker exec ${DOCUMENT_CONTAINER_NAME} /usr/bin/documentserver-prepare4shutdown
+                else
+                    docker exec ${DOCUMENT_CONTAINER_NAME} bash /usr/bin/documentserver-prepare4shutdown.sh
+                fi
                 remove_container ${DOCUMENT_CONTAINER_NAME}
             else
                 RUN_DOCUMENT_SERVER="false"
@@ -853,7 +859,7 @@ set_jwt_secret () {
 
     if [[ -z ${JWT_SECRET} ]] && [[ "$UPDATE" != "true" ]]; then
         JWT_SECRET=$(get_random_str 32)
-        [ $JWT_ENABLED = "true" ] && JWT_MESSAGE='JWT is enabled by default. A random secret is generated automatically. Run the command "docker exec $(sudo docker ps -q) sudo documentserver-jwt-status.sh" to get information about JWT.'
+        [ $JWT_ENABLED = "true" ] && JWT_MESSAGE='JWT is enabled by default. A random secret is generated automatically. Run the command "docker exec $(sudo docker ps -q) sudo documentserver-jwt-status" to get information about JWT.'
     fi
 }
 
@@ -1013,6 +1019,10 @@ set_installation_type_data () {
 start_installation () {
     root_checking
 
+    # Suppress interactive apt/needrestart prompts during automated installs (Debian/Ubuntu only; no effect on RedHat/Amazon Linux)
+    export DEBIAN_FRONTEND=noninteractive
+    export NEEDRESTART_MODE=a
+
     set_installation_type_data
 
     set_jwt_enabled
@@ -1056,7 +1066,7 @@ start_installation () {
     [ -n "$JWT_MESSAGE" ] && [ -n "$DOCUMENT_SERVER_ID" ] && JWT_MESSAGE=$(echo "$JWT_MESSAGE" | sed 's/$(sudo docker ps -q)/'"${DOCUMENT_SERVER_ID::12}"'/') && echo -e "\n$JWT_MESSAGE"
     echo ""
     echo "Thank you for installing ONLYOFFICE Docs."
-    echo "In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://forum.onlyoffice.com"
+    echo "In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://community.onlyoffice.com"
     echo ""
 
     exit 0;

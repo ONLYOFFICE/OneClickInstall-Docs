@@ -43,23 +43,25 @@ check_hardware () {
     CORE_REQUIREMENTS=2
 
     AVAILABLE_DISK_SPACE=$(df -m / | tail -1 | awk '{ print $4 }')
-
-    if [ ${AVAILABLE_DISK_SPACE} -lt ${DISK_REQUIREMENTS} ]; then
-        echo "Minimal requirements are not met: need at least $DISK_REQUIREMENTS MB of free HDD space"
-        exit 1
-    fi
-
     TOTAL_MEMORY=$(free --mega | grep -oP '\d+' | head -n 1);
-
-    if [ ${TOTAL_MEMORY} -lt ${MEMORY_REQUIREMENTS} ]; then
-        echo "Minimal requirements are not met: need at least $MEMORY_REQUIREMENTS MB of RAM"
-        exit 1
-    fi
-
     CPU_CORES_NUMBER=$(grep -c ^processor /proc/cpuinfo)
 
+    REQUIREMENTS_NOT_MET=""
+
+    if [ ${AVAILABLE_DISK_SPACE} -lt ${DISK_REQUIREMENTS} ]; then
+        REQUIREMENTS_NOT_MET="${REQUIREMENTS_NOT_MET}\n  - at least $DISK_REQUIREMENTS MB of free HDD space (available: ${AVAILABLE_DISK_SPACE} MB)"
+    fi
+
+    if [ ${TOTAL_MEMORY} -lt ${MEMORY_REQUIREMENTS} ]; then
+        REQUIREMENTS_NOT_MET="${REQUIREMENTS_NOT_MET}\n  - at least $MEMORY_REQUIREMENTS MB of RAM (available: ${TOTAL_MEMORY} MB)"
+    fi
+
     if [ ${CPU_CORES_NUMBER} -lt ${CORE_REQUIREMENTS} ]; then
-        echo "The system does not meet the minimal hardware requirements. CPU with at least $CORE_REQUIREMENTS cores is required"
+        REQUIREMENTS_NOT_MET="${REQUIREMENTS_NOT_MET}\n  - a CPU with at least $CORE_REQUIREMENTS cores (available: ${CPU_CORES_NUMBER})"
+    fi
+
+    if [ -n "${REQUIREMENTS_NOT_MET}" ]; then
+        printf "Minimal requirements are not met, your system needs:%b\n\nTo skip this check, use the --skiphardwarecheck true parameter\n" "${REQUIREMENTS_NOT_MET}"
         exit 1
     fi
 }
@@ -72,7 +74,7 @@ read_rabbitmq_update () {
     read -p "$RES_CHOICE_RABBITMQ " CHOICE_INSTALLATION
     case "$CHOICE_INSTALLATION" in
         y|Y )
-            yum -y remove rabbitmq-server erlang*
+            ${package_manager} -y remove rabbitmq-server erlang*
             rm -rf /var/lib/rabbitmq/mnesia/*@localhost
         ;;
 
@@ -92,6 +94,3 @@ REV=$(sed -n 's/.*release\ \([0-9]*\).*/\1/p' /etc/redhat-release) || true
 DIST=${DIST:-$(awk -F= '/^ID=/ {gsub(/"/, "", $2); print tolower($2)}' /etc/os-release)}
 REV=${REV:-$(awk -F= '/^VERSION_ID=/ {gsub(/"/, "", $2); print tolower($2)}' /etc/os-release)}
 REDIS_PACKAGE=$( [[ "$REV" == "10" ]] && echo "valkey" || echo "redis" )
-
-# On EL8 the repo contains EL9-built xorg packages (GLIBC_2.34+) that break `yum update`.
-[ "$REV" = "8" ] && echo "excludepkgs=xorg-x11-server-Xvfb,xorg-x11-server-common" >> /etc/yum.repos.d/onlyoffice.repo || true

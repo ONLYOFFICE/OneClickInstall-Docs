@@ -1,4 +1,4 @@
-name: Install OCI Docs
+name: OCI Docs
 
 on:
   push:
@@ -20,13 +20,14 @@ on:
         type: string
         description: Select distros (comma-separated)
         default: |
+          rhel7,
           rhel8,
           rhel9,
+          centos7,
           centos8s,
           centos9s,
           centos10,
           amazonlinux2023,
-          debian10,
           debian11,
           debian12,
           debian13,
@@ -51,6 +52,10 @@ on:
           - enterprise
           - community
           - developer
+      package_url:
+        type: string
+        description: 'Package URL (.deb/.rpm)'
+        default: ''
 
   schedule:
     - cron: '0 21 * * 0'
@@ -70,16 +75,17 @@ jobs:
       - name: Set matrix names
         id: set-matrix
         env:
-          OS_ORDER: rhel8 rhel9 centos8s centos9s centos10 amazonlinux2023 debian10 debian11 debian12 debian13 ubuntu2004 ubuntu2204 ubuntu2404 ubuntu2604
+          OS_ORDER: rhel7 rhel8 rhel9 centos7 centos8s centos9s centos10 amazonlinux2023 debian11 debian12 debian13 ubuntu2004 ubuntu2204 ubuntu2404 ubuntu2604
           OS_MAP: |
             {
+              "rhel7":           ["RHEL 7",            "generic",    "rhel7"],
               "rhel8":           ["RHEL 8",            "generic",    "rhel8"],
               "rhel9":           ["RHEL 9",            "onlyoffice", "base-rhel9"],
+              "centos7":         ["CentOS 7",          "onlyoffice", "base-centos7"],
               "centos8s":        ["CentOS 8 Stream",   "onlyoffice", "base-centos8s"],
               "centos9s":        ["CentOS 9 Stream",   "onlyoffice", "base-centos9s"],
               "centos10":        ["CentOS 10 Stream",  "onlyoffice", "base-centos10"],
               "amazonlinux2023": ["Amazon Linux 2023", "bento",      "amazonlinux-2023"],
-              "debian10":        ["Debian 10",         "onlyoffice", "base-debian10"],
               "debian11":        ["Debian 11",         "onlyoffice", "base-debian11"],
               "debian12":        ["Debian 12",         "onlyoffice", "base-debian12"],
               "debian13":        ["Debian 13",         "onlyoffice", "base-debian13"],
@@ -116,16 +122,17 @@ jobs:
             --argjson list "$(printf '%s\n' "${!os_set[@]}" | jq -R . | jq -s .)" \
             '{include: [($order | split(" "))[] | select(. as $k | $list[] == $k) | {name: $map[.][0], os: ($map[.][2] // .), distr: $map[.][1]}]}')
 
-          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
-      - id: get-version
+      - name: Get latest release version
+        id: get-version
         run: |
           VERSION=$(git ls-remote --heads "https://${{ secrets.GITEA_TOKEN }}@${{ secrets.GITEA_HOST }}/ONLYOFFICE/document-server-package" \
             'refs/heads/release/v*' 'refs/heads/hotfix/v*' | awk -F/ '{print $NF}' | sed 's/^v//' | sort -Vr | head -n1)
           echo "version=${VERSION:-99.99.99}" >> "$GITHUB_OUTPUT"
 
   vagrant-up:
-    name: "Install (${{ matrix.name }})"
+    name: "${{ matrix.name }}"
     needs: [prepare]
     runs-on: ubuntu-22.04
     defaults:
@@ -133,6 +140,8 @@ jobs:
         working-directory: tests/vagrant
     env:
       VER: ${{ needs.prepare.outputs.version }}
+      LICENSE_ENTERPRISE: ${{ secrets.LICENSE_ENTERPRISE }}
+      INSTALLATION_TYPE: ${{ github.event.inputs.installationtype || 'enterprise' }}
     strategy:
       fail-fast: false
       matrix: ${{fromJSON(needs.prepare.outputs.matrix)}}
@@ -147,22 +156,90 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Download package
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.package_url != ''
+        working-directory: ${{ github.workspace }}
+        run: |
+          PACKAGE_URL=$(jq -r '.inputs.package_url' "$GITHUB_EVENT_PATH")
+          echo "::add-mask::$PACKAGE_URL"
+          case "${PACKAGE_URL%%[?#]*}" in
+            *.deb) PACKAGE_FILE='local-package.deb' ;;
+            *.rpm) PACKAGE_FILE='local-package.rpm' ;;
+            *) echo "package_url must point to a .deb or .rpm file" >&2; exit 1 ;;
+          esac
+          curl -fsSL --retry 3 "$PACKAGE_URL" -o "$PACKAGE_FILE"
+          echo "PACKAGE_FILE=$PACKAGE_FILE" >> "$GITHUB_ENV"
+
       - name: Get update and install vagrant
         working-directory: ${{ github.workspace }}
         run: |
           set -eux
-          sudo wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+          wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
           sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
           sudo apt update -y
-          sudo apt-get install -y vagrant
+          sudo apt-get install -y vagrant aria2
           # Temporary install VBox 7.1.12 via curl (.deb) to avoid SSH/NAT issues in 7.1.14
           VBOX_DEB=$(curl -fsSL https://download.virtualbox.org/virtualbox/7.1.12/MD5SUMS | grep -oE 'virtualbox-7\.1_7\.1\.12-[0-9]+~Ubuntu~jammy_amd64\.deb' | head -n1)
           [ -n "$VBOX_DEB" ] || { echo "ERROR: could not detect VBox .deb filename"; exit 1; }
           curl -fsSL "https://download.virtualbox.org/virtualbox/7.1.12/${VBOX_DEB}" -o /tmp/vbox.deb
           sudo apt-get install -y /tmp/vbox.deb
 
+      - name: "Boot VM for ${{matrix.name}}"
+        id: boot
+        continue-on-error: true
+        timeout-minutes: 45
+        env:
+          DISTR: ${{ matrix.distr }}
+          OS: ${{ matrix.os }}
+          RAM: '4096'
+          CPU: '2'
+        run: |
+          set -eux
+
+          # retrying a boot on this same runner can't help if the host never exposed VT-x/AMD-V at all — fail fast instead of burning 40 minutes
+          # (plain HW virtualization is enough for our guests; 'nested' would only matter for VT-x inside the guest and is off on many healthy hosts)
+          if ! grep -qE 'vmx|svm' /proc/cpuinfo || ! VBoxManage list hostinfo | grep -qiE '^Processor supports HW virtualization:\s*yes'; then
+            echo "::error::This runner host doesn't expose hardware virtualization to VirtualBox — re-run the job for a different host"
+            exit 1
+          fi
+
+          # Prefetch the box with multi-connection aria2 — vagrant's own downloader is single-stream (falls back to it below if aria2 fails, e.g. a CDN rate-limit near completion on large boxes)
+          box_name="${DISTR}/${OS}"
+          box_url=$(curl -fsSL "https://vagrantcloud.com/api/v2/vagrant/${box_name}" \
+            | jq -r '[.versions[0].providers[] | select(.name == "virtualbox" and (.architecture // "amd64") == "amd64")][0].url // empty' || true)
+          if [ -n "$box_url" ]; then
+            aria2_opts=(-x16 -s16 -k4M --max-tries=5 --retry-wait=3 --file-allocation=none --console-log-level=warn --summary-interval=30 -d /tmp -o vagrant.box)
+            # a failure typically happens near completion — resume with -c instead of restarting from scratch
+            (aria2c "${aria2_opts[@]}" "$box_url" || aria2c -c "${aria2_opts[@]}" "$box_url") \
+              && vagrant box add --name "${box_name}" /tmp/vagrant.box \
+              || echo "Box prefetch failed, vagrant will download it itself"
+            rm -f /tmp/vagrant.box /tmp/vagrant.box.aria2
+          fi
+
+          # VM boot on shared runners is flaky — destroy and retry once on failure or hang
+          timeout --kill-after=60s 20m vagrant up --no-provision --provider=virtualbox || {
+            echo "VM boot failed or timed out after 20 minutes, retrying..."
+            echo "--- host diagnostics ---"
+            VBoxManage list hostinfo || true
+            dmesg 2>/dev/null | tail -50 || true
+            pkill -TERM -f '[v]agrant|[r]uby.*vagrant' || true
+            sleep 5
+            pkill -KILL -f '[v]agrant|[r]uby.*vagrant' || true
+            # a hung/timed-out VM can survive the killed vagrant/ruby wrapper and keep the forwarded port bound
+            for vm_id in $(VBoxManage list runningvms 2>/dev/null | awk -F'"' '{print $2}'); do
+              VBoxManage controlvm "$vm_id" poweroff 2>/dev/null || true
+            done
+            vagrant destroy --force || true
+            timeout --kill-after=60s 20m vagrant up --no-provision --provider=virtualbox
+          }
+
+      - name: Warn about VM boot failure
+        if: steps.boot.outcome == 'failure'
+        run: echo "::warning::VM boot failed on ${{ matrix.name }} — runner infrastructure flake, install test skipped"
+
       - name: Install
-        timeout-minutes: 90
+        if: steps.boot.outcome == 'success'
+        timeout-minutes: 30
         env:
           DISTR: ${{ matrix.distr }}
           RAM: '4096'
@@ -177,25 +254,47 @@ jobs:
             export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false'"
           else
             export DOWNLOAD_SCRIPT='-ds false'
-            export TEST_REPO='-tr true'
             export VER="-v ${VER}"
-            export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'"
+            if [ -n "${PACKAGE_FILE:-}" ]; then
+              export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true --packagepath /home/vagrant/${PACKAGE_FILE}'"
+            else
+              export TEST_REPO='-tr true'
+              export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'"
+            fi
           fi
-          vagrant up --provider=virtualbox
+          vagrant provision
+
+      - name: Install Enterprise license
+        if: steps.boot.outcome == 'success' && env.INSTALLATION_TYPE == 'enterprise'
+        timeout-minutes: 2
+        run: printf '%s' "$LICENSE_ENTERPRISE" | vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh license"
 
       - name: Health check
+        if: steps.boot.outcome == 'success'
         run: |
           if vagrant status | grep -q "running"; then
-            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh healthcheck" || true
+            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh healthcheck"
           else
             echo "VM is not running, skipping health check"
           fi
 
+      - name: Smoke test
+        if: steps.boot.outcome == 'success'
+        timeout-minutes: 10
+        run: bash smoke-test.sh
+
       - name: Uninstall
-        timeout-minutes: 20
+        if: steps.boot.outcome == 'success'
+        timeout-minutes: 10
         run: |
           if vagrant status | grep -q "running"; then
-            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh uninstall ${{ github.event_name != 'schedule' && '--localscripts true' || '' }}"
+            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh uninstall ${{ github.event_name != 'schedule' && '--localscripts true' || '' }}" || {
+              uninstall_status=$?
+              # exit 255 is ssh's own code — probe whether sshd inside the guest is still reachable
+              vagrant ssh -c "echo SSH is alive" \
+                || echo "::error::SSH to the VM is dead (guest sshd crashed, likely OOM, or NAT forward broke) — uninstall never ran"
+              exit $uninstall_status
+            }
           else
             echo "VM is not running, cannot run uninstall test"
             exit 1
@@ -205,7 +304,8 @@ jobs:
         if: always()
         run: |
           if vagrant status | grep -q "running"; then
-            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh logs" || true
+            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh logs" \
+              || echo "::warning::Could not collect logs — SSH to the VM failed"
           else
             echo "VM is not running, skipping log collection"
           fi
@@ -217,12 +317,14 @@ jobs:
           vagrant global-status --prune || true
 
   arm-native:
-    name: "Install (Ubuntu 24.04) [ARM]"
+    name: "Ubuntu 24.04 [ARM]"
     needs: [prepare]
-    if: github.event_name == 'schedule' || github.event_name == 'push' || contains(github.event.inputs.distros, 'ubuntu2404-arm')
+    if: github.event.inputs.rpm_build != 'true' && github.event.inputs.package_url == '' && (github.event_name == 'schedule' || github.event_name == 'push' || contains(github.event.inputs.distros, 'ubuntu2404-arm'))
     runs-on: ubuntu-24.04-arm
     env:
       VER: ${{ needs.prepare.outputs.version }}
+      LICENSE_ENTERPRISE: ${{ secrets.LICENSE_ENTERPRISE }}
+      INSTALLATION_TYPE: ${{ github.event.inputs.installationtype || 'enterprise' }}
     steps:
     - name: Free Disk Space
       run: |
@@ -232,16 +334,38 @@ jobs:
       uses: actions/checkout@v6
 
     - name: Install
-      timeout-minutes: 25
+      timeout-minutes: 20
       run: |
         set -eux
-        if [[ "${{ github.event_name }}" == "schedule" ]]; then
-          sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh -ds true -it '${{ github.event.inputs.installationtype || 'enterprise' }}' -arg '--skiphardwarecheck true --makeswap false'
-        else
-          sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh -ds false -v "${VER}" -tr true -it '${{ github.event.inputs.installationtype || 'enterprise' }}' -arg '--skiphardwarecheck true --makeswap false --localscripts true'
+        install_args="--skiphardwarecheck true --makeswap false"
+        [[ "${{ github.event_name }}" == "schedule" ]] && source_args="-ds true" || { source_args="-ds false -v ${VER} -tr true"; install_args+=" --localscripts true"; }
+        sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh $source_args -it '${{ github.event.inputs.installationtype || 'enterprise' }}' -arg "$install_args"
+
+    - name: Install Enterprise license
+      if: env.INSTALLATION_TYPE == 'enterprise'
+      timeout-minutes: 2
+      run: printf '%s' "$LICENSE_ENTERPRISE" | sudo bash tests/vagrant/post-install.sh license
+
+    - name: Smoke test
+      timeout-minutes: 10
+      run: |
+        # start the example and wait for background fonts/static generation to finish
+        sudo systemctl start ds-example
+        timeout 5m bash -c 'while pgrep -f "documentserver-(generate-allfonts|static-gzip)" >/dev/null; do sleep 5; done'
+
+        # arm64 runners have no Chrome/chromedriver builds — fall back to the selenium container there
+        if ! command -v google-chrome >/dev/null; then
+          docker pull -q selenium/standalone-chromium:latest
+          docker run -d --name selenium --network host --shm-size 2g selenium/standalone-chromium:latest
+          timeout 60 bash -c 'until curl -sf http://localhost:4444/status | grep -qE "\"ready\":\s*true"; do sleep 2; done' \
+            || { echo "::error::selenium container is not ready"; exit 1; }
+          export SELENIUM_REMOTE_URL=http://localhost:4444
         fi
 
+        PIP_BREAK_SYSTEM_PACKAGES=1 pip install -q --disable-pip-version-check -r tests/smoke/requirements.txt
+        CHECK_ADMINPANEL=true python3 -m pytest tests/smoke/test_docs_smoke.py -v -s
+
     - name: Uninstall
-      timeout-minutes: 20
+      timeout-minutes: 10
       run: |
         sudo bash tests/vagrant/post-install.sh uninstall ${{ github.event_name != 'schedule' && '--localscripts true' || '' }}

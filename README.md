@@ -103,6 +103,12 @@ sudo bash docs-install.sh --help
 | `--letsencryptdomain`      | `<DOMAIN>`                   | -                            | Domain for Let's Encrypt cert                             |
 | `--letsencryptmail`        | `<EMAIL>`                    | -                            | Admin email for Let's Encrypt                             |
 
+### Local package
+
+Use `--packagepath <file.deb|file.rpm>` to install a local package. Add `--update true` when ONLYOFFICE Docs is already installed.
+
+In Actions, set `package_url` and select `deb_build` or `rpm_build` to test it on all matching distributions.
+
 ## 💡 Examples
 
 Typical usage scenarios with different combinations of flags.  
@@ -186,7 +192,6 @@ The installation scripts support the following operating systems, which are **re
 - CentOS 9 Stream
 - CentOS 10 Stream
 - Amazon Linux 2023
-- Debian 10
 - Debian 11
 - Debian 12
 - Debian 13
@@ -205,7 +210,7 @@ The installation scripts support the following operating systems, which are **re
 | Docker image     | <https://github.com/ONLYOFFICE/Docker-DocumentServer>            |
 | Help Center      | <https://helpcenter.onlyoffice.com/docs/installation>            |
 | Product page     | <https://www.onlyoffice.com/office-suite.aspx>                   |
-| Community Forum  | <https://forum.onlyoffice.com>                                   |
+| Community Forum  | <https://community.onlyoffice.com>                               |
 | Stack Overflow   | <https://stackoverflow.com/questions/tagged/onlyoffice>          |
 
 ## 📝 License

@@ -43,7 +43,7 @@ RES_APP_INSTALLED="is already installed"
 RES_APP_CHECK_PORTS="Application uses the following ports"
 RES_CHECK_PORTS="Please make sure that the ports are free."
 RES_INSTALL_SUCCESS="Thank you for installing ONLYOFFICE Docs."
-RES_QUESTIONS="In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://forum.onlyoffice.com"
+RES_QUESTIONS="In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://community.onlyoffice.com"
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -125,6 +125,16 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        --packagepath )
+            if [ "$2" != "" ]; then
+                DS_PACKAGE_PATH=$2
+                shift
+            else
+                echo "Error: --packagepath requires a file path" >&2
+                exit 1
+            fi
+        ;;
+
         -? | -h | --help )
             echo "  Usage $0 [PARAMETER] [[PARAMETER], ...]"
             echo "    Parameters:"
@@ -138,6 +148,7 @@ while [ "$1" != "" ]; do
             echo "      -we, --wopienabled                specifies whether WOPI protocol is enabled (true|false)"
             echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
             echo "      -dp, --docsport                   docs port (default value 80)"
+            echo "      --packagepath                     path to a local .deb package"
             echo "      -?, -h, --help                    this help"
             echo
             exit 0
@@ -163,6 +174,15 @@ if [ -z "${LOCAL_SCRIPTS}" ]; then
     LOCAL_SCRIPTS="false"
 fi
 
+if [ -n "${DS_PACKAGE_PATH}" ]; then
+    [ -f "${DS_PACKAGE_PATH}" ] || { echo "Error: package not found: ${DS_PACKAGE_PATH}" >&2; exit 1; }
+    [[ "${DS_PACKAGE_PATH}" = *.deb ]] || { echo "Error: expected a .deb package: ${DS_PACKAGE_PATH}" >&2; exit 1; }
+    DS_PACKAGE_PATH=$(readlink -f "${DS_PACKAGE_PATH}")
+fi
+# Suppress interactive apt/needrestart prompts during automated installs
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+
 if [ $(dpkg-query -W -f='${Status}' curl 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
     apt-get install -yq curl
 fi
@@ -185,10 +205,8 @@ apt-get -y update
 apt-get install -yq sudo dirmngr
 
 # add onlyoffice repo
-mkdir -p -m 700 $HOME/.gnupg
 echo "deb [signed-by=/usr/share/keyrings/onlyoffice.gpg] http://download.onlyoffice.com/repo/debian squeeze main" | tee /etc/apt/sources.list.d/onlyoffice.list
-curl -fsSL https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/onlyoffice.gpg --import
-chmod 644 /usr/share/keyrings/onlyoffice.gpg
+curl -fsSL https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE | gpg --batch --yes --dearmor -o /usr/share/keyrings/onlyoffice.gpg
 
 declare -x LANG="en_US.UTF-8"
 declare -x LANGUAGE="en_US:en"
