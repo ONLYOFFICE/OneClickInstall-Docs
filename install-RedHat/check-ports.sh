@@ -59,7 +59,7 @@ if rpm -qa | grep ${package_sysname}-documentserver; then
 elif [ "${UPDATE}" != "true" ] && netstat -lnp | awk '{print $4}' | grep -qE "${PORT_PATTERN}"; then
     echo "${package_sysname}-documentserver $RES_APP_CHECK_PORTS: ${PORT_LIST}"
     echo "$RES_CHECK_PORTS"
-    exit
+    exit 1
 else
     DOCUMENT_SERVER_INSTALLED="false"
 fi

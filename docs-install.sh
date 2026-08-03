@@ -60,7 +60,7 @@ while [ "$1" != "" ]; do
 
         -gb | --gitbranch )
             if [ "$2" != "" ]; then
-                GIT_BRANCH=$2
+                export GIT_BRANCH=$2
                 shift 2
                 continue
             fi
