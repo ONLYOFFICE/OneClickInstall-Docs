@@ -599,7 +599,7 @@ install_docker () {
 
 docker_login () {
     if [[ -n ${USERNAME} && -n ${PASSWORD}  ]]; then
-        docker login ${REGISTRY_URL} --username ${USERNAME} --password ${PASSWORD}
+        echo "$PASSWORD" | docker login ${REGISTRY_URL} --username ${USERNAME} --password-stdin || { echo "Docker authentication failed"; exit 1; }
     fi
 }
 
