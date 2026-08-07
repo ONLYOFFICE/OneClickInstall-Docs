@@ -203,7 +203,7 @@ jobs:
           export DOWNLOAD_SCRIPT='-ds false'
           export TEST_REPO='-tr true'
           export VER="-v ${VER}"
-          export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true --update true'"
+          export ARGUMENTS="-arg '--skiphardwarecheck true --localscripts true --update true'"
           vagrant provision
 
       - name: Health check

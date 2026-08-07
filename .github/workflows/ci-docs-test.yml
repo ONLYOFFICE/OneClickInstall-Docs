@@ -256,15 +256,15 @@ jobs:
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
             export DOWNLOAD_SCRIPT='-ds true'
             export TEST_CASE='--production-install'
-            export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false'"
+            export ARGUMENTS="-arg '--skiphardwarecheck true'"
           else
             export DOWNLOAD_SCRIPT='-ds false'
             export VER="-v ${VER}"
             if [ -n "${PACKAGE_FILE:-}" ]; then
-              export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true --packagepath /home/vagrant/${PACKAGE_FILE}'"
+              export ARGUMENTS="-arg '--skiphardwarecheck true --localscripts true --packagepath /home/vagrant/${PACKAGE_FILE}'"
             else
               export TEST_REPO='-tr true'
-              export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'"
+              export ARGUMENTS="-arg '--skiphardwarecheck true --localscripts true'"
             fi
           fi
           vagrant provision
@@ -341,7 +341,7 @@ jobs:
       timeout-minutes: 20
       run: |
         set -eux
-        install_args="--skiphardwarecheck true --makeswap false"
+        install_args="--skiphardwarecheck true"
         [[ "${{ github.event_name }}" == "schedule" ]] && source_args="-ds true" || { source_args="-ds false -v ${VER} -tr true"; install_args+=" --localscripts true"; }
         sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh $source_args -it '${{ github.event.inputs.installationtype || 'enterprise' }}' -arg "$install_args"
 
