@@ -138,7 +138,7 @@ else
     exit 1
 fi
 
-DOWNLOAD_URL_PREFIX="http://download.onlyoffice.com/docs"
+DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs"
 [ -n "$GIT_BRANCH" ] && DOWNLOAD_URL_PREFIX="https://raw.githubusercontent.com/ONLYOFFICE/OneClickInstall-Docs/${GIT_BRANCH}"
 [ "$LOCAL_SCRIPTS" != "true" ] && curl -s -O "${DOWNLOAD_URL_PREFIX}/${SCRIPT}"
 bash ${SCRIPT} ${PARAMETERS} || EXIT_CODE=$?

@@ -205,7 +205,7 @@ fi
 cat > /etc/yum.repos.d/onlyoffice.repo <<END
 [onlyoffice]
 name=onlyoffice repo
-baseurl=http://download.onlyoffice.com/repo/centos/main/noarch/
+baseurl=https://download.onlyoffice.com/repo/centos/main/noarch/
 gpgcheck=1
 gpgkey=https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE
 enabled=1
