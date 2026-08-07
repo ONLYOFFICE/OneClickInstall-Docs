@@ -138,6 +138,12 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        --licensepath )
+            [ -n "$2" ] || { echo "Error: --licensepath requires a file path" >&2; exit 1; }
+            DS_LICENSE_PATH="$2"
+            shift
+        ;;
+
         -ht | --helptarget )
             if [ "$2" != "" ]; then
                 HELP_TARGET=$2
@@ -243,6 +249,7 @@ while [ "$1" != "" ]; do
             echo "--documentversion        <VERSION_TAG>      Document version tag"
             echo "--installdocs            <true|false|pull>  Install or update Document Server"
             echo "--docsport               <PORT>             Port for ONLYOFFICE Docs (default: $DOCS_PORT)"
+            echo "--licensepath            <FILE>             Enterprise or Developer license file"
             echo "--externalserver         <true|false>       Expose Docs externally (default: true)"
             echo "--wopienabled            <true|false>       Enable WOPI protocol"
             echo
@@ -289,6 +296,8 @@ while [ "$1" != "" ]; do
     esac
     shift
 done
+
+[ -z "${DS_LICENSE_PATH:-}" ] || [ -f "$DS_LICENSE_PATH" ] || { echo "Error: license file not found: $DS_LICENSE_PATH" >&2; exit 1; }
 
 root_checking () {
     [[ ${EUID} -eq 0 ]] || { echo "To perform this action you must be logged in with root rights"; exit 1; }
@@ -1058,6 +1067,7 @@ start_installation () {
 
     if [ "$INSTALL_DOCUMENT_SERVER" == "true" ]; then
         pull_document_server
+        [ -z "${DS_LICENSE_PATH:-}" ] || install -m 644 "$DS_LICENSE_PATH" "$BASE_DIR/DocumentServer/data/license.lic" || exit 1
         install_document_server
     elif [ "$INSTALL_DOCUMENT_SERVER" == "pull" ]; then
         pull_document_server

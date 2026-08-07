@@ -77,6 +77,7 @@ sudo bash docs-install.sh --help
 | Flag                  | Value placeholder                          | Default value      | Description                      |
 |-----------------------|--------------------------------------------|--------------------|----------------------------------|
 | `--installationtype`  | `community\|enterprise\|developer`         | `community`        | Choose edition                   |
+| `--licensepath`       | `<FILE>`                                   | -                  | Install license                  |
 | `--update`            | `true` \| `false`                          | `false`            | Update components                |
 | `--skiphardwarecheck` | `true` \| `false`                          | `false`            | Skip hardware check              |
 | `--jwtenabled`        | `true` \| `false`                          | `true`             | Enable JWT validation            |

@@ -120,6 +120,13 @@ if systemctl is-active --quiet firewalld; then
     firewall-cmd --reload
 fi
 
+if [ -n "${DS_LICENSE_PATH:-}" ]; then
+    install -m 644 "$DS_LICENSE_PATH" "/var/www/${package_sysname}/Data/license.lic"
+    chown --reference="/var/www/${package_sysname}/Data" "/var/www/${package_sysname}/Data/license.lic"
+    chmod 640 "/var/www/${package_sysname}/Data/license.lic"
+    echo "[OK] License installed at /var/www/${package_sysname}/Data/license.lic"
+fi
+
 echo ""
 echo "$RES_INSTALL_SUCCESS"
 echo "$RES_QUESTIONS"

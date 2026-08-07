@@ -145,6 +145,12 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        --licensepath )
+            [ -n "$2" ] || { echo "Error: --licensepath requires a file path" >&2; exit 1; }
+            DS_LICENSE_PATH="$2"
+            shift
+        ;;
+
         -? | -h | --help )
             echo "  Usage $0 [PARAMETER] [[PARAMETER], ...]"
             echo "    Parameters:"
@@ -159,6 +165,7 @@ while [ "$1" != "" ]; do
             echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
             echo "      -dp, --docsport                   docs port (default value 80)"
             echo "      --packagepath                     path to a local .rpm package"
+            echo "      --licensepath                     path to an Enterprise or Developer license file"
             echo "      -?, -h, --help                    this help"
             echo
             exit 0
@@ -189,6 +196,8 @@ if [ -n "${DS_PACKAGE_PATH}" ]; then
     [[ "${DS_PACKAGE_PATH}" = *.rpm ]] || { echo "Error: expected an .rpm package: ${DS_PACKAGE_PATH}" >&2; exit 1; }
     DS_PACKAGE_PATH=$(readlink -f "${DS_PACKAGE_PATH}")
 fi
+
+[ -z "${DS_LICENSE_PATH:-}" ] || [ -f "$DS_LICENSE_PATH" ] || { echo "Error: license file not found: $DS_LICENSE_PATH" >&2; exit 1; }
 
 DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs/install-RedHat"
 [ -n "${GIT_BRANCH}" ] && DOWNLOAD_URL_PREFIX="https://raw.githubusercontent.com/ONLYOFFICE/OneClickInstall-Docs/${GIT_BRANCH}/install-RedHat"

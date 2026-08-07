@@ -184,6 +184,11 @@ jobs:
         if: steps.boot.outcome == 'failure'
         run: echo "::warning::VM boot failed on ${{ matrix.name }} — runner infrastructure flake, update test skipped"
 
+      - name: Prepare Enterprise license
+        if: steps.boot.outcome == 'success'
+        timeout-minutes: 2
+        run: printf '%s' "$LICENSE_ENTERPRISE" | vagrant ssh -c 'umask 077; cat > /tmp/docs-license.lic'
+
       - name: Update
         if: steps.boot.outcome == 'success'
         timeout-minutes: 30
@@ -200,11 +205,6 @@ jobs:
           export VER="-v ${VER}"
           export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true --update true'"
           vagrant provision
-
-      - name: Install Enterprise license
-        if: steps.boot.outcome == 'success'
-        timeout-minutes: 2
-        run: printf '%s' "$LICENSE_ENTERPRISE" | vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh license"
 
       - name: Health check
         if: steps.boot.outcome == 'success'

@@ -237,6 +237,11 @@ jobs:
         if: steps.boot.outcome == 'failure'
         run: echo "::warning::VM boot failed on ${{ matrix.name }} — runner infrastructure flake, install test skipped"
 
+      - name: Prepare Enterprise license
+        if: steps.boot.outcome == 'success' && env.INSTALLATION_TYPE == 'enterprise'
+        timeout-minutes: 2
+        run: printf '%s' "$LICENSE_ENTERPRISE" | vagrant ssh -c 'umask 077; cat > /tmp/docs-license.lic'
+
       - name: Install
         if: steps.boot.outcome == 'success'
         timeout-minutes: 30
@@ -263,11 +268,6 @@ jobs:
             fi
           fi
           vagrant provision
-
-      - name: Install Enterprise license
-        if: steps.boot.outcome == 'success' && env.INSTALLATION_TYPE == 'enterprise'
-        timeout-minutes: 2
-        run: printf '%s' "$LICENSE_ENTERPRISE" | vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh license"
 
       - name: Health check
         if: steps.boot.outcome == 'success'
@@ -333,6 +333,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
 
+    - name: Prepare Enterprise license
+      if: env.INSTALLATION_TYPE == 'enterprise'
+      run: (umask 077; printf '%s' "$LICENSE_ENTERPRISE" > /tmp/docs-license.lic)
+
     - name: Install
       timeout-minutes: 20
       run: |
@@ -340,11 +344,6 @@ jobs:
         install_args="--skiphardwarecheck true --makeswap false"
         [[ "${{ github.event_name }}" == "schedule" ]] && source_args="-ds true" || { source_args="-ds false -v ${VER} -tr true"; install_args+=" --localscripts true"; }
         sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh $source_args -it '${{ github.event.inputs.installationtype || 'enterprise' }}' -arg "$install_args"
-
-    - name: Install Enterprise license
-      if: env.INSTALLATION_TYPE == 'enterprise'
-      timeout-minutes: 2
-      run: printf '%s' "$LICENSE_ENTERPRISE" | sudo bash tests/vagrant/post-install.sh license
 
     - name: Smoke test
       timeout-minutes: 10

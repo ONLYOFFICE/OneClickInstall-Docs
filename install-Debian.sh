@@ -135,6 +135,12 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        --licensepath )
+            [ -n "$2" ] || { echo "Error: --licensepath requires a file path" >&2; exit 1; }
+            DS_LICENSE_PATH="$2"
+            shift
+        ;;
+
         -? | -h | --help )
             echo "  Usage $0 [PARAMETER] [[PARAMETER], ...]"
             echo "    Parameters:"
@@ -149,6 +155,7 @@ while [ "$1" != "" ]; do
             echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
             echo "      -dp, --docsport                   docs port (default value 80)"
             echo "      --packagepath                     path to a local .deb package"
+            echo "      --licensepath                     path to an Enterprise or Developer license file"
             echo "      -?, -h, --help                    this help"
             echo
             exit 0
@@ -179,6 +186,8 @@ if [ -n "${DS_PACKAGE_PATH}" ]; then
     [[ "${DS_PACKAGE_PATH}" = *.deb ]] || { echo "Error: expected a .deb package: ${DS_PACKAGE_PATH}" >&2; exit 1; }
     DS_PACKAGE_PATH=$(readlink -f "${DS_PACKAGE_PATH}")
 fi
+
+[ -z "${DS_LICENSE_PATH:-}" ] || [ -f "$DS_LICENSE_PATH" ] || { echo "Error: license file not found: $DS_LICENSE_PATH" >&2; exit 1; }
 # Suppress interactive apt/needrestart prompts during automated installs
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a

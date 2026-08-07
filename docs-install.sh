@@ -74,6 +74,13 @@ while [ "$1" != "" ]; do
             continue
         ;;
 
+        --licensepath )
+            [ -n "$2" ] || { echo "Error: --licensepath requires a file path" >&2; exit 1; }
+            export DS_LICENSE_PATH="$2"
+            shift 2
+            continue
+        ;;
+
         "-?" | -h | --help )
             HELP="true"
             DOCKER="true"

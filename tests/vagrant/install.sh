@@ -13,6 +13,8 @@ while [ "$1" != "" ]; do
   shift
 done
 
+[ -f /tmp/docs-license.lic ] && ARGUMENTS+=" --licensepath /tmp/docs-license.lic"
+
 export TERM=xterm-256color
 
 get_colors() {

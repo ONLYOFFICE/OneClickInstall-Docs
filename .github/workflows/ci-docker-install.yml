@@ -55,6 +55,12 @@ jobs:
           { echo "username=$USERNAME"; echo "password=$PASSWORD"; } | tee -a $GITHUB_OUTPUT
           echo "$PASSWORD" | docker login --username "$USERNAME" --password-stdin
 
+      - name: Prepare Enterprise license
+        if: matrix.edition == 'enterprise'
+        env:
+          LICENSE_ENTERPRISE: ${{ secrets.LICENSE_ENTERPRISE }}
+        run: (umask 077; printf '%s' "$LICENSE_ENTERPRISE" > /tmp/docs-license.lic)
+
       - name: Test Docs Docker scripts
         run: |
           case "${{ matrix.edition }}" in
@@ -64,6 +70,7 @@ jobs:
           esac
           [ "${{ github.ref }}" = "refs/heads/master" ] || image="4testing-${image}"
           extra_args="-it ${{ matrix.edition }} -di onlyoffice/${image}"
+          [ "${{ matrix.edition }}" != "enterprise" ] || extra_args+=" --licensepath /tmp/docs-license.lic"
           sudo bash -x install.sh -un "${{ steps.decode.outputs.username }}" -p "${{ steps.decode.outputs.password }}" -skiphc true $extra_args </dev/null
 
       - name: Wait for container to become healthy
