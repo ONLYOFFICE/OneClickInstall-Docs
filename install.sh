@@ -297,6 +297,35 @@ while [ "$1" != "" ]; do
     shift
 done
 
+validate_bool() {
+    case "$2" in
+        true | false ) ;;
+        * ) echo "Error: Invalid ${1} '${2}'. Valid values: true, false." >&2; exit 1 ;;
+    esac
+}
+
+validate_bool_or_pull() {
+    case "$2" in
+        true | false | pull ) ;;
+        * ) echo "Error: Invalid ${1} '${2}'. Valid values: true, false, pull." >&2; exit 1 ;;
+    esac
+}
+
+case "${INSTALLATION_TYPE}" in
+    COMMUNITY | ENTERPRISE | DEVELOPER ) ;;
+    * ) echo "Error: Invalid --installationtype '${INSTALLATION_TYPE}'. Valid values: COMMUNITY, ENTERPRISE, DEVELOPER." >&2; exit 1 ;;
+esac
+
+validate_bool --update "$UPDATE"
+validate_bool --externalserver "$USE_AS_EXTERNAL_SERVER"
+validate_bool --skiphardwarecheck "$SKIP_HARDWARE_CHECK"
+validate_bool --skipversioncheck "$SKIP_VERSION_CHECK"
+validate_bool_or_pull --installdocs "$INSTALL_DOCUMENT_SERVER"
+[ -n "$UNINSTALL" ] && validate_bool --uninstall "$UNINSTALL"
+[ -n "$JWT_ENABLED" ] && validate_bool --jwtenabled "$JWT_ENABLED"
+[ -n "$WOPI_ENABLED" ] && validate_bool --wopienabled "$WOPI_ENABLED"
+[ -n "$LOCAL_SCRIPTS" ] && validate_bool --localscripts "$LOCAL_SCRIPTS"
+
 [ -z "${DS_LICENSE_PATH:-}" ] || [ -f "$DS_LICENSE_PATH" ] || { echo "Error: license file not found: $DS_LICENSE_PATH" >&2; exit 1; }
 
 root_checking () {

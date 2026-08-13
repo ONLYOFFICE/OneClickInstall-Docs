@@ -181,6 +181,25 @@ if [ -z "${LOCAL_SCRIPTS}" ]; then
     LOCAL_SCRIPTS="false"
 fi
 
+validate_bool() {
+    case "$2" in
+        true | false ) ;;
+        * ) echo "Error: Invalid ${1} '${2}'. Valid values: true, false." >&2; exit 1 ;;
+    esac
+}
+
+case "${INSTALLATION_TYPE}" in
+    COMMUNITY | ENTERPRISE | DEVELOPER ) ;;
+    * ) echo "Error: Invalid --installationtype '${INSTALLATION_TYPE}'. Valid values: COMMUNITY, ENTERPRISE, DEVELOPER." >&2; exit 1 ;;
+esac
+
+validate_bool --update "$UPDATE"
+validate_bool --skiphardwarecheck "$SKIP_HARDWARE_CHECK"
+validate_bool --localscripts "$LOCAL_SCRIPTS"
+[ -n "$UNINSTALL" ] && validate_bool --uninstall "$UNINSTALL"
+[ -n "$DS_JWT_ENABLED" ] && validate_bool --jwtenabled "$DS_JWT_ENABLED"
+[ -n "$WOPI_ENABLED" ] && validate_bool --wopienabled "$WOPI_ENABLED"
+
 if [ -n "${DS_PACKAGE_PATH}" ]; then
     [ -f "${DS_PACKAGE_PATH}" ] || { echo "Error: package not found: ${DS_PACKAGE_PATH}" >&2; exit 1; }
     [[ "${DS_PACKAGE_PATH}" = *.deb ]] || { echo "Error: expected a .deb package: ${DS_PACKAGE_PATH}" >&2; exit 1; }
