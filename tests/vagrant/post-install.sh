@@ -134,10 +134,12 @@ main() {
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
       echo "${COLOR_BLUE}HEALTH CHECK${COLOR_RESET}"
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
-      healthcheck_nginx
-      healthcheck_curl
-      healthcheck_systemd_services
-      healthcheck_example
+      local status=0
+      healthcheck_nginx || status=1
+      healthcheck_curl || status=1
+      healthcheck_systemd_services || status=1
+      healthcheck_example || status=1
+      return "$status"
       ;;
     uninstall)
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
