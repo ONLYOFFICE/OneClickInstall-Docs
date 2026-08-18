@@ -202,6 +202,8 @@ The installation scripts support the following operating systems, which are **re
 - Ubuntu 26.04
 <!-- OS-SUPPORT-LIST-END -->
 
+EL7 requires a compatible package built on request. Contact support and install it with `--packagepath`.
+
 ## 📚 Additional Resources
 
 | Resource         | Link                                                             |

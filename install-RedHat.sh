@@ -230,6 +230,11 @@ if [ "${UNINSTALL}" = "true" ]; then
     exit 0
 fi
 
+if [ -z "${DS_PACKAGE_PATH:-}" ] && grep -qE 'release 7([.]|[[:space:]]|$)' /etc/redhat-release 2>/dev/null; then
+    echo "EL7 requires a compatible package built on request. Contact support and install it with --packagepath." >&2
+    exit 1
+fi
+
 cat > /etc/yum.repos.d/onlyoffice.repo <<END
 [onlyoffice]
 name=onlyoffice repo

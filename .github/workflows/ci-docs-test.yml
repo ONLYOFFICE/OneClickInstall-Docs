@@ -20,10 +20,8 @@ on:
         type: string
         description: Select distros (comma-separated)
         default: |
-          rhel7,
           rhel8,
           rhel9,
-          centos7,
           centos8s,
           centos9s,
           centos10,
@@ -97,9 +95,9 @@ jobs:
         run: |
           declare -A os_set
 
-          # For scheduled or push runs, use all distros
+          # For scheduled or push runs, use all supported distros
           if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event_name }}" == "push" ]]; then
-            for os in $(jq -r 'keys[]' <<< "$OS_MAP"); do os_set["$os"]=1; done
+            for os in $(jq -r 'keys[] | select(. != "rhel7" and . != "centos7")' <<< "$OS_MAP"); do os_set["$os"]=1; done
           # Handle individual distro selection (only when no override flags set)
           elif [[ "${{ github.event.inputs.deb_build }}" != "true" && "${{ github.event.inputs.rpm_build }}" != "true" ]]; then
             DISTROS_INPUT="${{ github.event.inputs.distros }}"
@@ -115,7 +113,7 @@ jobs:
 
           # Override: All RPM-based distros (CentOS/RHEL/Amazon)
           [[ "${{ github.event.inputs.rpm_build }}" == "true" ]] && \
-            for os in $(jq -r 'to_entries[] | select(.value[0] | test("CentOS|RHEL|Amazon")) | .key' <<< "$OS_MAP"); do os_set["$os"]=1; done
+            for os in $(jq -r 'to_entries[] | select((.value[0] | test("CentOS|RHEL|Amazon")) and (.key != "rhel7" and .key != "centos7")) | .key' <<< "$OS_MAP"); do os_set["$os"]=1; done
 
           # Build matrix in defined order
           matrix=$(jq -c -n --argjson map "$OS_MAP" --arg order "$OS_ORDER" \
