@@ -20,6 +20,20 @@ reload_nginx() {
   fi
 }
 
+wait_for_health() {
+  local url="$1"
+  local response=""
+
+  for _ in $(seq 1 20); do
+    response="$(curl -fsS --noproxy '*' "$url" 2>/dev/null || true)"
+    [ "$response" = "true" ] && return 0
+    sleep 1
+  done
+
+  echo "[FAILED] healthcheck is unavailable at $url" >&2
+  return 1
+}
+
 [ -x "$LETSENCRYPT_SCRIPT" ] || { echo "[FAILED] $LETSENCRYPT_SCRIPT not found" >&2; exit 1; }
 
 # Reproduce a fresh package installation with Document Server on port 8083.
@@ -29,7 +43,7 @@ sed -i '/^[[:space:]]*listen 0\.0\.0\.0:8080[[:space:]]*;/d' "$DS_CONF"
 sed 's/\(listen .*:\)\([0-9]\{2,5\}\b\)\( default_server\)\?\(;\)/\1'8083'\3\4/' -i "$DS_CONF"
 nginx -t
 reload_nginx
-[[ "$(curl -fsS --noproxy '*' http://127.0.0.1:8083/healthcheck)" == "true" ]]
+wait_for_health http://127.0.0.1:8083/healthcheck
 if grep -Eq '^[[:space:]]*listen[[:space:]]+(0\.0\.0\.0:|\[::\]:)?80([[:space:]]|;)' "$DS_CONF"; then
   echo "[FAILED] ds.conf still listens on port 80" >&2
   exit 1
@@ -84,7 +98,7 @@ if "$LETSENCRYPT_SCRIPT" "$EMAIL" "$DOMAIN"; then
 fi
 unset ACME_TEST_FAIL
 [ ! -e "$ACME_NGINX_CONF" ]
-[[ "$(curl -fsS --noproxy '*' http://127.0.0.1:8083/healthcheck)" == "true" ]]
+wait_for_health http://127.0.0.1:8083/healthcheck
 
 # A successful issuance must activate the existing HTTPS template.
 "$LETSENCRYPT_SCRIPT" "$EMAIL" "$DOMAIN"
