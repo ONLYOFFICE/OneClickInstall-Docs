@@ -24,6 +24,8 @@ reload_nginx() {
 
 # Reproduce a fresh package installation with Document Server on port 8083.
 rm -rf -- "$CERT_DIR" "$ACME_NGINX_CONF"
+# The preceding Smoke test adds a temporary port-8080 listener to ds.conf.
+sed -i '/^[[:space:]]*listen 0\.0\.0\.0:8080[[:space:]]*;/d' "$DS_CONF"
 sed 's/\(listen .*:\)\([0-9]\{2,5\}\b\)\( default_server\)\?\(;\)/\1'8083'\3\4/' -i "$DS_CONF"
 nginx -t
 reload_nginx
