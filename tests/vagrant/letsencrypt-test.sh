@@ -9,6 +9,8 @@ LETSENCRYPT_SCRIPT="/usr/bin/documentserver-letsencrypt"
 export ACME_NGINX_CONF="/etc/nginx/conf.d/documentserver-letsencrypt-acme.conf"
 CERT_DIR="/etc/letsencrypt/live/${DOMAIN}"
 FAKE_BIN="$(mktemp -d)/bin"
+# Port 80 on loopback is reserved for the internal Document Server host.
+export VM_IP="$(ip -4 route get 1.1.1.1 | awk '{for (i = 1; i <= NF; i++) if ($i == "src") { print $(i + 1); exit }}')"
 
 reload_nginx() {
   if pgrep -x systemd >/dev/null 2>&1 && command -v systemctl >/dev/null 2>&1; then
@@ -35,6 +37,7 @@ wait_for_health() {
 }
 
 [ -x "$LETSENCRYPT_SCRIPT" ] || { echo "[FAILED] $LETSENCRYPT_SCRIPT not found" >&2; exit 1; }
+[ -n "$VM_IP" ] || { echo "[FAILED] VM IPv4 address not found" >&2; exit 1; }
 
 # Reproduce a fresh package installation with Document Server on port 8083.
 rm -rf -- "$CERT_DIR" "$ACME_NGINX_CONF"
@@ -72,7 +75,7 @@ printf '%s' 'oneclick-acme-ok' > "${challenge_dir}/oneclick-test"
 
 response=""
 for _ in $(seq 1 20); do
-  response="$(curl -fsS --noproxy '*' --resolve "${domain}:80:127.0.0.1" \
+  response="$(curl -fsS --noproxy '*' --resolve "${domain}:80:${VM_IP}" \
     "http://${domain}/.well-known/acme-challenge/oneclick-test" 2>/dev/null || true)"
   [ "$response" = "oneclick-acme-ok" ] && break
   sleep 1
@@ -112,10 +115,10 @@ grep -Eq '^[[:space:]]*listen[[:space:]]+0\.0\.0\.0:443[[:space:]]+ssl' "$DS_CON
 HTTPS_HEALTH=""
 HTTP_STATUS=""
 for _ in $(seq 1 20); do
-  HTTPS_HEALTH="$(curl -fsSk --noproxy '*' --resolve "${DOMAIN}:443:127.0.0.1" \
+  HTTPS_HEALTH="$(curl -fsSk --noproxy '*' --resolve "${DOMAIN}:443:${VM_IP}" \
     "https://${DOMAIN}/healthcheck" 2>/dev/null || true)"
   HTTP_STATUS="$(curl -sS --noproxy '*' -o /dev/null -w '%{http_code}' \
-    --resolve "${DOMAIN}:80:127.0.0.1" "http://${DOMAIN}/healthcheck" 2>/dev/null || true)"
+    --resolve "${DOMAIN}:80:${VM_IP}" "http://${DOMAIN}/healthcheck" 2>/dev/null || true)"
   [ "$HTTPS_HEALTH" = "true" ] && [ "$HTTP_STATUS" = "301" ] && break
   sleep 1
 done
