@@ -111,6 +111,8 @@ grep -Eq '^[[:space:]]*listen[[:space:]]+0\.0\.0\.0:80([[:space:]]|;)' "$DS_CONF
   || { echo "[FAILED] HTTPS config does not listen on port 80" >&2; exit 1; }
 grep -Eq '^[[:space:]]*listen[[:space:]]+0\.0\.0\.0:443[[:space:]]+ssl' "$DS_CONF" \
   || { echo "[FAILED] HTTPS config does not listen on port 443" >&2; exit 1; }
+! grep -Eq '^[[:space:]]*listen[[:space:]]+\[::\]:80[[:space:]]+default_server' "$DS_CONF" \
+  || { echo "[FAILED] HTTPS config conflicts with the default IPv6 port-80 server" >&2; exit 1; }
 
 HTTPS_HEALTH=""
 HTTP_STATUS=""
