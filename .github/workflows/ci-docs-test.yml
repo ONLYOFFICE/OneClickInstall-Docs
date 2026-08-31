@@ -54,6 +54,14 @@ on:
         type: string
         description: 'Package URL (.deb/.rpm)'
         default: ''
+      letsencrypt_test:
+        type: boolean
+        description: 'Run the Let''s Encrypt HTTP-01 bootstrap test'
+        default: false
+      documentserver_package_ref:
+        type: string
+        description: 'Optional document-server-package ref used to overlay documentserver-letsencrypt'
+        default: ''
 
   schedule:
     - cron: '0 21 * * 0'
@@ -153,6 +161,35 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - name: Prepare documentserver-letsencrypt under test
+        if: github.event.inputs.letsencrypt_test == 'true' && github.event.inputs.documentserver_package_ref != ''
+        working-directory: ${{ github.workspace }}
+        env:
+          GITEA_HOST: ${{ secrets.GITEA_HOST }}
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+        run: |
+          REF=$(jq -r '.inputs.documentserver_package_ref' "$GITHUB_EVENT_PATH")
+          [[ "$REF" =~ ^[A-Za-z0-9._/-]+$ && "$REF" != *..* ]] \
+            || { echo "Invalid document-server-package ref" >&2; exit 1; }
+
+          echo "::add-mask::$GITEA_TOKEN"
+          SOURCE_DIR="$RUNNER_TEMP/document-server-package"
+          git init -q "$SOURCE_DIR"
+          git -C "$SOURCE_DIR" remote add origin "https://${GITEA_TOKEN}@${GITEA_HOST}/ONLYOFFICE/document-server-package"
+          git -C "$SOURCE_DIR" fetch -q --depth=1 origin "$REF"
+          git -C "$SOURCE_DIR" checkout -q --detach FETCH_HEAD
+
+          SCRIPT_FILE="$GITHUB_WORKSPACE/documentserver-letsencrypt-under-test"
+          sed \
+            -e 's|M4_NGINX_CONF|/etc/nginx/includes|g' \
+            -e 's|M4_DS_PREFIX|onlyoffice/documentserver|g' \
+            -e 's|M4_DS_ROOT|/var/www/onlyoffice/documentserver|g' \
+            "$SOURCE_DIR/common/documentserver/bin/documentserver-letsencrypt.m4" > "$SCRIPT_FILE"
+          chmod 0755 "$SCRIPT_FILE"
+          ! grep -q 'M4_' "$SCRIPT_FILE"
+          grep -q 'ACME_NGINX_CONF' "$SCRIPT_FILE"
+          echo "LETSENCRYPT_SCRIPT_FILE=$SCRIPT_FILE" >> "$GITHUB_ENV"
 
       - name: Download package
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.package_url != ''
@@ -280,6 +317,16 @@ jobs:
         if: steps.boot.outcome == 'success'
         timeout-minutes: 10
         run: bash smoke-test.sh
+
+      - name: Let's Encrypt HTTP-01 bootstrap test
+        if: steps.boot.outcome == 'success' && github.event.inputs.letsencrypt_test == 'true'
+        timeout-minutes: 5
+        run: |
+          if [ -n "${LETSENCRYPT_SCRIPT_FILE:-}" ]; then
+            vagrant upload "$LETSENCRYPT_SCRIPT_FILE" /tmp/documentserver-letsencrypt
+            vagrant ssh -c "sudo install -m 0755 /tmp/documentserver-letsencrypt /usr/bin/documentserver-letsencrypt"
+          fi
+          vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/letsencrypt-test.sh"
 
       - name: Uninstall
         if: steps.boot.outcome == 'success'
