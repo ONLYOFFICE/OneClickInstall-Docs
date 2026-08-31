@@ -6,7 +6,7 @@ DOMAIN="docs-acme-test.invalid"
 EMAIL="acme-test@example.com"
 DS_CONF="/etc/onlyoffice/documentserver/nginx/ds.conf"
 LETSENCRYPT_SCRIPT="/usr/bin/documentserver-letsencrypt"
-ACME_NGINX_CONF="/etc/nginx/conf.d/documentserver-letsencrypt-acme.conf"
+export ACME_NGINX_CONF="/etc/nginx/conf.d/documentserver-letsencrypt-acme.conf"
 CERT_DIR="/etc/letsencrypt/live/${DOMAIN}"
 FAKE_BIN="$(mktemp -d)/bin"
 
@@ -30,8 +30,8 @@ sed 's/\(listen .*:\)\([0-9]\{2,5\}\b\)\( default_server\)\?\(;\)/\1'8083'\3\4/'
 nginx -t
 reload_nginx
 [[ "$(curl -fsS --noproxy '*' http://127.0.0.1:8083/healthcheck)" == "true" ]]
-if curl -fsS --noproxy '*' --max-time 2 http://127.0.0.1/healthcheck >/dev/null 2>&1; then
-  echo "[FAILED] port 80 is already serving Document Server" >&2
+if grep -Eq '^[[:space:]]*listen[[:space:]]+(0\.0\.0\.0:|\[::\]:)?80([[:space:]]|;)' "$DS_CONF"; then
+  echo "[FAILED] ds.conf still listens on port 80" >&2
   exit 1
 fi
 
@@ -51,6 +51,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 [ -n "$webroot" ] && [ -n "$domain" ]
+[ -f "$ACME_NGINX_CONF" ]
 challenge_dir="${webroot}/.well-known/acme-challenge"
 mkdir -p -- "$challenge_dir"
 printf '%s' 'oneclick-acme-ok' > "${challenge_dir}/oneclick-test"
