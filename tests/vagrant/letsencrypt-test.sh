@@ -90,9 +90,24 @@ unset ACME_TEST_FAIL
 "$LETSENCRYPT_SCRIPT" "$EMAIL" "$DOMAIN"
 [ ! -e "$ACME_NGINX_CONF" ]
 nginx -t
-grep -Eq '^[[:space:]]*listen[[:space:]]+0\.0\.0\.0:80([[:space:]]|;)' "$DS_CONF"
-grep -Eq '^[[:space:]]*listen[[:space:]]+0\.0\.0\.0:443[[:space:]]+ssl' "$DS_CONF"
-[[ "$(curl -fsSk --noproxy '*' --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/healthcheck")" == "true" ]]
-[[ "$(curl -sS --noproxy '*' -o /dev/null -w '%{http_code}' --resolve "${DOMAIN}:80:127.0.0.1" "http://${DOMAIN}/healthcheck")" == "301" ]]
+grep -Eq '^[[:space:]]*listen[[:space:]]+0\.0\.0\.0:80([[:space:]]|;)' "$DS_CONF" \
+  || { echo "[FAILED] HTTPS config does not listen on port 80" >&2; exit 1; }
+grep -Eq '^[[:space:]]*listen[[:space:]]+0\.0\.0\.0:443[[:space:]]+ssl' "$DS_CONF" \
+  || { echo "[FAILED] HTTPS config does not listen on port 443" >&2; exit 1; }
+
+HTTPS_HEALTH=""
+HTTP_STATUS=""
+for _ in $(seq 1 20); do
+  HTTPS_HEALTH="$(curl -fsSk --noproxy '*' --resolve "${DOMAIN}:443:127.0.0.1" \
+    "https://${DOMAIN}/healthcheck" 2>/dev/null || true)"
+  HTTP_STATUS="$(curl -sS --noproxy '*' -o /dev/null -w '%{http_code}' \
+    --resolve "${DOMAIN}:80:127.0.0.1" "http://${DOMAIN}/healthcheck" 2>/dev/null || true)"
+  [ "$HTTPS_HEALTH" = "true" ] && [ "$HTTP_STATUS" = "301" ] && break
+  sleep 1
+done
+[ "$HTTPS_HEALTH" = "true" ] \
+  || { echo "[FAILED] HTTPS healthcheck returned: ${HTTPS_HEALTH:-empty}" >&2; exit 1; }
+[ "$HTTP_STATUS" = "301" ] \
+  || { echo "[FAILED] HTTP redirect returned status: ${HTTP_STATUS:-empty}" >&2; exit 1; }
 
 echo "[OK] Let's Encrypt HTTP-01 bootstrap test passed"
