@@ -313,6 +313,15 @@ jobs:
             echo "VM is not running, skipping health check"
           fi
 
+      - name: Check Certbot nginx plugin package on Amazon Linux
+        if: steps.boot.outcome == 'success' && matrix.os == 'amazonlinux-2023'
+        run: |
+          if vagrant ssh -c "sudo dnf info python3-certbot-nginx"; then
+            echo "[OK] python3-certbot-nginx is available on Amazon Linux"
+          else
+            echo "[NOT FOUND] python3-certbot-nginx is unavailable on Amazon Linux"
+          fi
+
       - name: Smoke test
         if: steps.boot.outcome == 'success'
         timeout-minutes: 10
