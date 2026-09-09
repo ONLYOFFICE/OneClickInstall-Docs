@@ -121,7 +121,8 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           set -eux
-          wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+          curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 https://apt.releases.hashicorp.com/gpg -o /tmp/hashicorp.gpg
+          sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg /tmp/hashicorp.gpg
           sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
           sudo apt update -y
           sudo apt-get install -y vagrant aria2
