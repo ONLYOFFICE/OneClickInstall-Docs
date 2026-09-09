@@ -28,13 +28,23 @@ check_hw() {
 }
 
 prepare_vm() {
+  . /etc/os-release
+  if [ "${VERSION_CODENAME:-}" = "bullseye" ]; then
+    # Debian 11 reached EOL on 2026-08-31
+    sed -Ei \
+      -e 's#https?://(security|deb)\.debian\.org/debian-security#https://snapshot.debian.org/archive/debian-security/20260901T000000Z#g' \
+      -e 's#https?://deb\.debian\.org/debian#https://archive.debian.org/debian#g' \
+      -e '/archive\.debian\.org\/debian/ { / contrib/! s/$/ contrib/; }' \
+      -e '/(archive\.debian\.org\/debian|snapshot\.debian\.org\/archive\/debian-security)/ { /check-valid-until=no/! s|^(deb(-src)?) \[|\1 [check-valid-until=no |; }' \
+      -e '/(archive\.debian\.org\/debian|snapshot\.debian\.org\/archive\/debian-security)/ { /check-valid-until=no/! s|^(deb(-src)?) |\1 [check-valid-until=no] |; }' \
+      /etc/apt/sources.list
+  fi
+
   if ! command -v curl >/dev/null 2>&1; then
     (command -v apt-get >/dev/null 2>&1 && apt-get update -y && apt-get install -y curl) || (command -v dnf >/dev/null 2>&1 && dnf install -y curl)
   fi
 
   if grep -qi 'debian\|ubuntu' /etc/os-release; then
-    . /etc/os-release
-
     if [ "${TEST_REPO_ENABLE:-}" = 'true' ]; then
       echo "deb [trusted=yes] https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/repo/debian stable ${VER}" | sudo tee /etc/apt/sources.list.d/onlyoffice-dev.list
     fi
