@@ -72,3 +72,7 @@ if [ -e /etc/redis/redis.conf ]; then
     sed -E -i "s_^bind.*_bind 127.0.0.1_; /^save\s[0-9]+/d" /etc/redis/redis.conf
     systemctl restart redis-server
 fi
+
+for SVC in ${_ee_pkgs}; do
+    systemctl enable --now "$SVC"
+done
