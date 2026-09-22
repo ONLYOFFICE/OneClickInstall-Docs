@@ -52,14 +52,14 @@ if [[ "$DEP_CHOICE" =~ ^(y|yes)$ ]]; then
     mapfile -t DEP_PACKAGES < <(dpkg-query -W -f='${Package}\n' | grep -E '^(redis-server|rabbitmq-server|postgresql|postgresql-[0-9]+(-.*)?)$' || true)
 fi
 
-[ -n "$DOCS_PACKAGE" ] && apt-get purge -yq "$DOCS_PACKAGE"
+[ -n "$DOCS_PACKAGE" ] && apt-get purge -yq -o DPkg::Lock::Timeout=60 "$DOCS_PACKAGE"
 
 if [[ "$DEP_CHOICE" =~ ^(y|yes)$ ]]; then
     for svc in redis-server rabbitmq-server postgresql; do
         systemctl stop "$svc" >/dev/null 2>&1 || true
     done
-    [ ${#DEP_PACKAGES[@]} -gt 0 ] && apt-get remove -yq "${DEP_PACKAGES[@]}"
-    apt-get autoremove -yq
+    [ ${#DEP_PACKAGES[@]} -gt 0 ] && apt-get remove -yq -o DPkg::Lock::Timeout=60 "${DEP_PACKAGES[@]}"
+    apt-get autoremove -yq -o DPkg::Lock::Timeout=60
     apt-get clean
 fi
 

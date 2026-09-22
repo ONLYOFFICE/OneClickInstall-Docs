@@ -211,8 +211,12 @@ fi
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
 
+# Pause apt auto-updates and running jobs to avoid dpkg lock contention; timers are restarted by the EXIT trap.
+systemctl stop apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service unattended-upgrades.service >/dev/null 2>&1 || true
+trap 'systemctl start apt-daily.timer apt-daily-upgrade.timer >/dev/null 2>&1 || true' EXIT
+
 if [ $(dpkg-query -W -f='${Status}' curl 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
-    apt-get install -yq curl
+    apt-get install -yq -o DPkg::Lock::Timeout=60 curl
 fi
 
 DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs/install-Debian"
@@ -227,10 +231,15 @@ if [ "${UNINSTALL}" = "true" ]; then
     exit 0
 fi
 
-timeout 60s bash -c 'while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done' || { echo "Error: Lock not released"; exit 1; }
+if fuser /var/lib/dpkg/lock-frontend &>/dev/null; then
+    echo "Waiting for /var/lib/dpkg/lock-frontend to be released (up to 60 seconds)..."
+    # stopping the units above doesn't guarantee the lock is released immediately - fall through to
+    # apt-get's own DPkg::Lock::Timeout below instead of failing the whole script on a slow release
+    timeout 60 bash -c 'while fuser /var/lib/dpkg/lock-frontend &>/dev/null; do sleep 1; done' || true
+fi
 
-apt-get -y update
-apt-get install -yq sudo dirmngr
+apt-get -y update -o DPkg::Lock::Timeout=60
+apt-get install -yq -o DPkg::Lock::Timeout=60 sudo dirmngr
 
 # add onlyoffice repo
 echo "deb [signed-by=/usr/share/keyrings/onlyoffice.gpg] https://download.onlyoffice.com/repo/debian squeeze main" | tee /etc/apt/sources.list.d/onlyoffice.list
