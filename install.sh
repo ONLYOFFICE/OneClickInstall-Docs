@@ -584,7 +584,7 @@ install_docker () {
 	elif [[ "${DIST}" == Red\ Hat\ Enterprise\ Linux* ]]; then
 
 		if [[ "${REV}" -gt "7" ]]; then
-			yum remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc > null
+			yum remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc > /dev/null
 			yum install -y yum-utils
 			yum-config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
 			yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin
