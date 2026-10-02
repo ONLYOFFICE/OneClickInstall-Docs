@@ -476,8 +476,16 @@ check_hardware () {
     fi
 
     if [ -n "${REQUIREMENTS_NOT_MET}" ]; then
-        printf "Minimal requirements are not met, your system needs:%b\n\nTo skip this check, use the --skiphardwarecheck true parameter\n" "${REQUIREMENTS_NOT_MET}"
-        exit 1
+        printf "Minimal requirements are not met, your system needs:%b\n\n" "${REQUIREMENTS_NOT_MET}"
+
+        # Without a terminal there is nobody to ask
+        if [ ! -t 0 ]; then
+            echo "To skip this check, use the --skiphardwarecheck true parameter"
+            exit 1
+        fi
+
+        read -r -p "Continue installation anyway? (y/N): " CONTINUE_CHOICE
+        [[ "${CONTINUE_CHOICE,,}" =~ ^(y|yes)$ ]] || exit 1
     fi
 }
 
