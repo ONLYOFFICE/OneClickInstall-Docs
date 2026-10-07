@@ -68,7 +68,7 @@ dpkg -s nginx >/dev/null 2>&1 || dpkg -s nginx-extras >/dev/null 2>&1 && _nginx_
 apt-get -y update
 apt-get install -yq ${_nginx_pkg} ${_ee_pkgs}
 
-if [ -e /etc/redis/redis.conf ]; then
+if [ "$INSTALLATION_TYPE" != "COMMUNITY" ] && [ -e /etc/redis/redis.conf ]; then
     sed -E -i "s_^bind.*_bind 127.0.0.1_; /^save\s[0-9]+/d" /etc/redis/redis.conf
     systemctl restart redis-server
 fi
