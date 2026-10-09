@@ -12,6 +12,7 @@ on:
       - 'docs-install.sh'
       - 'install-*.sh'
       - 'install-*/**'
+      - 'common/**'
       - 'tests/**'
 
   workflow_dispatch:

@@ -42,8 +42,6 @@ command -v dnf >/dev/null 2>&1 && package_manager="dnf" || package_manager="yum"
 
 DS_COMMON_NAME="onlyoffice"
 RES_APP_INSTALLED="is already installed"
-RES_APP_CHECK_PORTS="Application uses the following ports"
-RES_CHECK_PORTS="Please make sure that the ports are free."
 RES_INSTALL_SUCCESS="Thank you for installing ONLYOFFICE Docs."
 RES_QUESTIONS="In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://community.onlyoffice.com"
 
@@ -246,12 +244,19 @@ END
 
 if [ "$LOCAL_SCRIPTS" == "true" ]; then
     source install-RedHat/tools.sh
-    source install-RedHat/check-ports.sh
+    source "$(dirname -- "${BASH_SOURCE[0]}")/common/check-ports.sh" || exit 1
+else
+    source <(curl ${DOWNLOAD_URL_PREFIX}/tools.sh)
+    PORT_CHECKS_SCRIPT=$(curl -fsSL --retry 3 "${DOWNLOAD_URL_PREFIX%/install-RedHat}/common/check-ports.sh") || exit 1
+    bash -n <<< "$PORT_CHECKS_SCRIPT" || exit 1
+    source <(printf '%s\n' "$PORT_CHECKS_SCRIPT") || exit 1
+fi
+[ "$DOCUMENT_SERVER_INSTALLED" != true ] || [ "$UPDATE" = true ] || exit 0
+
+if [ "$LOCAL_SCRIPTS" == "true" ]; then
     [ -f /etc/amazon-linux-release ] && source install-RedHat/install-preq-amzn.sh || source install-RedHat/install-preq.sh
     source install-RedHat/install-app.sh
 else
-    source <(curl ${DOWNLOAD_URL_PREFIX}/tools.sh)
-    source <(curl ${DOWNLOAD_URL_PREFIX}/check-ports.sh)
     [ -f /etc/amazon-linux-release ] && source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq-amzn.sh) || source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq.sh)
     source <(curl ${DOWNLOAD_URL_PREFIX}/install-app.sh)
 fi
