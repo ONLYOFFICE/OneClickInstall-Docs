@@ -218,6 +218,6 @@ EL7 requires a compatible package built on request. Contact support and install 
 
 ## 📝 License
 
-ONLYOFFICE Docs is distributed under the [**GNU AGPL v3**](https://onlyo.co/38YZGJh) license (for the Community Edition).  
+ONLYOFFICE Docs is distributed under the [**GNU AGPL v3**](https://docspace.onlyoffice.com/s/wjQ94v2GWfm65wH) license (for the Community Edition).  
 **Enterprise** and **Developer** editions require a valid commercial license. For more details, please contact [sales@onlyoffice.com](mailto:sales@onlyoffice.com).
 
