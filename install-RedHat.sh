@@ -37,16 +37,13 @@
 
 set -e
 
-package_manager="yum"
 package_sysname="onlyoffice"
+command -v dnf >/dev/null 2>&1 && package_manager="dnf" || package_manager="yum"
 
-package_services=""
 DS_COMMON_NAME="onlyoffice"
 RES_APP_INSTALLED="is already installed"
-RES_APP_CHECK_PORTS="Application uses the following ports"
-RES_CHECK_PORTS="Please make sure that the ports are free."
 RES_INSTALL_SUCCESS="Thank you for installing ONLYOFFICE Docs."
-RES_QUESTIONS="In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://forum.onlyoffice.com"
+RES_QUESTIONS="In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://community.onlyoffice.com"
 
 
 res_rabbitmq_update () {
@@ -136,6 +133,22 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        --packagepath )
+            if [ "$2" != "" ]; then
+                DS_PACKAGE_PATH=$2
+                shift
+            else
+                echo "Error: --packagepath requires a file path" >&2
+                exit 1
+            fi
+        ;;
+
+        --licensepath )
+            [ -n "$2" ] || { echo "Error: --licensepath requires a file path" >&2; exit 1; }
+            DS_LICENSE_PATH="$2"
+            shift
+        ;;
+
         -? | -h | --help )
             echo "  Usage $0 [PARAMETER] [[PARAMETER], ...]"
             echo "    Parameters:"
@@ -149,6 +162,8 @@ while [ "$1" != "" ]; do
             echo "      -we, --wopienabled                specifies whether WOPI protocol is enabled (true|false)"
             echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
             echo "      -dp, --docsport                   docs port (default value 80)"
+            echo "      --packagepath                     path to a local .rpm package"
+            echo "      --licensepath                     path to an Enterprise or Developer license file"
             echo "      -?, -h, --help                    this help"
             echo
             exit 0
@@ -174,6 +189,33 @@ if [ -z "${LOCAL_SCRIPTS}" ]; then
     LOCAL_SCRIPTS="false"
 fi
 
+validate_bool() {
+    case "$2" in
+        true | false ) ;;
+        * ) echo "Error: Invalid ${1} '${2}'. Valid values: true, false." >&2; exit 1 ;;
+    esac
+}
+
+case "${INSTALLATION_TYPE}" in
+    COMMUNITY | ENTERPRISE | DEVELOPER ) ;;
+    * ) echo "Error: Invalid --installationtype '${INSTALLATION_TYPE}'. Valid values: COMMUNITY, ENTERPRISE, DEVELOPER." >&2; exit 1 ;;
+esac
+
+validate_bool --update "$UPDATE"
+validate_bool --skiphardwarecheck "$SKIP_HARDWARE_CHECK"
+validate_bool --localscripts "$LOCAL_SCRIPTS"
+[ -n "$UNINSTALL" ] && validate_bool --uninstall "$UNINSTALL"
+[ -n "$JWT_ENABLED" ] && validate_bool --jwtenabled "$JWT_ENABLED"
+[ -n "$WOPI_ENABLED" ] && validate_bool --wopienabled "$WOPI_ENABLED"
+
+if [ -n "${DS_PACKAGE_PATH}" ]; then
+    [ -f "${DS_PACKAGE_PATH}" ] || { echo "Error: package not found: ${DS_PACKAGE_PATH}" >&2; exit 1; }
+    [[ "${DS_PACKAGE_PATH}" = *.rpm ]] || { echo "Error: expected an .rpm package: ${DS_PACKAGE_PATH}" >&2; exit 1; }
+    DS_PACKAGE_PATH=$(readlink -f "${DS_PACKAGE_PATH}")
+fi
+
+[ -z "${DS_LICENSE_PATH:-}" ] || [ -f "$DS_LICENSE_PATH" ] || { echo "Error: license file not found: $DS_LICENSE_PATH" >&2; exit 1; }
+
 DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs/install-RedHat"
 [ -n "${GIT_BRANCH}" ] && DOWNLOAD_URL_PREFIX="https://raw.githubusercontent.com/ONLYOFFICE/OneClickInstall-Docs/${GIT_BRANCH}/install-RedHat"
 
@@ -186,10 +228,15 @@ if [ "${UNINSTALL}" = "true" ]; then
     exit 0
 fi
 
+if [ -z "${DS_PACKAGE_PATH:-}" ] && grep -qE 'release 7([.]|[[:space:]]|$)' /etc/redhat-release 2>/dev/null; then
+    echo "EL7 requires a compatible package built on request. Contact support and install it with --packagepath." >&2
+    exit 1
+fi
+
 cat > /etc/yum.repos.d/onlyoffice.repo <<END
 [onlyoffice]
 name=onlyoffice repo
-baseurl=http://download.onlyoffice.com/repo/centos/main/noarch/
+baseurl=https://download.onlyoffice.com/repo/centos/main/noarch/
 gpgcheck=1
 gpgkey=https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE
 enabled=1
@@ -197,12 +244,19 @@ END
 
 if [ "$LOCAL_SCRIPTS" == "true" ]; then
     source install-RedHat/tools.sh
-    source install-RedHat/check-ports.sh
+    source "$(dirname -- "${BASH_SOURCE[0]}")/common/check-ports.sh" || exit 1
+else
+    source <(curl ${DOWNLOAD_URL_PREFIX}/tools.sh)
+    PORT_CHECKS_SCRIPT=$(curl -fsSL --retry 3 "${DOWNLOAD_URL_PREFIX%/install-RedHat}/common/check-ports.sh") || exit 1
+    bash -n <<< "$PORT_CHECKS_SCRIPT" || exit 1
+    source <(printf '%s\n' "$PORT_CHECKS_SCRIPT") || exit 1
+fi
+[ "$DOCUMENT_SERVER_INSTALLED" != true ] || [ "$UPDATE" = true ] || exit 0
+
+if [ "$LOCAL_SCRIPTS" == "true" ]; then
     [ -f /etc/amazon-linux-release ] && source install-RedHat/install-preq-amzn.sh || source install-RedHat/install-preq.sh
     source install-RedHat/install-app.sh
 else
-    source <(curl ${DOWNLOAD_URL_PREFIX}/tools.sh)
-    source <(curl ${DOWNLOAD_URL_PREFIX}/check-ports.sh)
     [ -f /etc/amazon-linux-release ] && source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq-amzn.sh) || source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq.sh)
     source <(curl ${DOWNLOAD_URL_PREFIX}/install-app.sh)
 fi

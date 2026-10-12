@@ -13,6 +13,8 @@ while [ "$1" != "" ]; do
   shift
 done
 
+[ -f /tmp/docs-license.lic ] && ARGUMENTS+=" --licensepath /tmp/docs-license.lic"
+
 export TERM=xterm-256color
 
 get_colors() {
@@ -26,20 +28,23 @@ check_hw() {
 }
 
 prepare_vm() {
+  . /etc/os-release
+  if [ "${VERSION_CODENAME:-}" = "bullseye" ]; then
+    # Debian 11 reached EOL on 2026-08-31
+    sed -Ei \
+      -e 's#https?://(security|deb)\.debian\.org/debian-security#https://snapshot.debian.org/archive/debian-security/20260901T000000Z#g' \
+      -e 's#https?://deb\.debian\.org/debian#https://archive.debian.org/debian#g' \
+      -e '/archive\.debian\.org\/debian/ { / contrib/! s/$/ contrib/; }' \
+      -e '/(archive\.debian\.org\/debian|snapshot\.debian\.org\/archive\/debian-security)/ { /check-valid-until=no/! s|^(deb(-src)?) \[|\1 [check-valid-until=no |; }' \
+      -e '/(archive\.debian\.org\/debian|snapshot\.debian\.org\/archive\/debian-security)/ { /check-valid-until=no/! s|^(deb(-src)?) |\1 [check-valid-until=no] |; }' \
+      /etc/apt/sources.list
+  fi
+
   if ! command -v curl >/dev/null 2>&1; then
     (command -v apt-get >/dev/null 2>&1 && apt-get update -y && apt-get install -y curl) || (command -v dnf >/dev/null 2>&1 && dnf install -y curl)
   fi
 
   if grep -qi 'debian\|ubuntu' /etc/os-release; then
-    . /etc/os-release
-    if [ "$VERSION_CODENAME" = buster ]; then
-      find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) -exec sed -Ei \
-        -e 's|http://deb\.debian\.org/debian/?|http://archive.debian.org/debian/|g' \
-        -e 's|http://security\.debian\.org/debian-security/?|http://archive.debian.org/debian-security/|g' \
-        -e 's|http://ftp\.uk\.debian\.org/debian/?|http://archive.debian.org/debian/|g' {} +
-      echo "${COLOR_GREEN}[OK] PREPARE_VM: Debian 10 sources switched to archive.debian.org${COLOR_RESET}"
-    fi
-
     if [ "${TEST_REPO_ENABLE:-}" = 'true' ]; then
       echo "deb [trusted=yes] https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/repo/debian stable ${VER}" | sudo tee /etc/apt/sources.list.d/onlyoffice-dev.list
     fi
@@ -75,6 +80,30 @@ gpgcheck=0
 EOF
     fi
 
+    if [ "$REV" = "7" ]; then
+      if grep -qi 'centos' /etc/redhat-release 2>/dev/null; then
+        sudo sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-* || true
+      else
+        cat <<'EOF' | sudo tee /etc/yum.repos.d/CentOS-Vault.repo >/dev/null
+[base]
+name=CentOS-7 - Base
+baseurl=http://vault.centos.org/7.9.2009/os/x86_64/
+gpgcheck=0
+enabled=1
+[updates]
+name=CentOS-7 - Updates
+baseurl=http://vault.centos.org/7.9.2009/updates/x86_64/
+gpgcheck=0
+enabled=1
+[extras]
+name=CentOS-7 - Extras
+baseurl=http://vault.centos.org/7.9.2009/extras/x86_64/
+gpgcheck=0
+enabled=1
+EOF
+      fi
+    fi
+
     if [ "$REV" = "8" ]; then
       if grep -qi 'centos' /etc/redhat-release 2>/dev/null; then
         sudo sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-*
@@ -97,6 +126,25 @@ EOF
     if [ "${TEST_REPO_ENABLE:-}" = 'true' ]; then
       yum-config-manager --add-repo "https://s3.eu-west-1.amazonaws.com/repo-doc-onlyoffice-com/repo/centos/onlyoffice-dev-${VER}.repo"
     fi
+  fi
+
+  # cloud-image-derived boxes ship a policy-rc.d that blocks service autostart
+  # until cloud-init runs, which never happens in a bare Vagrant VM
+  if [ -f /usr/sbin/policy-rc.d ]; then
+    echo "${COLOR_YELLOW}[INFO] PREPARE_VM: removing policy-rc.d (was blocking service autostart):${COLOR_RESET}"
+    cat /usr/sbin/policy-rc.d
+    rm -f /usr/sbin/policy-rc.d
+  fi
+
+  # Permanently disable apt's background auto-update machinery for the lifetime of this
+  # disposable VM - it randomly grabs the dpkg frontend lock (via unattended-upgrades) mid-test
+  # and "systemctl stop" alone doesn't kill an already-running unattended-upgrade process
+  if command -v apt-get >/dev/null 2>&1; then
+    systemctl disable --now apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service unattended-upgrades.service 2>/dev/null || true
+    systemctl mask apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service unattended-upgrades.service 2>/dev/null || true
+    pkill -TERM -f '/usr/bin/unattended-upgrade' >/dev/null 2>&1 || true
+    sleep 2
+    pkill -KILL -f '/usr/bin/unattended-upgrade' >/dev/null 2>&1 || true
   fi
 
   rm -rf /home/vagrant/*

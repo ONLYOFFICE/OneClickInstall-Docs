@@ -77,6 +77,7 @@ sudo bash docs-install.sh --help
 | Flag                  | Value placeholder                          | Default value      | Description                      |
 |-----------------------|--------------------------------------------|--------------------|----------------------------------|
 | `--installationtype`  | `community\|enterprise\|developer`         | `community`        | Choose edition                   |
+| `--licensepath`       | `<FILE>`                                   | -                  | Install license                  |
 | `--update`            | `true` \| `false`                          | `false`            | Update components                |
 | `--skiphardwarecheck` | `true` \| `false`                          | `false`            | Skip hardware check              |
 | `--jwtenabled`        | `true` \| `false`                          | `true`             | Enable JWT validation            |
@@ -102,6 +103,12 @@ sudo bash docs-install.sh --help
 | `--skipversioncheck`       | `true` \| `false`            | `false`                      | Skip version check                                        |
 | `--letsencryptdomain`      | `<DOMAIN>`                   | -                            | Domain for Let's Encrypt cert                             |
 | `--letsencryptmail`        | `<EMAIL>`                    | -                            | Admin email for Let's Encrypt                             |
+
+### Local package
+
+Use `--packagepath <file.deb|file.rpm>` to install a local package. Add `--update true` when ONLYOFFICE Docs is already installed.
+
+In Actions, set `package_url` and select `deb_build` or `rpm_build` to test it on all matching distributions.
 
 ## 💡 Examples
 
@@ -186,7 +193,6 @@ The installation scripts support the following operating systems, which are **re
 - CentOS 9 Stream
 - CentOS 10 Stream
 - Amazon Linux 2023
-- Debian 10
 - Debian 11
 - Debian 12
 - Debian 13
@@ -195,6 +201,8 @@ The installation scripts support the following operating systems, which are **re
 - Ubuntu 24.04
 - Ubuntu 26.04
 <!-- OS-SUPPORT-LIST-END -->
+
+EL7 requires a compatible package built on request. Contact support and install it with `--packagepath`.
 
 ## 📚 Additional Resources
 
@@ -205,11 +213,11 @@ The installation scripts support the following operating systems, which are **re
 | Docker image     | <https://github.com/ONLYOFFICE/Docker-DocumentServer>            |
 | Help Center      | <https://helpcenter.onlyoffice.com/docs/installation>            |
 | Product page     | <https://www.onlyoffice.com/office-suite.aspx>                   |
-| Community Forum  | <https://forum.onlyoffice.com>                                   |
+| Community Forum  | <https://community.onlyoffice.com>                               |
 | Stack Overflow   | <https://stackoverflow.com/questions/tagged/onlyoffice>          |
 
 ## 📝 License
 
-ONLYOFFICE Docs is distributed under the [**GNU AGPL v3**](https://onlyo.co/38YZGJh) license (for the Community Edition).  
+ONLYOFFICE Docs is distributed under the [**GNU AGPL v3**](https://docspace.onlyoffice.com/s/wjQ94v2GWfm65wH) license (for the Community Edition).  
 **Enterprise** and **Developer** editions require a valid commercial license. For more details, please contact [sales@onlyoffice.com](mailto:sales@onlyoffice.com).
 

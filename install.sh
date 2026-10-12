@@ -138,6 +138,12 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        --licensepath )
+            [ -n "$2" ] || { echo "Error: --licensepath requires a file path" >&2; exit 1; }
+            DS_LICENSE_PATH="$2"
+            shift
+        ;;
+
         -ht | --helptarget )
             if [ "$2" != "" ]; then
                 HELP_TARGET=$2
@@ -243,6 +249,7 @@ while [ "$1" != "" ]; do
             echo "--documentversion        <VERSION_TAG>      Document version tag"
             echo "--installdocs            <true|false|pull>  Install or update Document Server"
             echo "--docsport               <PORT>             Port for ONLYOFFICE Docs (default: $DOCS_PORT)"
+            echo "--licensepath            <FILE>             Enterprise or Developer license file"
             echo "--externalserver         <true|false>       Expose Docs externally (default: true)"
             echo "--wopienabled            <true|false>       Enable WOPI protocol"
             echo
@@ -289,6 +296,37 @@ while [ "$1" != "" ]; do
     esac
     shift
 done
+
+validate_bool() {
+    case "$2" in
+        true | false ) ;;
+        * ) echo "Error: Invalid ${1} '${2}'. Valid values: true, false." >&2; exit 1 ;;
+    esac
+}
+
+validate_bool_or_pull() {
+    case "$2" in
+        true | false | pull ) ;;
+        * ) echo "Error: Invalid ${1} '${2}'. Valid values: true, false, pull." >&2; exit 1 ;;
+    esac
+}
+
+case "${INSTALLATION_TYPE}" in
+    COMMUNITY | ENTERPRISE | DEVELOPER ) ;;
+    * ) echo "Error: Invalid --installationtype '${INSTALLATION_TYPE}'. Valid values: COMMUNITY, ENTERPRISE, DEVELOPER." >&2; exit 1 ;;
+esac
+
+validate_bool --update "$UPDATE"
+validate_bool --externalserver "$USE_AS_EXTERNAL_SERVER"
+validate_bool --skiphardwarecheck "$SKIP_HARDWARE_CHECK"
+validate_bool --skipversioncheck "$SKIP_VERSION_CHECK"
+validate_bool_or_pull --installdocs "$INSTALL_DOCUMENT_SERVER"
+[ -n "$UNINSTALL" ] && validate_bool --uninstall "$UNINSTALL"
+[ -n "$JWT_ENABLED" ] && validate_bool --jwtenabled "$JWT_ENABLED"
+[ -n "$WOPI_ENABLED" ] && validate_bool --wopienabled "$WOPI_ENABLED"
+[ -n "$LOCAL_SCRIPTS" ] && validate_bool --localscripts "$LOCAL_SCRIPTS"
+
+[ -z "${DS_LICENSE_PATH:-}" ] || [ -f "$DS_LICENSE_PATH" ] || { echo "Error: license file not found: $DS_LICENSE_PATH" >&2; exit 1; }
 
 root_checking () {
     [[ ${EUID} -eq 0 ]] || { echo "To perform this action you must be logged in with root rights"; exit 1; }
@@ -420,24 +458,34 @@ check_kernel () {
 
 check_hardware () {
     AVAILABLE_DISK_SPACE=$(df -m /  | tail -1 | awk '{ print $4 }')
-
-    if [ ${AVAILABLE_DISK_SPACE} -lt ${DISK_REQUIREMENTS} ]; then
-        echo "Minimal requirements are not met: need at least $DISK_REQUIREMENTS MB of free HDD space"
-        exit 1
-    fi
-
     TOTAL_MEMORY=$(free --mega | grep -oP '\d+' | head -n 1)
-
-    if [ ${TOTAL_MEMORY} -lt ${MEMORY_REQUIREMENTS} ]; then
-        echo "Minimal requirements are not met: need at least $MEMORY_REQUIREMENTS MB of RAM"
-        exit 1
-    fi
-
     CPU_CORES_NUMBER=$(grep -c '^processor' /proc/cpuinfo)
 
+    REQUIREMENTS_NOT_MET=""
+
+    if [ ${AVAILABLE_DISK_SPACE} -lt ${DISK_REQUIREMENTS} ]; then
+        REQUIREMENTS_NOT_MET="${REQUIREMENTS_NOT_MET}\n  - at least $DISK_REQUIREMENTS MB of free HDD space (available: ${AVAILABLE_DISK_SPACE} MB)"
+    fi
+
+    if [ ${TOTAL_MEMORY} -lt ${MEMORY_REQUIREMENTS} ]; then
+        REQUIREMENTS_NOT_MET="${REQUIREMENTS_NOT_MET}\n  - at least $MEMORY_REQUIREMENTS MB of RAM (available: ${TOTAL_MEMORY} MB)"
+    fi
+
     if [ ${CPU_CORES_NUMBER} -lt ${CORE_REQUIREMENTS} ]; then
-        echo "The system does not meet the minimal hardware requirements. CPU with at least $CORE_REQUIREMENTS cores is required"
-        exit 1
+        REQUIREMENTS_NOT_MET="${REQUIREMENTS_NOT_MET}\n  - a CPU with at least $CORE_REQUIREMENTS cores (available: ${CPU_CORES_NUMBER})"
+    fi
+
+    if [ -n "${REQUIREMENTS_NOT_MET}" ]; then
+        printf "Minimal requirements are not met, your system needs:%b\n\n" "${REQUIREMENTS_NOT_MET}"
+
+        # Without a terminal there is nobody to ask
+        if [ ! -t 0 ]; then
+            echo "To skip this check, use the --skiphardwarecheck true parameter"
+            exit 1
+        fi
+
+        read -r -p "Continue installation anyway? (y/N): " CONTINUE_CHOICE
+        [[ "${CONTINUE_CHOICE,,}" =~ ^(y|yes)$ ]] || exit 1
     fi
 }
 
@@ -544,7 +592,7 @@ install_docker () {
 	elif [[ "${DIST}" == Red\ Hat\ Enterprise\ Linux* ]]; then
 
 		if [[ "${REV}" -gt "7" ]]; then
-			yum remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc > null
+			yum remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc > /dev/null
 			yum install -y yum-utils
 			yum-config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
 			yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin
@@ -597,7 +645,7 @@ install_docker () {
 
 docker_login () {
     if [[ -n ${USERNAME} && -n ${PASSWORD}  ]]; then
-        docker login ${REGISTRY_URL} --username ${USERNAME} --password ${PASSWORD}
+        echo "$PASSWORD" | docker login ${REGISTRY_URL} --username ${USERNAME} --password-stdin || { echo "Docker authentication failed"; exit 1; }
     fi
 }
 
@@ -743,7 +791,11 @@ install_document_server () {
 
                 _ee_bindings=$( [ "$INSTALLATION_TYPE" != "COMMUNITY" ] && echo ",/var/lib/postgresql,/var/lib/rabbitmq,/var/lib/redis" )
                 check_bindings $DOCUMENT_SERVER_ID "/etc/$PRODUCT,/var/lib/$PRODUCT,/usr/share/fonts/truetype/custom${_ee_bindings}";
-                docker exec ${DOCUMENT_CONTAINER_NAME} bash /usr/bin/documentserver-prepare4shutdown.sh
+                if docker exec ${DOCUMENT_CONTAINER_NAME} test -x /usr/bin/documentserver-prepare4shutdown; then
+                    docker exec ${DOCUMENT_CONTAINER_NAME} /usr/bin/documentserver-prepare4shutdown
+                else
+                    docker exec ${DOCUMENT_CONTAINER_NAME} bash /usr/bin/documentserver-prepare4shutdown.sh
+                fi
                 remove_container ${DOCUMENT_CONTAINER_NAME}
             else
                 RUN_DOCUMENT_SERVER="false"
@@ -853,7 +905,7 @@ set_jwt_secret () {
 
     if [[ -z ${JWT_SECRET} ]] && [[ "$UPDATE" != "true" ]]; then
         JWT_SECRET=$(get_random_str 32)
-        [ $JWT_ENABLED = "true" ] && JWT_MESSAGE='JWT is enabled by default. A random secret is generated automatically. Run the command "docker exec $(sudo docker ps -q) sudo documentserver-jwt-status.sh" to get information about JWT.'
+        [ $JWT_ENABLED = "true" ] && JWT_MESSAGE='JWT is enabled by default. A random secret is generated automatically. Run the command "docker exec $(sudo docker ps -q) sudo documentserver-jwt-status" to get information about JWT.'
     fi
 }
 
@@ -1013,6 +1065,10 @@ set_installation_type_data () {
 start_installation () {
     root_checking
 
+    # Suppress interactive apt/needrestart prompts during automated installs (Debian/Ubuntu only; no effect on RedHat/Amazon Linux)
+    export DEBIAN_FRONTEND=noninteractive
+    export NEEDRESTART_MODE=a
+
     set_installation_type_data
 
     set_jwt_enabled
@@ -1048,6 +1104,7 @@ start_installation () {
 
     if [ "$INSTALL_DOCUMENT_SERVER" == "true" ]; then
         pull_document_server
+        [ -z "${DS_LICENSE_PATH:-}" ] || install -m 644 "$DS_LICENSE_PATH" "$BASE_DIR/DocumentServer/data/license.lic" || exit 1
         install_document_server
     elif [ "$INSTALL_DOCUMENT_SERVER" == "pull" ]; then
         pull_document_server
@@ -1056,7 +1113,7 @@ start_installation () {
     [ -n "$JWT_MESSAGE" ] && [ -n "$DOCUMENT_SERVER_ID" ] && JWT_MESSAGE=$(echo "$JWT_MESSAGE" | sed 's/$(sudo docker ps -q)/'"${DOCUMENT_SERVER_ID::12}"'/') && echo -e "\n$JWT_MESSAGE"
     echo ""
     echo "Thank you for installing ONLYOFFICE Docs."
-    echo "In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://forum.onlyoffice.com"
+    echo "In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://community.onlyoffice.com"
     echo ""
 
     exit 0;
