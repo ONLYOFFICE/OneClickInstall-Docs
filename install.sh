@@ -673,7 +673,7 @@ get_tag_from_registry() {
         TOKEN=$(curl -fs ${CREDENTIALS} "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${IMAGE}:pull" | jq -r .token)
         AUTH_HEADER="Authorization: Bearer $TOKEN"
         REGISTRY_TAGS_URL="https://registry-1.docker.io/v2/${IMAGE}/tags/list"
-        JQ_FILTER='.tags | map(select( test("^99\\.") | not )) | .[-100:] | .[]'
+        JQ_FILTER='.tags | map(select( test("^99\\.") | not )) | .[]'
     fi
 
     mapfile -t TAGS_RESP < <(curl -s ${AUTH_HEADER:+-H "$AUTH_HEADER"} "$REGISTRY_TAGS_URL" | jq -r "$JQ_FILTER")
