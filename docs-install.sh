@@ -74,6 +74,13 @@ while [ "$1" != "" ]; do
             continue
         ;;
 
+        --licensepath )
+            [ -n "$2" ] || { echo "Error: --licensepath requires a file path" >&2; exit 1; }
+            export DS_LICENSE_PATH="$2"
+            shift 2
+            continue
+        ;;
+
         "-?" | -h | --help )
             HELP="true"
             DOCKER="true"
@@ -138,7 +145,7 @@ else
     exit 1
 fi
 
-DOWNLOAD_URL_PREFIX="http://download.onlyoffice.com/docs"
+DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs"
 [ -n "$GIT_BRANCH" ] && DOWNLOAD_URL_PREFIX="https://raw.githubusercontent.com/ONLYOFFICE/OneClickInstall-Docs/${GIT_BRANCH}"
 [ "$LOCAL_SCRIPTS" != "true" ] && curl -s -O "${DOWNLOAD_URL_PREFIX}/${SCRIPT}"
 bash ${SCRIPT} ${PARAMETERS} || EXIT_CODE=$?

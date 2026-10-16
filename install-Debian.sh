@@ -40,8 +40,6 @@ set -e
 package_sysname="onlyoffice"
 DS_COMMON_NAME="onlyoffice"
 RES_APP_INSTALLED="is already installed"
-RES_APP_CHECK_PORTS="Application uses the following ports"
-RES_CHECK_PORTS="Please make sure that the ports are free."
 RES_INSTALL_SUCCESS="Thank you for installing ONLYOFFICE Docs."
 RES_QUESTIONS="In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://community.onlyoffice.com"
 
@@ -135,6 +133,12 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        --licensepath )
+            [ -n "$2" ] || { echo "Error: --licensepath requires a file path" >&2; exit 1; }
+            DS_LICENSE_PATH="$2"
+            shift
+        ;;
+
         -? | -h | --help )
             echo "  Usage $0 [PARAMETER] [[PARAMETER], ...]"
             echo "    Parameters:"
@@ -149,6 +153,7 @@ while [ "$1" != "" ]; do
             echo "      -ls, --localscripts               use 'true' to run local scripts (true|false)"
             echo "      -dp, --docsport                   docs port (default value 80)"
             echo "      --packagepath                     path to a local .deb package"
+            echo "      --licensepath                     path to an Enterprise or Developer license file"
             echo "      -?, -h, --help                    this help"
             echo
             exit 0
@@ -174,17 +179,47 @@ if [ -z "${LOCAL_SCRIPTS}" ]; then
     LOCAL_SCRIPTS="false"
 fi
 
+validate_bool() {
+    case "$2" in
+        true | false ) ;;
+        * ) echo "Error: Invalid ${1} '${2}'. Valid values: true, false." >&2; exit 1 ;;
+    esac
+}
+
+case "${INSTALLATION_TYPE}" in
+    COMMUNITY | ENTERPRISE | DEVELOPER ) ;;
+    * ) echo "Error: Invalid --installationtype '${INSTALLATION_TYPE}'. Valid values: COMMUNITY, ENTERPRISE, DEVELOPER." >&2; exit 1 ;;
+esac
+
+validate_bool --update "$UPDATE"
+validate_bool --skiphardwarecheck "$SKIP_HARDWARE_CHECK"
+validate_bool --localscripts "$LOCAL_SCRIPTS"
+[ -n "$UNINSTALL" ] && validate_bool --uninstall "$UNINSTALL"
+[ -n "$DS_JWT_ENABLED" ] && validate_bool --jwtenabled "$DS_JWT_ENABLED"
+[ -n "$WOPI_ENABLED" ] && validate_bool --wopienabled "$WOPI_ENABLED"
+
 if [ -n "${DS_PACKAGE_PATH}" ]; then
     [ -f "${DS_PACKAGE_PATH}" ] || { echo "Error: package not found: ${DS_PACKAGE_PATH}" >&2; exit 1; }
     [[ "${DS_PACKAGE_PATH}" = *.deb ]] || { echo "Error: expected a .deb package: ${DS_PACKAGE_PATH}" >&2; exit 1; }
     DS_PACKAGE_PATH=$(readlink -f "${DS_PACKAGE_PATH}")
 fi
+
+[ -z "${DS_LICENSE_PATH:-}" ] || [ -f "$DS_LICENSE_PATH" ] || { echo "Error: license file not found: $DS_LICENSE_PATH" >&2; exit 1; }
 # Suppress interactive apt/needrestart prompts during automated installs
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
 
+# Pause apt auto-updates and running jobs to avoid dpkg lock contention; only timers that were
+# actually active get restarted by the EXIT trap, so a host with auto-updates disabled stays that way.
+APT_TIMERS_TO_RESTORE=()
+for _apt_timer in apt-daily.timer apt-daily-upgrade.timer; do
+    systemctl is-active --quiet "${_apt_timer}" && APT_TIMERS_TO_RESTORE+=("${_apt_timer}")
+done
+systemctl stop apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service unattended-upgrades.service >/dev/null 2>&1 || true
+trap '[ ${#APT_TIMERS_TO_RESTORE[@]} -eq 0 ] || systemctl start "${APT_TIMERS_TO_RESTORE[@]}" >/dev/null 2>&1 || true' EXIT
+
 if [ $(dpkg-query -W -f='${Status}' curl 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
-    apt-get install -yq curl
+    apt-get install -yq -o DPkg::Lock::Timeout=60 curl
 fi
 
 DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs/install-Debian"
@@ -199,13 +234,18 @@ if [ "${UNINSTALL}" = "true" ]; then
     exit 0
 fi
 
-timeout 60s bash -c 'while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 1; done' || { echo "Error: Lock not released"; exit 1; }
+if fuser /var/lib/dpkg/lock-frontend &>/dev/null; then
+    echo "Waiting for /var/lib/dpkg/lock-frontend to be released (up to 60 seconds)..."
+    # stopping the units above doesn't guarantee the lock is released immediately - fall through to
+    # apt-get's own DPkg::Lock::Timeout below instead of failing the whole script on a slow release
+    timeout 60 bash -c 'while fuser /var/lib/dpkg/lock-frontend &>/dev/null; do sleep 1; done' || true
+fi
 
-apt-get -y update
-apt-get install -yq sudo dirmngr
+apt-get -y update -o DPkg::Lock::Timeout=60
+apt-get install -yq -o DPkg::Lock::Timeout=60 sudo dirmngr
 
 # add onlyoffice repo
-echo "deb [signed-by=/usr/share/keyrings/onlyoffice.gpg] http://download.onlyoffice.com/repo/debian squeeze main" | tee /etc/apt/sources.list.d/onlyoffice.list
+echo "deb [signed-by=/usr/share/keyrings/onlyoffice.gpg] https://download.onlyoffice.com/repo/debian squeeze main" | tee /etc/apt/sources.list.d/onlyoffice.list
 curl -fsSL https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE | gpg --batch --yes --dearmor -o /usr/share/keyrings/onlyoffice.gpg
 
 declare -x LANG="en_US.UTF-8"
@@ -214,12 +254,19 @@ declare -x LC_ALL="en_US.UTF-8"
 
 if [ "${LOCAL_SCRIPTS}" == "true" ]; then
     source install-Debian/tools.sh
-    source install-Debian/check-ports.sh
+    source "$(dirname -- "${BASH_SOURCE[0]}")/common/check-ports.sh" || exit 1
+else
+    source <(curl ${DOWNLOAD_URL_PREFIX}/tools.sh)
+    PORT_CHECKS_SCRIPT=$(curl -fsSL --retry 3 "${DOWNLOAD_URL_PREFIX%/install-Debian}/common/check-ports.sh") || exit 1
+    bash -n <<< "$PORT_CHECKS_SCRIPT" || exit 1
+    source <(printf '%s\n' "$PORT_CHECKS_SCRIPT") || exit 1
+fi
+[ "$DOCUMENT_SERVER_INSTALLED" != true ] || [ "$UPDATE" = true ] || exit 0
+
+if [ "${LOCAL_SCRIPTS}" == "true" ]; then
     source install-Debian/install-preq.sh
     source install-Debian/install-app.sh
 else
-    source <(curl ${DOWNLOAD_URL_PREFIX}/tools.sh)
-    source <(curl ${DOWNLOAD_URL_PREFIX}/check-ports.sh)
     source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq.sh)
     source <(curl ${DOWNLOAD_URL_PREFIX}/install-app.sh)
 fi

@@ -77,6 +77,7 @@ sudo bash docs-install.sh --help
 | Flag                  | Value placeholder                          | Default value      | Description                      |
 |-----------------------|--------------------------------------------|--------------------|----------------------------------|
 | `--installationtype`  | `community\|enterprise\|developer`         | `community`        | Choose edition                   |
+| `--licensepath`       | `<FILE>`                                   | -                  | Install license                  |
 | `--update`            | `true` \| `false`                          | `false`            | Update components                |
 | `--skiphardwarecheck` | `true` \| `false`                          | `false`            | Skip hardware check              |
 | `--jwtenabled`        | `true` \| `false`                          | `true`             | Enable JWT validation            |
@@ -201,6 +202,8 @@ The installation scripts support the following operating systems, which are **re
 - Ubuntu 26.04
 <!-- OS-SUPPORT-LIST-END -->
 
+EL7 requires a compatible package built on request. Contact support and install it with `--packagepath`.
+
 ## 📚 Additional Resources
 
 | Resource         | Link                                                             |
@@ -215,6 +218,6 @@ The installation scripts support the following operating systems, which are **re
 
 ## 📝 License
 
-ONLYOFFICE Docs is distributed under the [**GNU AGPL v3**](https://onlyo.co/38YZGJh) license (for the Community Edition).  
+ONLYOFFICE Docs is distributed under the [**GNU AGPL v3**](https://docspace.onlyoffice.com/s/wjQ94v2GWfm65wH) license (for the Community Edition).  
 **Enterprise** and **Developer** editions require a valid commercial license. For more details, please contact [sales@onlyoffice.com](mailto:sales@onlyoffice.com).
 

@@ -12,6 +12,7 @@ on:
       - 'docs-install.sh'
       - 'install-*.sh'
       - 'install-*/**'
+      - 'common/**'
       - 'tests/**'
 
   workflow_dispatch:
@@ -20,10 +21,8 @@ on:
         type: string
         description: Select distros (comma-separated)
         default: |
-          rhel7,
           rhel8,
           rhel9,
-          centos7,
           centos8s,
           centos9s,
           centos10,
@@ -97,9 +96,9 @@ jobs:
         run: |
           declare -A os_set
 
-          # For scheduled or push runs, use all distros
+          # For scheduled or push runs, use all supported distros
           if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event_name }}" == "push" ]]; then
-            for os in $(jq -r 'keys[]' <<< "$OS_MAP"); do os_set["$os"]=1; done
+            for os in $(jq -r 'keys[] | select(. != "rhel7" and . != "centos7")' <<< "$OS_MAP"); do os_set["$os"]=1; done
           # Handle individual distro selection (only when no override flags set)
           elif [[ "${{ github.event.inputs.deb_build }}" != "true" && "${{ github.event.inputs.rpm_build }}" != "true" ]]; then
             DISTROS_INPUT="${{ github.event.inputs.distros }}"
@@ -115,7 +114,7 @@ jobs:
 
           # Override: All RPM-based distros (CentOS/RHEL/Amazon)
           [[ "${{ github.event.inputs.rpm_build }}" == "true" ]] && \
-            for os in $(jq -r 'to_entries[] | select(.value[0] | test("CentOS|RHEL|Amazon")) | .key' <<< "$OS_MAP"); do os_set["$os"]=1; done
+            for os in $(jq -r 'to_entries[] | select((.value[0] | test("CentOS|RHEL|Amazon")) and (.key != "rhel7" and .key != "centos7")) | .key' <<< "$OS_MAP"); do os_set["$os"]=1; done
 
           # Build matrix in defined order
           matrix=$(jq -c -n --argjson map "$OS_MAP" --arg order "$OS_ORDER" \
@@ -174,7 +173,8 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           set -eux
-          wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+          curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 https://apt.releases.hashicorp.com/gpg -o /tmp/hashicorp.gpg
+          sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg /tmp/hashicorp.gpg
           sudo echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
           sudo apt update -y
           sudo apt-get install -y vagrant aria2
@@ -237,6 +237,11 @@ jobs:
         if: steps.boot.outcome == 'failure'
         run: echo "::warning::VM boot failed on ${{ matrix.name }} — runner infrastructure flake, install test skipped"
 
+      - name: Prepare Enterprise license
+        if: steps.boot.outcome == 'success' && env.INSTALLATION_TYPE == 'enterprise'
+        timeout-minutes: 2
+        run: printf '%s' "$LICENSE_ENTERPRISE" | vagrant ssh -c 'umask 077; cat > /tmp/docs-license.lic'
+
       - name: Install
         if: steps.boot.outcome == 'success'
         timeout-minutes: 30
@@ -251,23 +256,18 @@ jobs:
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
             export DOWNLOAD_SCRIPT='-ds true'
             export TEST_CASE='--production-install'
-            export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false'"
+            export ARGUMENTS="-arg '--skiphardwarecheck true'"
           else
             export DOWNLOAD_SCRIPT='-ds false'
             export VER="-v ${VER}"
             if [ -n "${PACKAGE_FILE:-}" ]; then
-              export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true --packagepath /home/vagrant/${PACKAGE_FILE}'"
+              export ARGUMENTS="-arg '--skiphardwarecheck true --localscripts true --packagepath /home/vagrant/${PACKAGE_FILE}'"
             else
               export TEST_REPO='-tr true'
-              export ARGUMENTS="-arg '--skiphardwarecheck true --makeswap false --localscripts true'"
+              export ARGUMENTS="-arg '--skiphardwarecheck true --localscripts true'"
             fi
           fi
           vagrant provision
-
-      - name: Install Enterprise license
-        if: steps.boot.outcome == 'success' && env.INSTALLATION_TYPE == 'enterprise'
-        timeout-minutes: 2
-        run: printf '%s' "$LICENSE_ENTERPRISE" | vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh license"
 
       - name: Health check
         if: steps.boot.outcome == 'success'
@@ -333,18 +333,17 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
 
+    - name: Prepare Enterprise license
+      if: env.INSTALLATION_TYPE == 'enterprise'
+      run: (umask 077; printf '%s' "$LICENSE_ENTERPRISE" > /tmp/docs-license.lic)
+
     - name: Install
       timeout-minutes: 20
       run: |
         set -eux
-        install_args="--skiphardwarecheck true --makeswap false"
+        install_args="--skiphardwarecheck true"
         [[ "${{ github.event_name }}" == "schedule" ]] && source_args="-ds true" || { source_args="-ds false -v ${VER} -tr true"; install_args+=" --localscripts true"; }
         sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh $source_args -it '${{ github.event.inputs.installationtype || 'enterprise' }}' -arg "$install_args"
-
-    - name: Install Enterprise license
-      if: env.INSTALLATION_TYPE == 'enterprise'
-      timeout-minutes: 2
-      run: printf '%s' "$LICENSE_ENTERPRISE" | sudo bash tests/vagrant/post-install.sh license
 
     - name: Smoke test
       timeout-minutes: 10

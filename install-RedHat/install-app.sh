@@ -68,7 +68,8 @@ if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
 fi
 
 if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
-    declare -x DS_PORT=${DS_PORT:-80}
+    DS_PORT=${DS_PORT:-80}
+    declare -x LISTEN_ADDRESS="0.0.0.0:${DS_PORT}"
     declare -x JWT_ENABLED=${JWT_ENABLED:-true}
     declare -x JWT_SECRET=${JWT_SECRET:-$(cat /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)}
     declare -x JWT_HEADER=${JWT_HEADER:-AuthorizationJwt}
@@ -118,6 +119,13 @@ if systemctl is-active --quiet firewalld; then
     firewall-cmd --permanent --zone=public --add-service=http --add-service=https
     firewall-cmd --permanent --zone=public --add-port="${DS_PORT:-80}/tcp"
     firewall-cmd --reload
+fi
+
+if [ -n "${DS_LICENSE_PATH:-}" ]; then
+    install -m 644 "$DS_LICENSE_PATH" "/var/www/${package_sysname}/Data/license.lic"
+    chown --reference="/var/www/${package_sysname}/Data" "/var/www/${package_sysname}/Data/license.lic"
+    chmod 640 "/var/www/${package_sysname}/Data/license.lic"
+    echo "[OK] License installed at /var/www/${package_sysname}/Data/license.lic"
 fi
 
 echo ""

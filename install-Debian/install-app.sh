@@ -75,7 +75,7 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
     DS_JWT_SECRET=${DS_JWT_SECRET:-$(cat /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)}
     DS_JWT_HEADER=${DS_JWT_HEADER:-AuthorizationJwt}
 
-    echo ${ds_pkg_name} $DS_COMMON_NAME/ds-port select $DS_PORT | sudo debconf-set-selections
+    echo ${ds_pkg_name} $DS_COMMON_NAME/listenaddress string 0.0.0.0:${DS_PORT} | sudo debconf-set-selections
     echo ${ds_pkg_name} $DS_COMMON_NAME/jwt-enabled boolean ${DS_JWT_ENABLED} | sudo debconf-set-selections
     echo ${ds_pkg_name} $DS_COMMON_NAME/jwt-secret password ${DS_JWT_SECRET} | sudo debconf-set-selections
     echo ${ds_pkg_name} $DS_COMMON_NAME/jwt-header string ${DS_JWT_HEADER} | sudo debconf-set-selections
@@ -106,6 +106,13 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
     fi
 
     apt-get install -yq "${ds_pkg_source}"
+fi
+
+if [ -n "${DS_LICENSE_PATH:-}" ]; then
+    install -m 644 "$DS_LICENSE_PATH" "/var/www/${package_sysname}/Data/license.lic"
+    chown --reference="/var/www/${package_sysname}/Data" "/var/www/${package_sysname}/Data/license.lic"
+    chmod 640 "/var/www/${package_sysname}/Data/license.lic"
+    echo "[OK] License installed at /var/www/${package_sysname}/Data/license.lic"
 fi
 
 echo ""

@@ -138,6 +138,12 @@ while [ "$1" != "" ]; do
             fi
         ;;
 
+        --licensepath )
+            [ -n "$2" ] || { echo "Error: --licensepath requires a file path" >&2; exit 1; }
+            DS_LICENSE_PATH="$2"
+            shift
+        ;;
+
         -ht | --helptarget )
             if [ "$2" != "" ]; then
                 HELP_TARGET=$2
@@ -243,6 +249,7 @@ while [ "$1" != "" ]; do
             echo "--documentversion        <VERSION_TAG>      Document version tag"
             echo "--installdocs            <true|false|pull>  Install or update Document Server"
             echo "--docsport               <PORT>             Port for ONLYOFFICE Docs (default: $DOCS_PORT)"
+            echo "--licensepath            <FILE>             Enterprise or Developer license file"
             echo "--externalserver         <true|false>       Expose Docs externally (default: true)"
             echo "--wopienabled            <true|false>       Enable WOPI protocol"
             echo
@@ -289,6 +296,37 @@ while [ "$1" != "" ]; do
     esac
     shift
 done
+
+validate_bool() {
+    case "$2" in
+        true | false ) ;;
+        * ) echo "Error: Invalid ${1} '${2}'. Valid values: true, false." >&2; exit 1 ;;
+    esac
+}
+
+validate_bool_or_pull() {
+    case "$2" in
+        true | false | pull ) ;;
+        * ) echo "Error: Invalid ${1} '${2}'. Valid values: true, false, pull." >&2; exit 1 ;;
+    esac
+}
+
+case "${INSTALLATION_TYPE}" in
+    COMMUNITY | ENTERPRISE | DEVELOPER ) ;;
+    * ) echo "Error: Invalid --installationtype '${INSTALLATION_TYPE}'. Valid values: COMMUNITY, ENTERPRISE, DEVELOPER." >&2; exit 1 ;;
+esac
+
+validate_bool --update "$UPDATE"
+validate_bool --externalserver "$USE_AS_EXTERNAL_SERVER"
+validate_bool --skiphardwarecheck "$SKIP_HARDWARE_CHECK"
+validate_bool --skipversioncheck "$SKIP_VERSION_CHECK"
+validate_bool_or_pull --installdocs "$INSTALL_DOCUMENT_SERVER"
+[ -n "$UNINSTALL" ] && validate_bool --uninstall "$UNINSTALL"
+[ -n "$JWT_ENABLED" ] && validate_bool --jwtenabled "$JWT_ENABLED"
+[ -n "$WOPI_ENABLED" ] && validate_bool --wopienabled "$WOPI_ENABLED"
+[ -n "$LOCAL_SCRIPTS" ] && validate_bool --localscripts "$LOCAL_SCRIPTS"
+
+[ -z "${DS_LICENSE_PATH:-}" ] || [ -f "$DS_LICENSE_PATH" ] || { echo "Error: license file not found: $DS_LICENSE_PATH" >&2; exit 1; }
 
 root_checking () {
     [[ ${EUID} -eq 0 ]] || { echo "To perform this action you must be logged in with root rights"; exit 1; }
@@ -438,8 +476,16 @@ check_hardware () {
     fi
 
     if [ -n "${REQUIREMENTS_NOT_MET}" ]; then
-        printf "Minimal requirements are not met, your system needs:%b\n\nTo skip this check, use the --skiphardwarecheck true parameter\n" "${REQUIREMENTS_NOT_MET}"
-        exit 1
+        printf "Minimal requirements are not met, your system needs:%b\n\n" "${REQUIREMENTS_NOT_MET}"
+
+        # Without a terminal there is nobody to ask
+        if [ ! -t 0 ]; then
+            echo "To skip this check, use the --skiphardwarecheck true parameter"
+            exit 1
+        fi
+
+        read -r -p "Continue installation anyway? (y/N): " CONTINUE_CHOICE
+        [[ "${CONTINUE_CHOICE,,}" =~ ^(y|yes)$ ]] || exit 1
     fi
 }
 
@@ -546,7 +592,7 @@ install_docker () {
 	elif [[ "${DIST}" == Red\ Hat\ Enterprise\ Linux* ]]; then
 
 		if [[ "${REV}" -gt "7" ]]; then
-			yum remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc > null
+			yum remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc > /dev/null
 			yum install -y yum-utils
 			yum-config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
 			yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin
@@ -627,7 +673,7 @@ get_tag_from_registry() {
         TOKEN=$(curl -fs ${CREDENTIALS} "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${IMAGE}:pull" | jq -r .token)
         AUTH_HEADER="Authorization: Bearer $TOKEN"
         REGISTRY_TAGS_URL="https://registry-1.docker.io/v2/${IMAGE}/tags/list"
-        JQ_FILTER='.tags | map(select( test("^99\\.") | not )) | .[-100:] | .[]'
+        JQ_FILTER='.tags | map(select( test("^99\\.") | not )) | .[]'
     fi
 
     mapfile -t TAGS_RESP < <(curl -s ${AUTH_HEADER:+-H "$AUTH_HEADER"} "$REGISTRY_TAGS_URL" | jq -r "$JQ_FILTER")
@@ -1058,6 +1104,7 @@ start_installation () {
 
     if [ "$INSTALL_DOCUMENT_SERVER" == "true" ]; then
         pull_document_server
+        [ -z "${DS_LICENSE_PATH:-}" ] || install -m 644 "$DS_LICENSE_PATH" "$BASE_DIR/DocumentServer/data/license.lic" || exit 1
         install_document_server
     elif [ "$INSTALL_DOCUMENT_SERVER" == "pull" ]; then
         pull_document_server

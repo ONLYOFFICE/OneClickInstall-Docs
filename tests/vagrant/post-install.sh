@@ -126,24 +126,6 @@ uninstall_docs() {
   echo "${COLOR_GREEN}[OK] Package uninstalled${COLOR_RESET}"
 }
 
-install_license() {
-  local data_dir="/var/www/onlyoffice/Data"
-  local license_file="${data_dir}/license.lic"
-  local content
-  content="$(cat)"
-
-  if [ -z "${content}" ]; then
-    echo "${COLOR_YELLOW}[SKIP] No license content provided${COLOR_RESET}"
-    return 0
-  fi
-
-  mkdir -p "${data_dir}"
-  printf '%s' "${content}" > "${license_file}"
-  chown --reference="${data_dir}" "${license_file}"
-  chmod 640 "${license_file}"
-  echo "${COLOR_GREEN}[OK] License installed at ${license_file}${COLOR_RESET}"
-}
-
 main() {
   get_colors
 
@@ -152,22 +134,18 @@ main() {
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
       echo "${COLOR_BLUE}HEALTH CHECK${COLOR_RESET}"
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
-      healthcheck_nginx
-      healthcheck_curl
-      healthcheck_systemd_services
-      healthcheck_example
+      local status=0
+      healthcheck_nginx || status=1
+      healthcheck_curl || status=1
+      healthcheck_systemd_services || status=1
+      healthcheck_example || status=1
+      return "$status"
       ;;
     uninstall)
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
       echo "${COLOR_BLUE}UNINSTALL${COLOR_RESET}"
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
       uninstall_docs "${@:2}"
-      ;;
-    license)
-      echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
-      echo "${COLOR_BLUE}INSTALL LICENSE${COLOR_RESET}"
-      echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
-      install_license
       ;;
     logs)
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
@@ -176,7 +154,7 @@ main() {
       services_logs
       ;;
     *)
-      echo "Usage: $0 [healthcheck|uninstall|logs|license]"
+      echo "Usage: $0 [healthcheck|uninstall|logs]"
       exit 1
       ;;
   esac
