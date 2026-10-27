@@ -29,6 +29,16 @@ check_hw() {
 
 prepare_vm() {
   . /etc/os-release
+  if [ "${ID:-}" = "centos" ] && [ "${VERSION_ID%%.*}" = "8" ]; then
+    # EPEL Next 8 reached EOL with CentOS Stream 8; its mirrors now return 404.
+    # Disable it before any package operation, including installing curl.
+    local EPEL_NEXT_REPO
+    for EPEL_NEXT_REPO in /etc/yum.repos.d/epel-next*.repo; do
+      [ -f "$EPEL_NEXT_REPO" ] || continue
+      sed -i 's/^[[:space:]]*enabled[[:space:]]*=.*/enabled=0/' "$EPEL_NEXT_REPO"
+    done
+  fi
+
   if [ "${VERSION_CODENAME:-}" = "bullseye" ]; then
     # Debian 11 reached EOL on 2026-08-31
     sed -Ei \
