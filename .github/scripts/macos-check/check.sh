@@ -98,15 +98,14 @@ expect_log "-v onlyoffice_docs_redis:/var/lib/redis"
 [ -f "${SCENARIO_HOME}/onlyoffice/DocumentServer/data/license.lic" ] || fail "the license was not installed"
 end_scenario
 
-new_scenario "An update finds the directory of a custom --basedir"
-run_wrapper -ls true -it community -dv 9.1.0 -skiphc true -bd "${WORK_DIR}/custom/onlyoffice"
+new_scenario "An update keeps the data directory"
+run_wrapper -ls true -it community -dv 9.1.0 -skiphc true
 expect_rc 0
-[ -d "${WORK_DIR}/custom/onlyoffice/DocumentServer/data" ] || fail "the custom base directory was not used"
+[ -d "${SCENARIO_HOME}/onlyoffice/DocumentServer/data" ] || fail "the data directory was not created"
 : > "${FAKE_DOCKER_STATE}/docker.log"
 run_wrapper -ls true -it community -dv 9.1.1 -skiphc true -u true
 expect_rc 0
-expect_log "-v ${WORK_DIR}/custom/onlyoffice/DocumentServer/data:/var/www/onlyoffice/Data"
-[ -e "${SCENARIO_HOME}/onlyoffice" ] && fail "the update created the default directory"
+expect_log "-v ${SCENARIO_HOME}/onlyoffice/DocumentServer/data:/var/www/onlyoffice/Data"
 end_scenario
 
 new_scenario "A busy port is detected with the BSD netstat"

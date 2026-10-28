@@ -101,7 +101,6 @@ sudo bash docs-install.sh --help
 | `--password`               | `<PASSWORD>`                 | -                            | Docker registry password                                  |
 | `--externalserver`         | `true` \| `false`            | `true`                       | Expose Docs externally                                    |
 | `--skipversioncheck`       | `true` \| `false`            | `false`                      | Skip version check                                        |
-| `--basedir`                | `<PATH>`                     | `/app/onlyoffice` (`~/onlyoffice` on macOS) | Directory for Docs data, logs and fonts      |
 | `--letsencryptdomain`      | `<DOMAIN>`                   | -                            | Domain for Let's Encrypt cert                             |
 | `--letsencryptmail`        | `<EMAIL>`                    | -                            | Admin email for Let's Encrypt                             |
 
@@ -212,7 +211,7 @@ Docs can be installed in Docker on macOS (Apple Silicon and Intel) with [Docker 
 - Run the script **without** `sudo`: Docker Desktop works per user.
 - [Homebrew](https://brew.sh) is required. The script installs `bash`, `coreutils`, `findutils`, `gnu-sed`, `grep`, `gnu-tar` and `jq` with it and re-runs itself under the Homebrew `bash`.
 - Docker Desktop is installed with Homebrew when it is missing (accept its license agreement in the window that opens) and started automatically when it is not running. CPU and memory are taken from its limits (Settings > Resources): at least 2 cores and 4 GB RAM. The free disk space is checked on the Mac; the Docker volumes of Enterprise and Developer live in the virtual disk of Docker Desktop, so its disk limit (Settings > Resources) must leave at least the 10 GB that the installer checks (the table above recommends 40 GB).
-- Data is stored in `~/onlyoffice` by default. Use `--basedir <PATH>` to change it; the path must be shared with Docker Desktop.
+- Data is stored in `~/onlyoffice`; the directory must be shared with Docker Desktop (the home directory is by default).
 - For Enterprise and Developer editions the database, RabbitMQ and Redis data are kept in Docker volumes.
 
 ```bash

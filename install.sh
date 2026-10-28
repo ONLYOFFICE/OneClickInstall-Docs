@@ -174,14 +174,6 @@ while [ "$1" != "" ]; do
             shift
         ;;
 
-        -bd | --basedir )
-            if [ "$2" != "" ]; then
-                BASE_DIR=${2%/}
-                BASE_DIR_FROM_ARGS="true"
-                shift
-            fi
-        ;;
-
         -ht | --helptarget )
             if [ "$2" != "" ]; then
                 HELP_TARGET=$2
@@ -281,7 +273,6 @@ while [ "$1" != "" ]; do
             echo "--update                 <true|false>       Update existing components"
             echo "--uninstall              <true|false>       Uninstall ONLYOFFICE Docs"
             echo "--localscripts           <true|false>       Use local scripts"
-            echo "--basedir                <PATH>             Base directory for Docs data (default: $BASE_DIR)"
             echo
             echo "DOCUMENT SERVER OPTIONS:"
             echo "--documentimage          <name|path>        Document image name or .tar.gz file path"
@@ -757,16 +748,6 @@ docker_login () {
     fi
 }
 
-detect_base_dir () {
-    local DATA_SOURCE
-    [ "$BASE_DIR_FROM_ARGS" = "true" ] && return 0
-
-    # Reuse the data directory of an existing container installed with a custom --basedir
-    DATA_SOURCE=$(docker inspect --format "{{range .Mounts}}{{if eq .Destination \"/var/www/$PRODUCT/Data\"}}{{.Source}}{{end}}{{end}}" "$DOCUMENT_CONTAINER_NAME" 2>/dev/null)
-    [[ "$DATA_SOURCE" == */DocumentServer/data ]] && BASE_DIR="${DATA_SOURCE%/DocumentServer/data}"
-    return 0
-}
-
 make_directories () {
     mkdir -p "$BASE_DIR/DocumentServer/data/certs" "$BASE_DIR/DocumentServer/logs" "$BASE_DIR/DocumentServer/fonts" "$BASE_DIR/DocumentServer/forgotten" || { echo "Failed to create directories in $BASE_DIR"; exit 1; }
 }
@@ -1125,10 +1106,9 @@ uninstall () {
     # Without Docker Desktop on macOS there is no container, only the local files are left to remove
     if is_macos && ! prepare_docker_desktop --no-install; then
         DOCKER_AVAILABLE=false
-        echo "Docker is not installed, only the local files in ${BASE_DIR} are removed (use --basedir for another directory)."
+        echo "Docker is not installed, only the local files in ${BASE_DIR} are removed."
     fi
     if [ "${DOCKER_AVAILABLE}" = true ]; then
-        detect_base_dir
         [ -n "$(get_container_id "$DOCUMENT_CONTAINER_NAME")" ] && remove_container "$DOCUMENT_CONTAINER_NAME"
         docker network rm "$NETWORK" >/dev/null 2>&1 || echo "Failed to uninstall network ${NETWORK}."
     fi
@@ -1242,8 +1222,6 @@ start_installation () {
     fi
 
     docker_login
-
-    detect_base_dir
 
     make_directories
 
