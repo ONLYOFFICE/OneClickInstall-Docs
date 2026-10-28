@@ -92,6 +92,8 @@ while [ "$1" != "" ]; do
 done
 
 root_checking () {
+	# Docker Desktop runs per user, root is refused by the macOS block at the top
+	[[ "$OSTYPE" == darwin* ]] && return 0
 	[[ $EUID -eq 0 ]] || { echo "To perform this action you must be logged in with root rights"; exit 1; }
 }
 
@@ -132,13 +134,16 @@ if [ "$UNINSTALL" = "true" ] && is_command_exists docker && docker ps -a --forma
     DOCKER="true"
 fi
 
+# Only the Docker installation is available on macOS
+[[ "$OSTYPE" == darwin* ]] && DOCKER="true"
+
 [ "$HELP" == "false" ] && [ "$UNINSTALL" != "true" ] && [ -z "$DOCKER" ] && read_installation_method
 
 if [ "$DOCKER" = "true" ]; then
     SCRIPT="install.sh"
 elif [ -f /etc/redhat-release ] || [ -f /etc/amazon-linux-release ]; then
     SCRIPT="install-RedHat.sh"
-elif [ -f /etc/debian_version ] || grep -qi "openkylin" /etc/os-release; then
+elif [ -f /etc/debian_version ] || grep -qsi "openkylin" /etc/os-release; then
     SCRIPT="install-Debian.sh"
 else
     echo "Not supported OS" >&2

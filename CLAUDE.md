@@ -68,7 +68,7 @@ Smoke test env vars: `SERVER_URL` (default `http://localhost`), `CHECK_ADMINPANE
 
 CI coverage: docker workflow tests a community+enterprise matrix (`4testing-*` images on branches, stable on `master`) and waits for real readiness — container healthy, then the entrypoint's final log-tail process (fonts/static/plugins generation finished). Vagrant jobs reach the VM through forwarded `localhost:8080`; nginx inside the VM also listens on 8080 so server-side URLs built from the Host header resolve.
 
-Supported OS: RHEL 8/9, CentOS 8-10 Stream, Amazon Linux 2023, Debian 11-13, Ubuntu 20.04/22.04/24.04/26.04, ARM64
+Supported OS: RHEL 8/9, CentOS 8-10 Stream, Amazon Linux 2023, Debian 11-13, Ubuntu 20.04/22.04/24.04/26.04, ARM64. macOS (Docker Desktop, Docker install only): the scripts run without sudo and re-exec under Homebrew bash with GNU tools (block at the top of `install.sh`; the `docs-install.sh` wrapper stays bash 3.2 compatible). CI: the `macOS-script-check` job in `ci-docker-install.yml` runs `.github/scripts/macos-check/check.sh` on `macos-26` against a fake docker (no VM, no containers). There is no real macOS install in CI: Apple Silicon runners cannot start a Docker VM and the VM on the Intel ones is very slow.
 
 ## Key Patterns
 
