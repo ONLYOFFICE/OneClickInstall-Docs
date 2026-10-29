@@ -35,7 +35,9 @@
  # SPDX-License-Identifier: AGPL-3.0-only
  #
 
-PARAMETERS="-it COMMUNITY $PARAMETERS"
+# PARAMETERS from the environment is split into words on purpose
+read -r -a ENV_PARAMS <<< "$PARAMETERS"
+PARAMS=(-it COMMUNITY "${ENV_PARAMS[@]}")
 DOCKER=""
 LOCAL_SCRIPTS="false"
 HELP="false"
@@ -44,7 +46,7 @@ while [ "$1" != "" ]; do
     case $1 in
         -ls | --localscripts )
             if [ "$2" == "true" ] || [ "$2" == "false" ]; then
-                PARAMETERS="$PARAMETERS ${1}"
+                PARAMS+=("$1")
                 LOCAL_SCRIPTS=$2
                 shift
             fi
@@ -52,7 +54,7 @@ while [ "$1" != "" ]; do
 
         -uni | --uninstall )
             if [ "$2" == "true" ] || [ "$2" == "false" ]; then
-                PARAMETERS="$PARAMETERS ${1}"
+                PARAMS+=("$1")
                 UNINSTALL=$2
                 shift
             fi
@@ -84,10 +86,10 @@ while [ "$1" != "" ]; do
         "-?" | -h | --help )
             HELP="true"
             DOCKER="true"
-            PARAMETERS="$PARAMETERS -ht $(basename "$0")"
+            PARAMS+=(-ht "$(basename "$0")")
         ;;
     esac
-    PARAMETERS="$PARAMETERS ${1}"
+    PARAMS+=("$1")
     shift
 done
 
@@ -152,7 +154,9 @@ fi
 
 DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs"
 [ -n "$GIT_BRANCH" ] && DOWNLOAD_URL_PREFIX="https://raw.githubusercontent.com/ONLYOFFICE/OneClickInstall-Docs/${GIT_BRANCH}"
-[ "$LOCAL_SCRIPTS" != "true" ] && curl -s -O "${DOWNLOAD_URL_PREFIX}/${SCRIPT}"
-bash ${SCRIPT} ${PARAMETERS} || EXIT_CODE=$?
+if [ "$LOCAL_SCRIPTS" != "true" ]; then
+    curl -fsS -O "${DOWNLOAD_URL_PREFIX}/${SCRIPT}" || { echo "Failed to download ${SCRIPT}" >&2; exit 1; }
+fi
+bash "${SCRIPT}" "${PARAMS[@]}" || EXIT_CODE=$?
 [ "${LOCAL_SCRIPTS}" != "true" ] && rm -f "${SCRIPT}"
 exit ${EXIT_CODE:-0}
