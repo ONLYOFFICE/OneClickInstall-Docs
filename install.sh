@@ -35,8 +35,16 @@
  # SPDX-License-Identifier: AGPL-3.0-only
  #
 
+# The usage text only needs echo, so --help must not install anything on macOS
+MACOS_BOOTSTRAP="true"
+for ARG in "$@"; do
+    case "$ARG" in
+        -h | --help | -\? ) MACOS_BOOTSTRAP="false" ;;
+    esac
+done
+
 # macOS: refuse sudo, get bash 4+ and GNU tools from Homebrew, re-run under Homebrew bash (keep this block bash 3.2 compatible)
-if [[ "$OSTYPE" == darwin* ]]; then
+if [[ "$OSTYPE" == darwin* && "$MACOS_BOOTSTRAP" == "true" ]]; then
     [ "$EUID" -eq 0 ] && { echo "On macOS, run this script without sudo" >&2; exit 1; }
     BREW_BIN=$(PATH="$PATH:/opt/homebrew/bin:/usr/local/bin" command -v brew)
     [ -n "$BREW_BIN" ] || { echo "Homebrew is required on macOS, see https://brew.sh" >&2; exit 1; }
