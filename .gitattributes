@@ -1,2 +1,5 @@
 * text=auto
 *.sh text eol=lf
+
+# Keep the macOS check helpers LF so the shebang works on Windows checkouts
+.github/scripts/macos-check/fake-bin/* text eol=lf
