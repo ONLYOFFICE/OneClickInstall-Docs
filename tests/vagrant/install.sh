@@ -40,13 +40,14 @@ prepare_vm() {
   fi
 
   if [ "${VERSION_CODENAME:-}" = "bullseye" ]; then
-    # Debian 11 reached EOL on 2026-08-31
+    # Debian 11 reached EOL on 2026-08-31 - repoint apt to the archive mirrors
+    # Add contrib only to the main archive; disable expiry checks for both archives.
     sed -Ei \
-      -e 's#https?://(security|deb)\.debian\.org/debian-security#https://snapshot.debian.org/archive/debian-security/20260901T000000Z#g' \
+      -e 's#https?://(security|deb)\.debian\.org/debian-security#https://archive.debian.org/debian-security#g' \
       -e 's#https?://deb\.debian\.org/debian#https://archive.debian.org/debian#g' \
-      -e '/archive\.debian\.org\/debian/ { / contrib/! s/$/ contrib/; }' \
-      -e '/(archive\.debian\.org\/debian|snapshot\.debian\.org\/archive\/debian-security)/ { /check-valid-until=no/! s|^(deb(-src)?) \[|\1 [check-valid-until=no |; }' \
-      -e '/(archive\.debian\.org\/debian|snapshot\.debian\.org\/archive\/debian-security)/ { /check-valid-until=no/! s|^(deb(-src)?) |\1 [check-valid-until=no] |; }' \
+      -e '/archive\.debian\.org\/debian\/?[[:space:]]/ { / contrib/! s/$/ contrib/; }' \
+      -e '/archive\.debian\.org\/debian(-security)?\/?[[:space:]]/ { /check-valid-until=no/! s|^(deb(-src)?) \[|\1 [check-valid-until=no |; }' \
+      -e '/archive\.debian\.org\/debian(-security)?\/?[[:space:]]/ { /check-valid-until=no/! s|^(deb(-src)?) |\1 [check-valid-until=no] |; }' \
       /etc/apt/sources.list
   fi
 
