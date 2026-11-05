@@ -75,7 +75,7 @@ Supported OS: RHEL 8/9, CentOS 8-10 Stream, Amazon Linux 2023, Debian 11-13, Ubu
 - `docs-install.sh` detects OS and routes to Docker or package installer
 - `install.sh` handles full Docker lifecycle: pull, configure, run
 - `install-Debian/` and `install-RedHat/` mirror each other in structure
-- Hardware checks: 2 CPU cores, 4GB RAM, 40GB disk minimum
+- Hardware checks (code): 2 CPU cores, 10 GB disk, 4 GB RAM in Docker mode (2 GB in package mode); README documents 40 GB disk and 4 GB swap, which the scripts do not check
 - Three editions: Community, Enterprise, Developer
 - JWT auto-generation if secret not provided
 - Let's Encrypt integration for HTTPS
