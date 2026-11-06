@@ -43,7 +43,21 @@ RES_APP_INSTALLED="is already installed"
 RES_INSTALL_SUCCESS="Thank you for installing ONLYOFFICE Docs."
 RES_QUESTIONS="In case you have any questions contact us via http://support.onlyoffice.com or visit our forum at http://community.onlyoffice.com"
 
+require_value() {
+    [ -n "${2-}" ] && return 0
+    case "$1" in
+        --packagepath | --licensepath ) echo "Error: ${1} requires a file path" >&2 ;;
+        * ) echo "Error: Missing value for ${1}" >&2 ;;
+    esac
+    exit 1
+}
+
 while [ "$1" != "" ]; do
+    case $1 in
+        -h | "-?" | --help ) ;;
+        -* ) require_value "$1" "$2" ;;
+    esac
+
     case $1 in
 
         -it | --installationtype | --installation_type )
@@ -124,18 +138,12 @@ while [ "$1" != "" ]; do
         ;;
 
         --packagepath )
-            if [ "$2" != "" ]; then
-                DS_PACKAGE_PATH=$2
-                shift
-            else
-                echo "Error: --packagepath requires a file path" >&2
-                exit 1
-            fi
+            DS_PACKAGE_PATH=$2
+            shift
         ;;
 
         --licensepath )
-            [ -n "$2" ] || { echo "Error: --licensepath requires a file path" >&2; exit 1; }
-            DS_LICENSE_PATH="$2"
+            DS_LICENSE_PATH=$2
             shift
         ;;
 
@@ -211,25 +219,32 @@ export NEEDRESTART_MODE=a
 
 # Pause apt auto-updates and running jobs to avoid dpkg lock contention; only timers that were
 # actually active get restarted by the EXIT trap, so a host with auto-updates disabled stays that way.
-APT_TIMERS_TO_RESTORE=()
-for _apt_timer in apt-daily.timer apt-daily-upgrade.timer; do
-    systemctl is-active --quiet "${_apt_timer}" && APT_TIMERS_TO_RESTORE+=("${_apt_timer}")
+APT_UNITS_TO_RESTORE=()
+for _apt_unit in apt-daily.timer apt-daily-upgrade.timer unattended-upgrades.service; do
+    systemctl is-active --quiet "${_apt_unit}" && APT_UNITS_TO_RESTORE+=("${_apt_unit}")
 done
 systemctl stop apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service unattended-upgrades.service >/dev/null 2>&1 || true
-trap '[ ${#APT_TIMERS_TO_RESTORE[@]} -eq 0 ] || systemctl start "${APT_TIMERS_TO_RESTORE[@]}" >/dev/null 2>&1 || true' EXIT
+trap '[ ${#APT_UNITS_TO_RESTORE[@]} -eq 0 ] || systemctl start "${APT_UNITS_TO_RESTORE[@]}" >/dev/null 2>&1 || true' EXIT
 
 if [ $(dpkg-query -W -f='${Status}' curl 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
     apt-get install -yq -o DPkg::Lock::Timeout=60 curl
 fi
 
-DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs/install-Debian"
-[ -n "${GIT_BRANCH}" ] && DOWNLOAD_URL_PREFIX="https://raw.githubusercontent.com/ONLYOFFICE/OneClickInstall-Docs/${GIT_BRANCH}/install-Debian"
+DOWNLOAD_BASE_URL="https://download.onlyoffice.com/docs"
+[ -n "${GIT_BRANCH}" ] && DOWNLOAD_BASE_URL="https://raw.githubusercontent.com/ONLYOFFICE/OneClickInstall-Docs/${GIT_BRANCH}"
+
+source_remote_script() {
+    local script_body
+    script_body=$(curl -fsSL --retry 3 --retry-delay 2 "${DOWNLOAD_BASE_URL}/$1") || { echo "Error: failed to download $1" >&2; return 1; }
+    bash -n <<< "${script_body}" || { echo "Error: downloaded $1 is not a valid script" >&2; return 1; }
+    source <(printf '%s\n' "${script_body}")
+}
 
 if [ "${UNINSTALL}" = "true" ]; then
     if [ "${LOCAL_SCRIPTS}" == "true" ]; then
         source install-Debian/uninstall.sh
     else
-        source <(curl ${DOWNLOAD_URL_PREFIX}/uninstall.sh)
+        source_remote_script install-Debian/uninstall.sh || exit 1
     fi
     exit 0
 fi
@@ -241,7 +256,7 @@ if fuser /var/lib/dpkg/lock-frontend &>/dev/null; then
     timeout 60 bash -c 'while fuser /var/lib/dpkg/lock-frontend &>/dev/null; do sleep 1; done' || true
 fi
 
-apt-get -y update -o DPkg::Lock::Timeout=60
+apt-get -y update --allow-releaseinfo-change -o DPkg::Lock::Timeout=60
 apt-get install -yq -o DPkg::Lock::Timeout=60 sudo dirmngr
 
 # add onlyoffice repo
@@ -256,10 +271,8 @@ if [ "${LOCAL_SCRIPTS}" == "true" ]; then
     source install-Debian/tools.sh
     source "$(dirname -- "${BASH_SOURCE[0]}")/common/check-ports.sh" || exit 1
 else
-    source <(curl ${DOWNLOAD_URL_PREFIX}/tools.sh)
-    PORT_CHECKS_SCRIPT=$(curl -fsSL --retry 3 "${DOWNLOAD_URL_PREFIX%/install-Debian}/common/check-ports.sh") || exit 1
-    bash -n <<< "$PORT_CHECKS_SCRIPT" || exit 1
-    source <(printf '%s\n' "$PORT_CHECKS_SCRIPT") || exit 1
+    source_remote_script install-Debian/tools.sh || exit 1
+    source_remote_script common/check-ports.sh || exit 1
 fi
 [ "$DOCUMENT_SERVER_INSTALLED" != true ] || [ "$UPDATE" = true ] || exit 0
 
@@ -267,6 +280,6 @@ if [ "${LOCAL_SCRIPTS}" == "true" ]; then
     source install-Debian/install-preq.sh
     source install-Debian/install-app.sh
 else
-    source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq.sh)
-    source <(curl ${DOWNLOAD_URL_PREFIX}/install-app.sh)
+    source_remote_script install-Debian/install-preq.sh || exit 1
+    source_remote_script install-Debian/install-app.sh || exit 1
 fi

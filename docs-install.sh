@@ -147,7 +147,9 @@ fi
 
 DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs"
 [ -n "$GIT_BRANCH" ] && DOWNLOAD_URL_PREFIX="https://raw.githubusercontent.com/ONLYOFFICE/OneClickInstall-Docs/${GIT_BRANCH}"
-[ "$LOCAL_SCRIPTS" != "true" ] && curl -s -O "${DOWNLOAD_URL_PREFIX}/${SCRIPT}"
+if [ "$LOCAL_SCRIPTS" != "true" ]; then
+    curl -fsSL --retry 3 -O "${DOWNLOAD_URL_PREFIX}/${SCRIPT}" || { echo "Error: failed to download ${SCRIPT}" >&2; exit 1; }
+fi
 bash ${SCRIPT} ${PARAMETERS} || EXIT_CODE=$?
 [ "${LOCAL_SCRIPTS}" != "true" ] && rm -f "${SCRIPT}"
 exit ${EXIT_CODE:-0}

@@ -72,7 +72,21 @@ SKIP_VERSION_CHECK="false"
 
 DOCS_PORT=80;
 
+require_value() {
+    [ -n "${2-}" ] && return 0
+    case "$1" in
+        --licensepath ) echo "Error: ${1} requires a file path" >&2 ;;
+        * ) echo "Error: Missing value for ${1}" >&2 ;;
+    esac
+    exit 1
+}
+
 while [ "$1" != "" ]; do
+    case $1 in
+        -h | "-?" | --help ) ;;
+        -* ) require_value "$1" "$2" ;;
+    esac
+
     case $1 in
 
         -di | --documentimage )
@@ -139,8 +153,7 @@ while [ "$1" != "" ]; do
         ;;
 
         --licensepath )
-            [ -n "$2" ] || { echo "Error: --licensepath requires a file path" >&2; exit 1; }
-            DS_LICENSE_PATH="$2"
+            DS_LICENSE_PATH=$2
             shift
         ;;
 
@@ -457,9 +470,9 @@ check_kernel () {
 }
 
 check_hardware () {
-    AVAILABLE_DISK_SPACE=$(df -m /  | tail -1 | awk '{ print $4 }')
-    TOTAL_MEMORY=$(free --mega | grep -oP '\d+' | head -n 1)
-    CPU_CORES_NUMBER=$(grep -c '^processor' /proc/cpuinfo)
+    AVAILABLE_DISK_SPACE=$(df -Pm / | awk 'NR == 2 { print $4 }')
+    TOTAL_MEMORY=$(free --mega | awk '/^Mem:/ { print $2 }')
+    CPU_CORES_NUMBER=$(nproc --all)
 
     REQUIREMENTS_NOT_MET=""
 

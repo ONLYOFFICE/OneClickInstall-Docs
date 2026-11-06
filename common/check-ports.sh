@@ -54,13 +54,17 @@ else
     return 1
 fi
 
-PORTS=(8000)
-[ "$INSTALLATION_TYPE" = COMMUNITY ] || PORTS+=(5432 5672 6379)
-if [[ " ${PORTS[*]} " = *" $DS_PORT "* ]]; then
-    echo "Docs port $DS_PORT is reserved. Select another port." >&2
-    return 1
-fi
-PORTS=("$DS_PORT" "${PORTS[@]}")
+# Prints the installed package matching a name or glob on DEB, or a name or provided capability on RPM
+dependency_installed() {
+    local MATCHED
+    if command -v dpkg-query >/dev/null 2>&1; then
+        MATCHED=$(dpkg-query -W -f='${Package} ${db:Status-Status}\n' "$1" 2>/dev/null | awk '$2 == "installed" { print $1; exit }')
+    else
+        MATCHED=$(rpm -q --whatprovides --qf '%{NAME}\n' "$1" 2>/dev/null) || return 1
+        MATCHED=${MATCHED%%$'\n'*}
+    fi
+    [ -n "${MATCHED}" ] && echo "${MATCHED}"
+}
 
 package_installed() {
     if command -v dpkg-query >/dev/null 2>&1; then
@@ -68,6 +72,27 @@ package_installed() {
     else
         rpm -q "$1" >/dev/null 2>&1
     fi
+}
+
+RESERVED_PORTS=(8000)
+[ "$INSTALLATION_TYPE" = COMMUNITY ] || RESERVED_PORTS+=(5432 5672 6379)
+if [[ " ${RESERVED_PORTS[*]} " = *" $DS_PORT "* ]]; then
+    echo "Docs port $DS_PORT is reserved. Select another port." >&2
+    return 1
+fi
+
+PORTS=("$DS_PORT" 8000)
+# An already installed dependency is reused by install-preq, so its busy port is expected.
+add_dependency_port() {
+    local port="$1" package_name installed_name
+    shift
+    for package_name in "$@"; do
+        if installed_name=$(dependency_installed "$package_name"); then
+            echo "$installed_name $RES_APP_INSTALLED"
+            return 0
+        fi
+    done
+    PORTS+=("$port")
 }
 
 DOCUMENT_SERVER_INSTALLED=false
@@ -81,6 +106,17 @@ for SUFFIX in "" -de -ee; do
 done
 
 [ "$UPDATE" != true ] || return 0
+
+if [ "$INSTALLATION_TYPE" != COMMUNITY ]; then
+    # The PostgreSQL server package is named differently on DEB and RPM distros.
+    if command -v dpkg-query >/dev/null 2>&1; then
+        add_dependency_port 5432 postgresql 'postgresql-[0-9]*'
+    else
+        add_dependency_port 5432 postgresql-server
+    fi
+    add_dependency_port 5672 rabbitmq-server
+    add_dependency_port 6379 redis-server "${REDIS_PACKAGE:-redis}"
+fi
 
 if ! command -v ss >/dev/null 2>&1; then
     if command -v dpkg-query >/dev/null 2>&1; then
