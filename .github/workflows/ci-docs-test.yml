@@ -278,7 +278,7 @@ jobs:
         if: steps.boot.outcome == 'success'
         run: |
           if vagrant status | grep -q "running"; then
-            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh healthcheck"
+            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh healthcheck '$INSTALLATION_TYPE'"
           else
             echo "VM is not running, skipping health check"
           fi
@@ -350,6 +350,10 @@ jobs:
         [[ "${{ github.event_name }}" == "schedule" ]] && source_args="-ds true" || { source_args="-ds false -v ${VER} -tr true"; install_args+=" --localscripts true"; }
         sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh $source_args -it '${{ github.event.inputs.installationtype || 'enterprise' }}' -arg "$install_args"
 
+    - name: Health check
+      timeout-minutes: 10
+      run: sudo bash tests/vagrant/post-install.sh healthcheck "$INSTALLATION_TYPE"
+
     - name: Smoke test
       timeout-minutes: 10
       run: |
@@ -367,7 +371,11 @@ jobs:
         fi
 
         PIP_BREAK_SYSTEM_PACKAGES=1 pip install -q --disable-pip-version-check -r tests/smoke/requirements.txt
-        CHECK_ADMINPANEL=true python3 -m pytest tests/smoke/test_docs_smoke.py -v -s
+        python3 -m pytest tests/smoke/test_docs_smoke.py -v -s
+
+    - name: Collect logs
+      if: failure()
+      run: sudo bash tests/vagrant/post-install.sh logs
 
     - name: Uninstall
       timeout-minutes: 10

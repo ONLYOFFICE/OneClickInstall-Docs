@@ -23,6 +23,8 @@ jobs:
   Install:
     name: "Install (${{ matrix.edition }}) [${{ matrix.arch }}]"
     runs-on: ${{ matrix.runner }}
+    env:
+      INSTALLATION_TYPE: ${{ matrix.edition }}
     timeout-minutes: 30
     strategy:
       fail-fast: false

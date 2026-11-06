@@ -218,9 +218,13 @@ def test_version_info():
     done(safe_text)
 
 def test_adminpanel():
-    """Admin panel must respond when shipped: 404 skips (not shipped, e.g. CE Docker)
-    unless CHECK_ADMINPANEL=true (DEB/RPM always ship it); 502 etc. fails."""
-    strict = os.environ.get('CHECK_ADMINPANEL', '').lower() == 'true'
+    """Commercial editions and CHECK_ADMINPANEL=true require a working panel.
+    Other installations allow 404; broken responses such as 502 always fail."""
+    expectation = os.environ.get('CHECK_ADMINPANEL', '').lower()
+    assert expectation in ('', 'true', 'false'), 'CHECK_ADMINPANEL must be true or false'
+    edition = os.environ.get('INSTALLATION_TYPE', '').lower()
+    assert edition in ('', 'community', 'enterprise', 'developer'), 'Invalid INSTALLATION_TYPE'
+    strict = expectation == 'true' or edition in ('enterprise', 'developer')
     step(f"GET {SERVER_URL}/admin/")
     status, body = http_get('/admin/')
     if status == 404 and not strict:

@@ -7,9 +7,38 @@ export TERM=xterm-256color
 SERVICES_SYSTEMD=(
   "ds-converter.service"
   "ds-docservice.service"
-  "ds-adminpanel.service"
   "nginx.service"
 )
+
+package_info() {
+  local package files
+  local -a packages=()
+  for package in onlyoffice-documentserver onlyoffice-documentserver-ee onlyoffice-documentserver-de; do
+    if command -v dpkg-query >/dev/null 2>&1; then
+      [ "$(dpkg-query -W -f='${Status}' "$package" 2>/dev/null)" = 'install ok installed' ] || continue
+      files=$(dpkg-query -L "$package") || return 1
+    else
+      rpm -q "$package" >/dev/null 2>&1 || continue
+      files=$(rpm -ql "$package") || return 1
+    fi
+    packages+=("$package")
+    case "$package" in
+      *-ee) DOCS_EDITION=enterprise; DOCS_ADMINPANEL=true ;;
+      *-de) DOCS_EDITION=developer; DOCS_ADMINPANEL=true ;;
+      *)
+        DOCS_EDITION=community
+        DOCS_ADMINPANEL=false
+        # Older Community packages shipped the panel. Use the package manifest,
+        # not the presence of an installed file: a missing unit must still fail.
+        if grep -q '/ds-adminpanel\.service$' <<< "$files"; then DOCS_ADMINPANEL=true; fi
+        ;;
+    esac
+  done
+  if [ "${#packages[@]}" != 1 ]; then
+    echo "::error::Expected exactly one installed ONLYOFFICE Docs package" >&2
+    return 1
+  fi
+}
 
 get_colors() {
   export LINE_SEPARATOR="-----------------------------------------"
@@ -18,7 +47,9 @@ get_colors() {
 
 healthcheck_systemd_services() {
   local failed=0
-  for service in "${SERVICES_SYSTEMD[@]}"; do
+  local -a services=("${SERVICES_SYSTEMD[@]}")
+  [ "${DOCS_ADMINPANEL:-false}" != true ] || services+=(ds-adminpanel.service)
+  for service in "${services[@]}"; do
     if systemctl is-active --quiet "$service"; then
       echo "${COLOR_GREEN}[OK] Service ${service} is running${COLOR_RESET}"
     else
@@ -26,12 +57,25 @@ healthcheck_systemd_services() {
       echo "::error::Service ${service} is not running"
       failed=1
     fi
+    if [[ "$service" == ds-* ]] && ! systemctl is-enabled --quiet "$service"; then
+      echo "::error::Service $service is not enabled for boot"
+      failed=1
+    fi
   done
   return $failed
 }
 
+healthcheck_adminpanel() {
+  [ "$DOCS_ADMINPANEL" = true ] || return 0
+  if [ "$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' "${url:-http://localhost}/admin/")" != 200 ]; then
+    echo "::error::AdminPanel is required by the package but does not respond with HTTP 200"
+    return 1
+  fi
+  echo "${COLOR_GREEN}[OK] AdminPanel responds${COLOR_RESET}"
+}
+
 services_logs() {
-  for service in "${SERVICES_SYSTEMD[@]}"; do
+  for service in "${SERVICES_SYSTEMD[@]}" ds-adminpanel.service; do
     echo $LINE_SEPARATOR && echo "${COLOR_GREEN}Check logs for systemd service: $service${COLOR_RESET}" && echo $LINE_SEPARATOR
     journalctl -u "$service" -n 30 || true
   done
@@ -135,8 +179,17 @@ main() {
       echo "${COLOR_BLUE}HEALTH CHECK${COLOR_RESET}"
       echo "${COLOR_BLUE}${LINE_SEPARATOR}${COLOR_RESET}"
       local status=0
+      package_info || return 1
+      if [ -n "${2:-}" ] && [ "$2" != "$DOCS_EDITION" ]; then
+        echo "::error::Installed edition $DOCS_EDITION differs from requested $2"
+        return 1
+      fi
       healthcheck_nginx || status=1
-      healthcheck_curl || status=1
+      if healthcheck_curl; then
+        healthcheck_adminpanel || status=1
+      else
+        status=1
+      fi
       healthcheck_systemd_services || status=1
       healthcheck_example || status=1
       return "$status"
@@ -154,10 +207,10 @@ main() {
       services_logs
       ;;
     *)
-      echo "Usage: $0 [healthcheck|uninstall|logs]"
+      echo "Usage: $0 healthcheck [community|enterprise|developer] | uninstall | logs"
       exit 1
       ;;
   esac
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then main "$@"; fi
