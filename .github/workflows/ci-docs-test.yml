@@ -357,8 +357,7 @@ jobs:
     - name: Smoke test
       timeout-minutes: 10
       run: |
-        # start the example and wait for background fonts/static generation to finish
-        sudo systemctl start ds-example
+        # Health check starts example; wait for background fonts/static generation.
         timeout 5m bash -c 'while pgrep -f "documentserver-(generate-allfonts|static-gzip)" >/dev/null; do sleep 5; done'
 
         # arm64 runners have no Chrome/chromedriver builds — fall back to the selenium container there

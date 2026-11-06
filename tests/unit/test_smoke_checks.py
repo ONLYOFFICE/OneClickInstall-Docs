@@ -88,10 +88,14 @@ healthcheck_adminpanel
     ('community', 'false', 404, pytest.skip.Exception),
     ('community', 'true', 404, AssertionError),
     ('enterprise', '', 404, AssertionError),
-    ('enterprise', 'false', 404, AssertionError),
+    ('enterprise', 'false', 404, pytest.skip.Exception),
     ('developer', '', 404, AssertionError),
+    ('developer', 'false', 404, pytest.skip.Exception),
+    ('', '', 404, pytest.skip.Exception),  # Docker does not set a native edition.
+    ('', '', 502, AssertionError),
     ('community', 'false', 502, AssertionError),
     ('enterprise', '', 200, None),
+    ('enterprise', 'false', 200, None),
     ('community', 'true', 200, None),
 ])
 def test_browser_panel_response(monkeypatch, edition, expectation, status, outcome):

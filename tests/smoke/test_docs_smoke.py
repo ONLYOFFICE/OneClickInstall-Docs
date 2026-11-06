@@ -218,13 +218,13 @@ def test_version_info():
     done(safe_text)
 
 def test_adminpanel():
-    """Commercial editions and CHECK_ADMINPANEL=true require a working panel.
-    Other installations allow 404; broken responses such as 502 always fail."""
+    """CHECK_ADMINPANEL overrides the native edition's default requirement.
+    Without a required panel, 404 skips; broken responses such as 502 always fail."""
     expectation = os.environ.get('CHECK_ADMINPANEL', '').lower()
     assert expectation in ('', 'true', 'false'), 'CHECK_ADMINPANEL must be true or false'
     edition = os.environ.get('INSTALLATION_TYPE', '').lower()
     assert edition in ('', 'community', 'enterprise', 'developer'), 'Invalid INSTALLATION_TYPE'
-    strict = expectation == 'true' or edition in ('enterprise', 'developer')
+    strict = expectation == 'true' if expectation else edition in ('enterprise', 'developer')
     step(f"GET {SERVER_URL}/admin/")
     status, body = http_get('/admin/')
     if status == 404 and not strict:
