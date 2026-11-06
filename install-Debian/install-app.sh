@@ -57,13 +57,13 @@ if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
     if [ -z "${ds_pkg_installed_name}" ]; then
         DOCUMENT_SERVER_INSTALLED="false"
     elif [ -n "${ds_pkg_installed_name}" ] && [ "${ds_pkg_installed_name}" != "${ds_pkg_name}" ]; then
-        apt-get remove -yq "${ds_pkg_installed_name}"
+        apt-get remove -yq -o DPkg::Lock::Timeout=60 "${ds_pkg_installed_name}"
         DOCUMENT_SERVER_INSTALLED="false"
     else
         if [ -n "${DS_PACKAGE_PATH}" ]; then
-            apt-get install -yq "${ds_pkg_source}"
+            apt-get install -yq -o DPkg::Lock::Timeout=60 "${ds_pkg_source}"
         else
-            apt-get install -y --only-upgrade "${ds_pkg_name}"
+            apt-get install -y --only-upgrade -o DPkg::Lock::Timeout=60 "${ds_pkg_name}"
         fi
     fi
 fi
@@ -105,7 +105,7 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
         systemctl is-active --quiet nginx && systemctl reload nginx || systemctl start nginx
     fi
 
-    apt-get install -yq "${ds_pkg_source}"
+    apt-get install -yq -o DPkg::Lock::Timeout=60 "${ds_pkg_source}"
 fi
 
 if [ -n "${DS_LICENSE_PATH:-}" ]; then

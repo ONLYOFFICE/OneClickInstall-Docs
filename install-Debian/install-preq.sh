@@ -45,8 +45,8 @@ cat<<EOF
 
 EOF
 
-apt-get -y update
-apt-get install -yq locales dirmngr curl
+apt-get -y update --allow-releaseinfo-change -o DPkg::Lock::Timeout=60
+apt-get install -yq -o DPkg::Lock::Timeout=60 locales dirmngr curl
 
 locale-gen en_US.UTF-8
 
@@ -65,8 +65,8 @@ dpkg -s nginx >/dev/null 2>&1 || dpkg -s nginx-extras >/dev/null 2>&1 && _nginx_
 
 [ "$INSTALLATION_TYPE" != "COMMUNITY" ] && _ee_pkgs="redis-server postgresql rabbitmq-server" || _ee_pkgs=
 
-apt-get -y update
-apt-get install -yq ${_nginx_pkg} ${_ee_pkgs}
+apt-get -y update --allow-releaseinfo-change -o DPkg::Lock::Timeout=60
+apt-get install -yq -o DPkg::Lock::Timeout=60 ${_nginx_pkg} ${_ee_pkgs}
 
 if [ "$INSTALLATION_TYPE" != "COMMUNITY" ] && [ -e /etc/redis/redis.conf ]; then
     sed -E -i "s_^bind.*_bind 127.0.0.1_; /^save\s[0-9]+/d" /etc/redis/redis.conf

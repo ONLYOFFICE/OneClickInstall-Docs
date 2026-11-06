@@ -53,7 +53,21 @@ res_rabbitmq_update () {
     RES_CHOICE_RABBITMQ="Install a new version of RabbitMQ [Y/N]?"
 }
 
+require_value() {
+    [ -n "${2-}" ] && return 0
+    case "$1" in
+        --packagepath | --licensepath ) echo "Error: ${1} requires a file path" >&2 ;;
+        * ) echo "Error: Missing value for ${1}" >&2 ;;
+    esac
+    exit 1
+}
+
 while [ "$1" != "" ]; do
+    case $1 in
+        -h | "-?" | --help ) ;;
+        -* ) require_value "$1" "$2" ;;
+    esac
+
     case $1 in
 
         -it | --installationtype | --installation_type )
@@ -134,18 +148,12 @@ while [ "$1" != "" ]; do
         ;;
 
         --packagepath )
-            if [ "$2" != "" ]; then
-                DS_PACKAGE_PATH=$2
-                shift
-            else
-                echo "Error: --packagepath requires a file path" >&2
-                exit 1
-            fi
+            DS_PACKAGE_PATH=$2
+            shift
         ;;
 
         --licensepath )
-            [ -n "$2" ] || { echo "Error: --licensepath requires a file path" >&2; exit 1; }
-            DS_LICENSE_PATH="$2"
+            DS_LICENSE_PATH=$2
             shift
         ;;
 
@@ -216,14 +224,21 @@ fi
 
 [ -z "${DS_LICENSE_PATH:-}" ] || [ -f "$DS_LICENSE_PATH" ] || { echo "Error: license file not found: $DS_LICENSE_PATH" >&2; exit 1; }
 
-DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs/install-RedHat"
-[ -n "${GIT_BRANCH}" ] && DOWNLOAD_URL_PREFIX="https://raw.githubusercontent.com/ONLYOFFICE/OneClickInstall-Docs/${GIT_BRANCH}/install-RedHat"
+DOWNLOAD_BASE_URL="https://download.onlyoffice.com/docs"
+[ -n "${GIT_BRANCH}" ] && DOWNLOAD_BASE_URL="https://raw.githubusercontent.com/ONLYOFFICE/OneClickInstall-Docs/${GIT_BRANCH}"
+
+source_remote_script() {
+    local script_body
+    script_body=$(curl -fsSL --retry 3 --retry-delay 2 "${DOWNLOAD_BASE_URL}/$1") || { echo "Error: failed to download $1" >&2; return 1; }
+    bash -n <<< "${script_body}" || { echo "Error: downloaded $1 is not a valid script" >&2; return 1; }
+    source <(printf '%s\n' "${script_body}")
+}
 
 if [ "${UNINSTALL}" = "true" ]; then
     if [ "${LOCAL_SCRIPTS}" == "true" ]; then
         source install-RedHat/uninstall.sh
     else
-        source <(curl ${DOWNLOAD_URL_PREFIX}/uninstall.sh)
+        source_remote_script install-RedHat/uninstall.sh || exit 1
     fi
     exit 0
 fi
@@ -246,10 +261,8 @@ if [ "$LOCAL_SCRIPTS" == "true" ]; then
     source install-RedHat/tools.sh
     source "$(dirname -- "${BASH_SOURCE[0]}")/common/check-ports.sh" || exit 1
 else
-    source <(curl ${DOWNLOAD_URL_PREFIX}/tools.sh)
-    PORT_CHECKS_SCRIPT=$(curl -fsSL --retry 3 "${DOWNLOAD_URL_PREFIX%/install-RedHat}/common/check-ports.sh") || exit 1
-    bash -n <<< "$PORT_CHECKS_SCRIPT" || exit 1
-    source <(printf '%s\n' "$PORT_CHECKS_SCRIPT") || exit 1
+    source_remote_script install-RedHat/tools.sh || exit 1
+    source_remote_script common/check-ports.sh || exit 1
 fi
 [ "$DOCUMENT_SERVER_INSTALLED" != true ] || [ "$UPDATE" = true ] || exit 0
 
@@ -257,6 +270,10 @@ if [ "$LOCAL_SCRIPTS" == "true" ]; then
     [ -f /etc/amazon-linux-release ] && source install-RedHat/install-preq-amzn.sh || source install-RedHat/install-preq.sh
     source install-RedHat/install-app.sh
 else
-    [ -f /etc/amazon-linux-release ] && source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq-amzn.sh) || source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq.sh)
-    source <(curl ${DOWNLOAD_URL_PREFIX}/install-app.sh)
+    if [ -f /etc/amazon-linux-release ]; then
+        source_remote_script install-RedHat/install-preq-amzn.sh || exit 1
+    else
+        source_remote_script install-RedHat/install-preq.sh || exit 1
+    fi
+    source_remote_script install-RedHat/install-app.sh || exit 1
 fi

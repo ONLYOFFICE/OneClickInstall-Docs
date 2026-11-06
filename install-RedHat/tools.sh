@@ -42,9 +42,9 @@ check_hardware () {
     MEMORY_REQUIREMENTS=2048
     CORE_REQUIREMENTS=2
 
-    AVAILABLE_DISK_SPACE=$(df -m / | tail -1 | awk '{ print $4 }')
-    TOTAL_MEMORY=$(free --mega | grep -oP '\d+' | head -n 1);
-    CPU_CORES_NUMBER=$(grep -c ^processor /proc/cpuinfo)
+    AVAILABLE_DISK_SPACE=$(df -Pm / | awk 'NR == 2 { print $4 }')
+    TOTAL_MEMORY=$(free --mega | awk '/^Mem:/ { print $2 }')
+    CPU_CORES_NUMBER=$(nproc --all)
 
     REQUIREMENTS_NOT_MET=""
 
@@ -75,7 +75,13 @@ check_hardware () {
 }
 
 if [ "$SKIP_HARDWARE_CHECK" != "true" ]; then
-	check_hardware
+    check_hardware
+fi
+
+ARCH="$(rpm --eval '%{_arch}')"
+if [[ "$ARCH" != "x86_64" && "$ARCH" != "aarch64" ]]; then
+    echo "ONLYOFFICE Docs doesn't support architecture '$ARCH'"
+    exit 1
 fi
 
 read_rabbitmq_update () {

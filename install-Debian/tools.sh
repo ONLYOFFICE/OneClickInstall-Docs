@@ -44,9 +44,9 @@ check_hardware () {
     MEMORY_REQUIREMENTS=2048
     CORE_REQUIREMENTS=2
 
-    AVAILABLE_DISK_SPACE=$(df -m / | tail -1 | awk '{ print $4 }')
-    TOTAL_MEMORY=$(free --mega | grep -oP '\d+' | head -n 1)
-    CPU_CORES_NUMBER=$(grep -c "processor" /proc/cpuinfo)
+    AVAILABLE_DISK_SPACE=$(df -Pm / | awk 'NR == 2 { print $4 }')
+    TOTAL_MEMORY=$(free --mega | awk '/^Mem:/ { print $2 }')
+    CPU_CORES_NUMBER=$(nproc --all)
 
     REQUIREMENTS_NOT_MET=""
 
@@ -76,7 +76,15 @@ check_hardware () {
     fi
 }
 
-[ "$SKIP_HARDWARE_CHECK" != "true" ] && check_hardware
+if [ "$SKIP_HARDWARE_CHECK" != "true" ]; then
+    check_hardware
+fi
+
+ARCH="$(dpkg --print-architecture)"
+if [[ "$ARCH" != "amd64" && "$ARCH" != "arm64" ]]; then
+    echo "ONLYOFFICE Docs doesn't support architecture '$ARCH'"
+    exit 1
+fi
 
 DIST='Debian'
 DISTRIB_CODENAME='bullseye'
@@ -97,3 +105,18 @@ fi
 
 DIST=$(echo "$DIST" | tr '[:upper:]' '[:lower:]' | xargs)
 DISTRIB_CODENAME=$(echo "$DISTRIB_CODENAME" | tr '[:upper:]' '[:lower:]' | xargs)
+
+if [ "$ARCH" = "arm64" ] && [[ "$DIST" != "ubuntu" && "$DIST" != "debian" ]]; then
+    echo "ONLYOFFICE Docs on architecture '$ARCH' is supported only on Debian and Ubuntu (detected '${DIST}'). Please use a Docker installation."
+    exit 1
+fi
+
+# openKylin reports its own version numbers, so the end-of-life check does not apply to it.
+OS_VERSION_MAJOR=$( . /etc/os-release 2>/dev/null; echo "${VERSION_ID%%.*}" ) || true
+if [[ "$OS_VERSION_MAJOR" =~ ^[0-9]+$ ]] && ! grep -qi "openkylin" /etc/os-release; then
+    if [[ ( "$DIST" == "ubuntu" && "$OS_VERSION_MAJOR" -lt 20 ) || ( "$DIST" == "debian" && "$OS_VERSION_MAJOR" -lt 11 ) ]]; then
+        echo "Your ${DIST} ${OS_VERSION_MAJOR} operating system has reached the end of its service life."
+        echo "Please consider upgrading your operating system or using a Docker installation."
+        exit 1
+    fi
+fi
