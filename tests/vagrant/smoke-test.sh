@@ -16,4 +16,4 @@ vagrant ssh -c "sudo sed -i '0,/listen 0.0.0.0:80/s//&;\n  &80/' /etc/onlyoffice
   || { echo "::error::failed to expose port 8080 inside the VM"; exit 1; }
 
 PIP_BREAK_SYSTEM_PACKAGES=1 pip install -q --disable-pip-version-check -r ../smoke/requirements.txt
-SERVER_URL=http://localhost:8080 CHECK_ADMINPANEL=true python3 -m pytest ../smoke/test_docs_smoke.py -v -s
+SERVER_URL=http://localhost:8080 python3 -m pytest ../smoke/test_docs_smoke.py -v -s

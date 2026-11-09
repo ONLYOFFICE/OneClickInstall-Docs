@@ -108,6 +108,7 @@ jobs:
     env:
       VER: ${{ needs.prepare.outputs.version }}
       LICENSE_ENTERPRISE: ${{ secrets.LICENSE_ENTERPRISE }}
+      INSTALLATION_TYPE: enterprise
     strategy:
       fail-fast: false
       matrix: ${{fromJSON(needs.prepare.outputs.matrix)}}
@@ -217,7 +218,7 @@ jobs:
         timeout-minutes: 10
         run: |
           if vagrant status | grep -q "running"; then
-            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh healthcheck"
+            vagrant ssh -c "sudo bash /home/vagrant/tests/vagrant/post-install.sh healthcheck '$INSTALLATION_TYPE'"
           else
             echo "VM is not running, skipping health check"
           fi

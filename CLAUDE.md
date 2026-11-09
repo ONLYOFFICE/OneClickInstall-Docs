@@ -64,7 +64,7 @@ pip install -r tests/smoke/requirements.txt
 SERVER_URL=http://<host> CHECK_ADMINPANEL=true python3 -m pytest tests/smoke/test_docs_smoke.py -v -s
 ```
 
-Smoke test env vars: `SERVER_URL` (default `http://localhost`), `CHECK_ADMINPANEL=true` (strict: DEB/RPM always ship the admin panel, 404 fails), `EXPECTED_VERSION` (assert version after update), `SELENIUM_REMOTE_URL` (remote WebDriver, e.g. selenium container on ARM), `CHROME_BIN`/`CHROMEDRIVER_PATH` (explicit browser paths). On Windows also set `PYTHONUTF8=1`.
+Smoke test env vars: `SERVER_URL` (default `http://localhost`), `INSTALLATION_TYPE` (native edition; EE/DE require AdminPanel by default), `CHECK_ADMINPANEL` (true|false overrides that default), `EXPECTED_VERSION`, `SELENIUM_REMOTE_URL`, `CHROME_BIN`/`CHROMEDRIVER_PATH`. Docker allows a missing panel (404); native checks use package metadata for Community. On Windows set `PYTHONUTF8=1`.
 
 CI coverage: docker workflow tests a community+enterprise matrix (`4testing-*` images on branches, stable on `master`) and waits for real readiness — container healthy, then the entrypoint's final log-tail process (fonts/static/plugins generation finished). Vagrant jobs reach the VM through forwarded `localhost:8080`; nginx inside the VM also listens on 8080 so server-side URLs built from the Host header resolve.
 
