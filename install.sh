@@ -301,6 +301,8 @@ while [ "$1" != "" ]; do
             echo "--update                 <true|false>       Update existing components"
             echo "--uninstall              <true|false>       Uninstall ONLYOFFICE Docs"
             echo "--localscripts           <true|false>       Use local scripts"
+            # Only the entry script parses --logging, so install.sh run directly does not offer it
+            [ "${HELP_TARGET}" != "install.sh" ] && echo "--logging                <true|false>       Keep a compacted log if the installation fails (default: true)"
             echo
             echo "DOCUMENT SERVER OPTIONS:"
             echo "--documentimage          <name|path>        Document image name or .tar.gz file path"
@@ -1191,7 +1193,7 @@ pull_image () {
 }
 
 create_network () {
-    docker network inspect "${NETWORK}" &>/dev/null || docker network create --driver bridge "${NETWORK}"
+    docker network inspect "${NETWORK}" &>/dev/null || docker network create --driver bridge "${NETWORK}" >/dev/null
 }
 
 set_installation_type_data () {

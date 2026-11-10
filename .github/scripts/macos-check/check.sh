@@ -18,6 +18,7 @@ chmod +x "${FAKE_BIN}/docker" "${FAKE_BIN}/open"
 INSTALL_DIR="${WORK_DIR}/docs"
 mkdir -p "${INSTALL_DIR}"
 cp "${REPO_DIR}/docs-install.sh" "${REPO_DIR}/install.sh" "${INSTALL_DIR}/"
+mkdir -p "${INSTALL_DIR}/common" && cp "${REPO_DIR}/common/logging.sh" "${INSTALL_DIR}/common/"
 echo "dummy license" > "${WORK_DIR}/license.lic"
 
 # Every scenario gets its own HOME and fake Docker state, so nothing leaks between them
@@ -87,6 +88,7 @@ for DIRECTORY in data logs fonts forgotten; do
 done
 # 32 random characters, made by get_random_str with the GNU tr
 grep -qE 'JWT_SECRET=[A-Za-z0-9]{32}( |$)' "${FAKE_DOCKER_STATE}/docker.log" || fail "the JWT secret is missing or has a wrong length"
+ls "${INSTALL_DIR}"/OneClick*.log > /dev/null 2>&1 && fail "the log file stays after a successful install"
 end_scenario
 
 new_scenario "Enterprise install keeps PostgreSQL, RabbitMQ and Redis in Docker volumes"
@@ -123,10 +125,21 @@ expect_no_log "run --net"
 end_scenario
 
 new_scenario "Low Docker Desktop resources"
-FAKE_DOCKER_MEM=2000000000 FAKE_DOCKER_CPU=1 run_wrapper -ls true -it community -dv 9.1.0
+rm -f "${INSTALL_DIR}"/OneClick*.log
+FAKE_DOCKER_MEM=2000000000 FAKE_DOCKER_CPU=1 run_wrapper -ls true -it community -dv 9.1.0 -js check-secret
 expect_rc 1
 expect_output "of RAM (available: 2000 MB)"
 expect_output "Settings > Resources"
+# A failed run keeps the log, headed by the masked command line and the host summary
+LOG_FILE=$(ls "${INSTALL_DIR}"/OneClick*.log 2> /dev/null | head -n 1)
+if [ -z "${LOG_FILE}" ]; then
+    fail "no log file after a failed install"
+else
+    grep -qE '^Command: .* -js \*\*\*' "${LOG_FILE}" || fail "the log has no masked command line"
+    grep -q '^OS: macOS' "${LOG_FILE}" || fail "the log has no host summary"
+    grep -q 'check-secret' "${LOG_FILE}" && fail "the secret reached the log"
+    grep -qF "of RAM (available: 2000 MB)" "${LOG_FILE}" || fail "the installer output is not in the log"
+fi
 end_scenario
 
 new_scenario "Running under sudo is refused"

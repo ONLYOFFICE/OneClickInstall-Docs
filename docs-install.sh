@@ -41,9 +41,18 @@ PARAMS=(-it COMMUNITY "${ENV_PARAMS[@]}")
 DOCKER=""
 LOCAL_SCRIPTS="false"
 HELP="false"
+ENABLE_LOGGING="true"
 
 while [ "$1" != "" ]; do
     case $1 in
+        -log | --logging )
+            if [ "$2" == "true" ] || [ "$2" == "false" ]; then
+                ENABLE_LOGGING=$2
+                shift 2
+                continue
+            fi
+        ;;
+
         -ls | --localscripts )
             if [ "$2" == "true" ] || [ "$2" == "false" ]; then
                 PARAMS+=("$1")
@@ -157,6 +166,30 @@ DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs"
 if [ "$LOCAL_SCRIPTS" != "true" ]; then
     curl -fsSL --retry 3 -O "${DOWNLOAD_URL_PREFIX}/${SCRIPT}" || { echo "Error: failed to download ${SCRIPT}" >&2; exit 1; }
 fi
-bash "${SCRIPT}" "${PARAMS[@]}" || EXIT_CODE=$?
+
+# The log is optional: when the logging helpers cannot be loaded, the installation runs without it
+if [ "$ENABLE_LOGGING" = "true" ]; then
+    LOGGING_SCRIPT="common/logging.sh"
+    if [ "$LOCAL_SCRIPTS" = "true" ]; then
+        source "${LOGGING_SCRIPT}" || ENABLE_LOGGING="false"
+    else
+        # A temporary file instead of source <(...): bash 3.2 on macOS reads nothing from process substitution in source
+        LOGGING_SCRIPT_TMP=$(mktemp)
+        if curl -fsSL --retry 3 "${DOWNLOAD_URL_PREFIX}/${LOGGING_SCRIPT}" -o "${LOGGING_SCRIPT_TMP}" && bash -n "${LOGGING_SCRIPT_TMP}"; then
+            source "${LOGGING_SCRIPT_TMP}"
+        else
+            echo "Warning: failed to load ${LOGGING_SCRIPT}, the installation runs without a log" >&2
+            ENABLE_LOGGING="false"
+        fi
+        rm -f "${LOGGING_SCRIPT_TMP}"
+    fi
+fi
+
+if [ "$ENABLE_LOGGING" = "true" ]; then
+    run_with_log "${SCRIPT}" "${PARAMS[@]}"
+else
+    bash "${SCRIPT}" "${PARAMS[@]}" || EXIT_CODE=$?
+fi
 [ "${LOCAL_SCRIPTS}" != "true" ] && rm -f "${SCRIPT}"
+[ "$ENABLE_LOGGING" = "true" ] && finish_log
 exit ${EXIT_CODE:-0}

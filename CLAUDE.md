@@ -47,6 +47,7 @@ sudo bash docs-install.sh
 --skiphardwarecheck   true|false
 --update              true|false
 --uninstall           true|false
+--logging             true|false   (default: true; keep a compacted OneClick*.log after a failed run)
 ```
 
 ## Testing
