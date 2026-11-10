@@ -12,6 +12,8 @@ on:
     paths:
       - '.github/workflows/ci-docker-install.yml'
       - 'install.sh'
+      - 'docs-install.sh'
+      - '.github/scripts/macos-check/**'
       - 'tests/smoke/**'
   workflow_dispatch:
 
@@ -108,3 +110,17 @@ jobs:
           fi
 
           PIP_BREAK_SYSTEM_PACKAGES=1 pip install -q --disable-pip-version-check -r tests/smoke/requirements.txt && python3 -m pytest tests/smoke/test_docs_smoke.py -v -s
+
+  macOS-script-check:
+    name: "Install (macOS script check)"
+    # no Docker VM: the paths that are specific to macOS run on a real runner against a fake docker
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Check the macOS paths of the installer
+        run: bash .github/scripts/macos-check/check.sh

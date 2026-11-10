@@ -35,7 +35,9 @@
  # SPDX-License-Identifier: AGPL-3.0-only
  #
 
-PARAMETERS="-it COMMUNITY $PARAMETERS"
+# PARAMETERS from the environment is split into words on purpose
+read -r -a ENV_PARAMS <<< "$PARAMETERS"
+PARAMS=(-it COMMUNITY "${ENV_PARAMS[@]}")
 DOCKER=""
 LOCAL_SCRIPTS="false"
 HELP="false"
@@ -44,7 +46,7 @@ while [ "$1" != "" ]; do
     case $1 in
         -ls | --localscripts )
             if [ "$2" == "true" ] || [ "$2" == "false" ]; then
-                PARAMETERS="$PARAMETERS ${1}"
+                PARAMS+=("$1")
                 LOCAL_SCRIPTS=$2
                 shift
             fi
@@ -52,7 +54,7 @@ while [ "$1" != "" ]; do
 
         -uni | --uninstall )
             if [ "$2" == "true" ] || [ "$2" == "false" ]; then
-                PARAMETERS="$PARAMETERS ${1}"
+                PARAMS+=("$1")
                 UNINSTALL=$2
                 shift
             fi
@@ -84,14 +86,16 @@ while [ "$1" != "" ]; do
         "-?" | -h | --help )
             HELP="true"
             DOCKER="true"
-            PARAMETERS="$PARAMETERS -ht $(basename "$0")"
+            PARAMS+=(-ht "$(basename "$0")")
         ;;
     esac
-    PARAMETERS="$PARAMETERS ${1}"
+    PARAMS+=("$1")
     shift
 done
 
 root_checking () {
+	# Docker Desktop runs per user, root is refused by the macOS block at the top
+	[[ "$OSTYPE" == darwin* ]] && return 0
 	[[ $EUID -eq 0 ]] || { echo "To perform this action you must be logged in with root rights"; exit 1; }
 }
 
@@ -132,13 +136,16 @@ if [ "$UNINSTALL" = "true" ] && is_command_exists docker && docker ps -a --forma
     DOCKER="true"
 fi
 
+# Only the Docker installation is available on macOS
+[[ "$OSTYPE" == darwin* ]] && DOCKER="true"
+
 [ "$HELP" == "false" ] && [ "$UNINSTALL" != "true" ] && [ -z "$DOCKER" ] && read_installation_method
 
 if [ "$DOCKER" = "true" ]; then
     SCRIPT="install.sh"
 elif [ -f /etc/redhat-release ] || [ -f /etc/amazon-linux-release ]; then
     SCRIPT="install-RedHat.sh"
-elif [ -f /etc/debian_version ] || grep -qi "openkylin" /etc/os-release; then
+elif [ -f /etc/debian_version ] || grep -qsi "openkylin" /etc/os-release; then
     SCRIPT="install-Debian.sh"
 else
     echo "Not supported OS" >&2
@@ -150,6 +157,6 @@ DOWNLOAD_URL_PREFIX="https://download.onlyoffice.com/docs"
 if [ "$LOCAL_SCRIPTS" != "true" ]; then
     curl -fsSL --retry 3 -O "${DOWNLOAD_URL_PREFIX}/${SCRIPT}" || { echo "Error: failed to download ${SCRIPT}" >&2; exit 1; }
 fi
-bash ${SCRIPT} ${PARAMETERS} || EXIT_CODE=$?
+bash "${SCRIPT}" "${PARAMS[@]}" || EXIT_CODE=$?
 [ "${LOCAL_SCRIPTS}" != "true" ] && rm -f "${SCRIPT}"
 exit ${EXIT_CODE:-0}

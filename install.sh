@@ -35,12 +35,57 @@
  # SPDX-License-Identifier: AGPL-3.0-only
  #
 
+# The usage text only needs echo, so --help must not install anything on macOS
+MACOS_BOOTSTRAP="true"
+for ARG in "$@"; do
+    case "$ARG" in
+        -h | --help | -\? ) MACOS_BOOTSTRAP="false" ;;
+    esac
+done
+
+# macOS: refuse sudo, get bash 4+ and GNU tools from Homebrew, re-run under Homebrew bash (keep this block bash 3.2 compatible)
+if [[ "$OSTYPE" == darwin* && "$MACOS_BOOTSTRAP" == "true" ]]; then
+    [ "$EUID" -eq 0 ] && { echo "On macOS, run this script without sudo" >&2; exit 1; }
+    BREW_BIN=$(PATH="$PATH:/opt/homebrew/bin:/usr/local/bin" command -v brew)
+    if [ -z "$BREW_BIN" ]; then
+        echo "Homebrew is required on macOS, see https://brew.sh" >&2
+        # Rosetta also reports x86_64, so the hardware is asked about Apple Silicon
+        if [ "$(uname -m)" = "x86_64" ] && [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" != "1" ]; then
+            echo "On Intel Macs the Homebrew installer refuses to run, because Homebrew no longer supports Intel: install it manually" >&2
+        fi
+        exit 1
+    fi
+    BREW_PREFIX=$("$BREW_BIN" --prefix)
+    [ -n "$BREW_PREFIX" ] || { echo "Could not resolve the Homebrew prefix" >&2; exit 1; }
+    MISSING_FORMULAE=()
+    for FORMULA in bash coreutils findutils gnu-sed grep gnu-tar jq; do
+        [ -d "$BREW_PREFIX/opt/$FORMULA" ] || MISSING_FORMULAE+=("$FORMULA")
+    done
+    [ ${#MISSING_FORMULAE[@]} -eq 0 ] || "$BREW_BIN" install "${MISSING_FORMULAE[@]}" || exit 1
+    # Each directory is checked on its own: the user may already have some of them in PATH
+    GNU_PATHS=""
+    for FORMULA in coreutils findutils gnu-sed grep gnu-tar; do
+        case ":$PATH:" in
+            *":$BREW_PREFIX/opt/$FORMULA/libexec/gnubin:"*) ;;
+            *) GNU_PATHS="$GNU_PATHS$BREW_PREFIX/opt/$FORMULA/libexec/gnubin:" ;;
+        esac
+    done
+    case "$PATH" in
+        "$BREW_PREFIX/bin:"*) ;;
+        *) GNU_PATHS="$GNU_PATHS$BREW_PREFIX/bin:" ;;
+    esac
+    export PATH="$GNU_PATHS$PATH"
+    [ "${BASH_VERSINFO[0]}" -ge 4 ] || exec "$BREW_PREFIX/bin/bash" "$0" "$@"
+fi
+
 DISK_REQUIREMENTS=10240
 MEMORY_REQUIREMENTS=4096
 CORE_REQUIREMENTS=2
 
 PRODUCT="onlyoffice"
 BASE_DIR="/app/$PRODUCT"
+# The root volume is read-only on macOS and Docker Desktop shares /Users by default
+[[ "$OSTYPE" == darwin* ]] && BASE_DIR="$HOME/$PRODUCT"
 NETWORK="$PRODUCT"
 
 DOCUMENT_CONTAINER_NAME="onlyoffice-document-server"
@@ -341,7 +386,13 @@ validate_bool_or_pull --installdocs "$INSTALL_DOCUMENT_SERVER"
 
 [ -z "${DS_LICENSE_PATH:-}" ] || [ -f "$DS_LICENSE_PATH" ] || { echo "Error: license file not found: $DS_LICENSE_PATH" >&2; exit 1; }
 
+is_macos () {
+    [[ "$OSTYPE" == darwin* ]]
+}
+
 root_checking () {
+    # Docker Desktop runs per user, root is refused by the macOS block at the top
+    is_macos && return 0
     [[ ${EUID} -eq 0 ]] || { echo "To perform this action you must be logged in with root rights"; exit 1; }
 }
 
@@ -400,9 +451,21 @@ get_os_info () {
     OS=$(uname | tr '[:upper:]' '[:lower:]')
 
     case "${OS}" in
-        windowsnt|darwin|sunos|aix)
+        windowsnt|sunos|aix)
             echo "Not supported OS"
             exit 1
+            ;;
+        darwin)
+            MACH=$(uname -m)
+
+            if [[ "${MACH}" != "x86_64" && "${MACH}" != "arm64" ]]; then
+                echo "Currently only supports 64bit OS's"
+                exit 1
+            fi
+
+            KERNEL=$(uname -r)
+            DIST=$(sw_vers -productName)
+            REV=$(sw_vers -productVersion)
             ;;
         linux)
             MACH=$(uname -m)
@@ -470,9 +533,16 @@ check_kernel () {
 }
 
 check_hardware () {
-    AVAILABLE_DISK_SPACE=$(df -Pm / | awk 'NR == 2 { print $4 }')
-    TOTAL_MEMORY=$(free --mega | awk '/^Mem:/ { print $2 }')
-    CPU_CORES_NUMBER=$(nproc --all)
+    if is_macos; then
+        # Containers get only the CPU and memory of the Docker Desktop VM
+        AVAILABLE_DISK_SPACE=$(df -m "$HOME" | tail -1 | awk '{ print $4 }')
+        TOTAL_MEMORY=$(( $(docker info --format '{{.MemTotal}}') / 1000000 ))
+        CPU_CORES_NUMBER=$(docker info --format '{{.NCPU}}')
+    else
+        AVAILABLE_DISK_SPACE=$(df -Pm / | awk 'NR == 2 { print $4 }')
+        TOTAL_MEMORY=$(free --mega | awk '/^Mem:/ { print $2 }')
+        CPU_CORES_NUMBER=$(nproc --all)
+    fi
 
     REQUIREMENTS_NOT_MET=""
 
@@ -490,6 +560,8 @@ check_hardware () {
 
     if [ -n "${REQUIREMENTS_NOT_MET}" ]; then
         printf "Minimal requirements are not met, your system needs:%b\n\n" "${REQUIREMENTS_NOT_MET}"
+        # Disk space is the host disk, only CPU and memory are limited by Docker Desktop
+        is_macos && [[ "${REQUIREMENTS_NOT_MET}" == *"of RAM"* || "${REQUIREMENTS_NOT_MET}" == *"CPU"* ]] && echo -e "CPU and memory limits can be raised in Docker Desktop: Settings > Resources\n"
 
         # Without a terminal there is nobody to ask
         if [ ! -t 0 ]; then
@@ -531,8 +603,13 @@ check_ports () {
 
     for PORT in "${ARRAY_PORTS[@]}"
     do
-        REGEXP=":$PORT$"
-        CHECK_RESULT=$(netstat -lnt | awk '{print $4}' | { grep $REGEXP || true; })
+        if is_macos; then
+            # BSD netstat prints listening addresses as *.80 or 127.0.0.1.80
+            CHECK_RESULT=$(netstat -an | awk '$1 ~ /^tcp/ && $6 == "LISTEN" {print $4}' | { grep "\.$PORT$" || true; })
+        else
+            REGEXP=":$PORT$"
+            CHECK_RESULT=$(netstat -lnt | awk '{print $4}' | { grep $REGEXP || true; })
+        fi
 
         if [[ $CHECK_RESULT != "" ]]; then
             if [[ $USED_PORTS != "" ]]; then
@@ -656,6 +733,43 @@ install_docker () {
     fi
 }
 
+install_docker_desktop () {
+    echo "Docker Desktop is not installed, installing it with Homebrew..."
+    "${BREW_BIN}" install --cask docker || { echo "Failed to install Docker Desktop, see https://docs.docker.com/desktop/setup/install/mac-install/"; exit 1; }
+    # The cask links the CLI into the Homebrew prefix, otherwise take it from the application
+    command_exists docker || export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"
+    command_exists docker || { echo "docker was not found after the installation of Docker Desktop"; exit 1; }
+}
+
+prepare_docker_desktop () {
+    local DOCKER_DESKTOP_BIN="/Applications/Docker.app/Contents/Resources/bin"
+
+    # Docker Desktop may be installed without its CLI linked into PATH
+    if ! command_exists docker && [ -x "$DOCKER_DESKTOP_BIN/docker" ]; then
+        export PATH="$PATH:$DOCKER_DESKTOP_BIN"
+    fi
+
+    local START_TIMEOUT=180
+
+    if ! command_exists docker; then
+        # The uninstall must not install Docker Desktop, it has nothing to do with Docker then
+        [ "${1:-}" != "--no-install" ] || return 1
+        install_docker_desktop
+        # A fresh Docker Desktop waits for the user to accept its license and to allow its helper
+        START_TIMEOUT=600
+    fi
+
+    check_docker_version
+
+    if ! docker info >/dev/null 2>&1; then
+        echo "Starting Docker Desktop..."
+        [ "${START_TIMEOUT}" -le 180 ] || echo "Accept the license agreement and allow the helper in the Docker Desktop window, waiting up to ${START_TIMEOUT} seconds."
+        # By path first: right after the installation Launch Services does not know the application by name yet
+        { open /Applications/Docker.app || open -a Docker; } || { echo "Failed to start Docker Desktop"; exit 1; }
+        timeout "${START_TIMEOUT}" bash -c 'until docker info >/dev/null 2>&1; do sleep 3; done' || { echo "Docker Desktop did not start within ${START_TIMEOUT} seconds"; exit 1; }
+    fi
+}
+
 docker_login () {
     if [[ -n ${USERNAME} && -n ${PASSWORD}  ]]; then
         echo "$PASSWORD" | docker login ${REGISTRY_URL} --username ${USERNAME} --password-stdin || { echo "Docker authentication failed"; exit 1; }
@@ -663,10 +777,7 @@ docker_login () {
 }
 
 make_directories () {
-    mkdir -p "$BASE_DIR/DocumentServer/data/certs"
-    mkdir -p "$BASE_DIR/DocumentServer/logs"
-    mkdir -p "$BASE_DIR/DocumentServer/fonts"
-    mkdir -p "$BASE_DIR/DocumentServer/forgotten"
+    mkdir -p "$BASE_DIR/DocumentServer/data/certs" "$BASE_DIR/DocumentServer/logs" "$BASE_DIR/DocumentServer/fonts" "$BASE_DIR/DocumentServer/forgotten" || { echo "Failed to create directories in $BASE_DIR"; exit 1; }
 }
 
 get_tag_from_registry() {
@@ -699,8 +810,8 @@ get_available_version() {
         exit 1
     fi
 
-    if ! command_exists curl; then install_curl >/dev/null 2>&1; fi
-    if ! command_exists jq; then install_jq >/dev/null 2>&1; fi
+    # The caller installs the tools: an exit inside the command substitution that calls this would be swallowed
+    command_exists curl && command_exists jq || { echo "curl and jq are required" >&2; return 1; }
 
     get_tag_from_registry "$IMAGE"
 
@@ -802,8 +913,9 @@ install_document_server () {
                     WOPI_ENABLED="${WOPI_ENABLED:-$PARAMETER_VALUE}"
                 fi
 
-                _ee_bindings=$( [ "$INSTALLATION_TYPE" != "COMMUNITY" ] && echo ",/var/lib/postgresql,/var/lib/rabbitmq,/var/lib/redis" )
-                check_bindings $DOCUMENT_SERVER_ID "/etc/$PRODUCT,/var/lib/$PRODUCT,/usr/share/fonts/truetype/custom${_ee_bindings}";
+                # Community does not use PostgreSQL, RabbitMQ and Redis since 10.0, but older images still declare their volumes
+                _embedded_bindings=",/var/lib/postgresql,/var/lib/rabbitmq,/var/lib/redis"
+                check_bindings $DOCUMENT_SERVER_ID "/etc/$PRODUCT,/var/lib/$PRODUCT,/usr/share/fonts/truetype/custom${_embedded_bindings}";
                 if docker exec ${DOCUMENT_CONTAINER_NAME} test -x /usr/bin/documentserver-prepare4shutdown; then
                     docker exec ${DOCUMENT_CONTAINER_NAME} /usr/bin/documentserver-prepare4shutdown
                 else
@@ -856,7 +968,12 @@ install_document_server () {
         args+=(-v "$BASE_DIR/DocumentServer/fonts:/usr/share/fonts/truetype/custom")
         args+=(-v "$BASE_DIR/DocumentServer/forgotten:/var/lib/$PRODUCT/documentserver/App_Data/cache/files/forgotten")
 
-        if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
+        if [ "$INSTALLATION_TYPE" != "COMMUNITY" ] && is_macos; then
+            # PostgreSQL and RabbitMQ need real file ownership, which Docker Desktop bind mounts do not provide
+            args+=(-v "${PRODUCT}_docs_db:/var/lib/postgresql")
+            args+=(-v "${PRODUCT}_docs_rabbitmq:/var/lib/rabbitmq")
+            args+=(-v "${PRODUCT}_docs_redis:/var/lib/redis")
+        elif [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
             args+=(-v "$BASE_DIR/DocumentServer/db:/var/lib/postgresql")
             args+=(-v "$BASE_DIR/DocumentServer/rabbitmq:/var/lib/rabbitmq")
             args+=(-v "$BASE_DIR/DocumentServer/redis:/var/lib/redis")
@@ -901,8 +1018,12 @@ get_random_str () {
         LENGTH=12
     fi
 
-    VALUE=$(cat /dev/urandom | tr -dc A-Za-z0-9 | head -c ${LENGTH})
-    echo "$VALUE"
+    VALUE=""
+    # Filter finite chunks: cutting the endless stream with head makes tr fail with a broken pipe
+    while [ "${#VALUE}" -lt "$LENGTH" ]; do
+        VALUE+=$(head -c 1024 /dev/urandom | LC_ALL=C tr -dc A-Za-z0-9)
+    done
+    echo "${VALUE:0:LENGTH}"
 }
 
 set_jwt_secret () {
@@ -1009,9 +1130,18 @@ uninstall () {
     read -r -p "Are you sure you want to uninstall ONLYOFFICE Docs? [y/N]: " DEP_CHOICE
     DEP_CHOICE=${DEP_CHOICE,,}
     [[ "$DEP_CHOICE" =~ ^(y|yes)$ ]] || { echo "Uninstall canceled."; exit 0; }
-    [ -n "$(get_container_id "$DOCUMENT_CONTAINER_NAME")" ] && remove_container "$DOCUMENT_CONTAINER_NAME"
-    docker network rm "$NETWORK" >/dev/null 2>&1 || echo "Failed to uninstall network ${NETWORK}."
+    local DOCKER_AVAILABLE=true
+    # Without Docker Desktop on macOS there is no container, only the local files are left to remove
+    if is_macos && ! prepare_docker_desktop --no-install; then
+        DOCKER_AVAILABLE=false
+        echo "Docker is not installed, only the local files in ${BASE_DIR} are removed."
+    fi
+    if [ "${DOCKER_AVAILABLE}" = true ]; then
+        [ -n "$(get_container_id "$DOCUMENT_CONTAINER_NAME")" ] && remove_container "$DOCUMENT_CONTAINER_NAME"
+        docker network rm "$NETWORK" >/dev/null 2>&1 || echo "Failed to uninstall network ${NETWORK}."
+    fi
     rm -rf "$BASE_DIR/DocumentServer"
+    is_macos && [ "${DOCKER_AVAILABLE}" = true ] && docker volume rm "${PRODUCT}_docs_db" "${PRODUCT}_docs_rabbitmq" "${PRODUCT}_docs_redis" >/dev/null 2>&1
     echo -e "\nUninstallation of ONLYOFFICE Docs \e[32mcompleted.\e[0m\n"
 }
 
@@ -1026,7 +1156,10 @@ pull_document_server () {
         DOCUMENT_VERSION="${TMP_ARRAY[2]}"
     else
         if [[ -z ${DOCUMENT_VERSION} ]]; then
-            DOCUMENT_VERSION=$(get_available_version "$DOCUMENT_IMAGE_NAME")
+            # Install the tools here: an exit inside the command substitution below would be swallowed
+            command_exists curl || (install_curl >/dev/null 2>&1) || { echo "Failed to install curl" >&2; exit 1; }
+            command_exists jq || (install_jq >/dev/null 2>&1) || { echo "Failed to install jq" >&2; exit 1; }
+            DOCUMENT_VERSION=$(get_available_version "$DOCUMENT_IMAGE_NAME") || exit 1
         fi
 
         pull_image ${DOCUMENT_IMAGE_NAME} ${DOCUMENT_VERSION}
@@ -1092,7 +1225,12 @@ start_installation () {
 
     check_os_info
 
-    check_kernel
+    if is_macos; then
+        # The hardware check reads the Docker Desktop VM limits, so Docker must be running first
+        prepare_docker_desktop
+    else
+        check_kernel
+    fi
 
     if [ "$SKIP_HARDWARE_CHECK" != "true" ]; then
         check_hardware
@@ -1102,11 +1240,13 @@ start_installation () {
         check_ports
     fi
 
-    if command_exists docker ; then
-        check_docker_version
-        service docker start
-    else
-        install_docker
+    if ! is_macos; then
+        if command_exists docker ; then
+            check_docker_version
+            service docker start
+        else
+            install_docker
+        fi
     fi
 
     docker_login

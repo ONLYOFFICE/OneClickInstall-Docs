@@ -22,7 +22,7 @@ jobs:
         run: |
           for EDITION in ENTERPRISE DEVELOPER; do
             cp -rf "./docs-install.sh" "./docs-${EDITION,,}-install.sh"
-            sed -i "/^PARAMETERS/s|\(-it\) [^\" ]\+|\1 ${EDITION}|g" "./docs-${EDITION,,}-install.sh"
+            sed -i "/^PARAMETERS\|^PARAMS=(/s|\(-it\) [^\" ]\+|\1 ${EDITION}|g" "./docs-${EDITION,,}-install.sh"
           done
 
       - name: Configure AWS Credentials
@@ -34,7 +34,7 @@ jobs:
 
       - name: Upload scripts
         run: |
-          aws s3 cp . ${{ secrets.AWS_BUCKET_URL }}/docs --acl public-read --recursive --exclude "*" --include "*.sh" --exclude "tests/*"
+          aws s3 cp . ${{ secrets.AWS_BUCKET_URL }}/docs --acl public-read --recursive --exclude "*" --include "*.sh" --exclude "tests/*" --exclude ".github/*"
 
       - name: Invalidate CLOUDFRONT cache
         run: |
