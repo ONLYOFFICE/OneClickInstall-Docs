@@ -1096,11 +1096,11 @@ get_container_env_parameter () {
         CONTAINER_EXIST=$(docker ps -aqf "name=$CONTAINER_NAME")
 
         if [[ -n ${CONTAINER_EXIST} ]]; then
-            VALUE=$(docker inspect --format='{{range .Config.Env}}{{println .}}{{end}}' ${CONTAINER_NAME} | grep "${PARAMETER_NAME}=" | sed 's/^.*=//')
+            VALUE=$(docker inspect --format='{{range .Config.Env}}{{println .}}{{end}}' ${CONTAINER_NAME} | sed -n "s/^${PARAMETER_NAME}=//p")
         fi
     fi
 
-    echo "$VALUE"
+    printf '%s\n' "$VALUE"
 }
 
 remove_container () {
