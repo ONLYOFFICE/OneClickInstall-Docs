@@ -898,8 +898,11 @@ install_document_server () {
         if [ "$UPDATE" == "true" ]; then
             CURRENT_IMAGE_NAME=$(get_current_image_name "$DOCUMENT_CONTAINER_NAME")
             CURRENT_IMAGE_VERSION=$(get_current_image_version "$DOCUMENT_CONTAINER_NAME")
+            CURRENT_IMAGE_ID=$(docker inspect --format='{{.Image}}' "$DOCUMENT_SERVER_ID") || exit 1
+            TARGET_IMAGE_ID=$(docker inspect --type=image --format='{{.Id}}' "$DOCUMENT_IMAGE_NAME:$DOCUMENT_VERSION") || exit 1
 
-            if [ "$CURRENT_IMAGE_NAME" != "$DOCUMENT_IMAGE_NAME" ] || ([ "$CURRENT_IMAGE_VERSION" != "$DOCUMENT_VERSION" ] || [ "$SKIP_VERSION_CHECK" == "true" ]); then
+            if [ "$CURRENT_IMAGE_NAME" != "$DOCUMENT_IMAGE_NAME" ] || [ "$CURRENT_IMAGE_VERSION" != "$DOCUMENT_VERSION" ] ||
+               [ "$CURRENT_IMAGE_ID" != "$TARGET_IMAGE_ID" ] || [ "$SKIP_VERSION_CHECK" == "true" ]; then
                 PARAMETER_VALUE=$(get_container_env_parameter "$DOCUMENT_CONTAINER_NAME" "LETS_ENCRYPT_DOMAIN")
                 if [[ -n ${PARAMETER_VALUE} ]]; then
                     LETS_ENCRYPT_DOMAIN="${LETS_ENCRYPT_DOMAIN:-$PARAMETER_VALUE}"
@@ -1177,19 +1180,19 @@ pull_image () {
         exit 1
     fi
 
-    EXIST=$(docker images --format "{{.Repository}}:{{.Tag}}" | { grep -x "${IMAGE_NAME}:${IMAGE_VERSION}" || true; })
+    if [ "$UPDATE" != "true" ] &&
+       docker images --format "{{.Repository}}:{{.Tag}}" | grep -qx "${IMAGE_NAME}:${IMAGE_VERSION}"; then
+        return 0
+    fi
     COUNT=1
 
-    while [[ -z $EXIST && $COUNT -le 3 ]]; do
-        docker pull ${IMAGE_NAME}:${IMAGE_VERSION}
-        EXIST=$(docker images --format "{{.Repository}}:{{.Tag}}" | { grep -x "${IMAGE_NAME}:${IMAGE_VERSION}" || true; })
+    while [[ $COUNT -le 3 ]]; do
+        docker pull ${IMAGE_NAME}:${IMAGE_VERSION} && return 0
         (( COUNT++ ))
     done
 
-    if [[ -z $EXIST ]]; then
-        echo "Docker image $IMAGE_NAME:$IMAGE_VERSION not found"
-        exit 1
-    fi
+    echo "Failed to pull Docker image $IMAGE_NAME:$IMAGE_VERSION"
+    exit 1
 }
 
 create_network () {
