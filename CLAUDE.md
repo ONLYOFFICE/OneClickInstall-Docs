@@ -13,17 +13,18 @@ docs-install.sh       — Community Edition wrapper (detects OS, routes to insta
 install.sh            — Docker installation script
 install-Debian.sh     — Debian/Ubuntu package installer wrapper
 install-RedHat.sh     — RHEL/CentOS/Amazon package installer wrapper
+common/               — Shared helpers (sourced locally or downloaded like the other parts)
+  check-ports.sh      — DEB/RPM port and dependency checks
+  logging.sh          — Compacted OneClick*.log for docs-install.sh (bash 3.2 compatible)
 install-Debian/       — Debian-specific scripts
   install-preq.sh     — Prerequisites
   install-app.sh      — App installation (APT)
-  check-ports.sh      — Port checks
   tools.sh            — Utility functions
   uninstall.sh        — Uninstall
 install-RedHat/       — RedHat-specific scripts
   install-preq.sh     — Prerequisites (standard)
   install-preq-amzn.sh — Prerequisites (Amazon Linux)
   install-app.sh      — App installation (YUM/DNF)
-  check-ports.sh      — Port checks
   tools.sh            — Utility functions
   uninstall.sh        — Uninstall
 tests/vagrant/        — Vagrant multi-OS test infrastructure
@@ -74,7 +75,7 @@ Supported OS: RHEL 8/9, CentOS 8-10 Stream, Amazon Linux 2023, Debian 11-13, Ubu
 ## Key Patterns
 
 - `docs-install.sh` detects OS and routes to Docker or package installer
-- `install.sh` handles full Docker lifecycle: pull, configure, run
+- `install.sh` handles full Docker lifecycle: pull, configure, run; `--update true` always re-pulls the tag and recreates the container when the image ID changed, so images republished under the same tag are picked up
 - `install-Debian/` and `install-RedHat/` mirror each other in structure
 - Hardware checks (code): 2 CPU cores, 10 GB disk, 4 GB RAM in Docker mode (2 GB in package mode); README documents 40 GB disk and 4 GB swap, which the scripts do not check
 - Three editions: Community, Enterprise, Developer
