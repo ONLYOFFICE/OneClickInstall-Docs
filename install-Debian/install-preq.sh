@@ -53,8 +53,50 @@ locale-gen en_US.UTF-8
 # setup msttcorefonts
 echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
 if [ "$DIST" = "debian" ] && ! apt-cache show ttf-mscorefonts-installer &>/dev/null; then
-    printf 'deb http://deb.debian.org/debian/ %s main contrib\ndeb-src http://deb.debian.org/debian/ %s main contrib\n' \
-        "$DISTRIB_CODENAME" "$DISTRIB_CODENAME" > /etc/apt/sources.list
+    # contrib is added to the Debian archive entries of the default source files, so the mirrors, security and updates sources stay as they are
+    CONTRIB_FOUND="false"
+    for SOURCE_FILE in /etc/apt/sources.list /etc/apt/sources.list.d/debian.sources; do
+        [ -f "${SOURCE_FILE}" ] || continue
+        if [[ "${SOURCE_FILE}" == *.sources ]]; then
+            # deb822: a stanza of the archive for this release gets contrib in its Components field
+            CONTRIB_PROGRAM='
+                function flush(line_index) {
+                    if (archive && release && components && !contrib) { lines[components] = lines[components] " contrib" }
+                    if (archive && release) found = 1
+                    for (line_index = 1; line_index <= count; line_index++) print lines[line_index]
+                    count = archive = release = components = contrib = 0
+                }
+                /^[[:space:]]*$/ { flush(); print; next }
+                {
+                    lines[++count] = $0
+                    key = tolower($1)
+                    for (field = 2; field <= NF; field++) {
+                        if (key == "uris:" && $field ~ /\/debian\/?$/) archive = 1
+                        if (key == "suites:" && $field == suite) release = 1
+                        if (key == "components:" && $field == "contrib") contrib = 1
+                    }
+                    if (key == "components:") components = count
+                }
+                END { flush(); exit !found }'
+        else
+            # one-line format: a deb or deb-src line of the archive for this release gets contrib at its end
+            CONTRIB_PROGRAM='
+                $0 ~ "^[[:space:]]*deb(-src)?([[:space:]]+\\[[^]]*\\])?[[:space:]]+[^[:space:]]+/debian/?[[:space:]]+" suite "([[:space:]]|$)" {
+                    found = 1
+                    if ($0 !~ /[[:space:]]contrib([[:space:]]|$)/) $0 = $0 " contrib"
+                }
+                { print }
+                END { exit !found }'
+        fi
+        if awk -v suite="${DISTRIB_CODENAME}" "${CONTRIB_PROGRAM}" "${SOURCE_FILE}" > "${SOURCE_FILE}.tmp"; then
+            CONTRIB_FOUND="true"
+            cmp -s "${SOURCE_FILE}" "${SOURCE_FILE}.tmp" || cat "${SOURCE_FILE}.tmp" > "${SOURCE_FILE}"
+        fi
+        rm -f "${SOURCE_FILE}.tmp"
+    done
+    # Without an archive entry for this release only contrib is added, in a file of its own
+    [ "${CONTRIB_FOUND}" = "true" ] || \
+        printf 'deb http://deb.debian.org/debian/ %s contrib\n' "${DISTRIB_CODENAME}" > /etc/apt/sources.list.d/debian-contrib.list
 fi
 
 #add nginx repo
