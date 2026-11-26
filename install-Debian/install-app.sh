@@ -59,14 +59,14 @@ run_postgres_sql () {
     su - postgres -s /bin/bash -c "psql -q -v ON_ERROR_STOP=1"
 }
 
-# Prints the database password of a Docs installed on this host before, if its config is still there
-get_saved_db_password () {
-    local CONFIG_FILE SAVED_PASSWORD
+# Prints a value (jq path) from the config of a Docs installed on this host before, if that config is still there
+get_saved_config_value () {
+    local CONFIG_FILE SAVED_VALUE
     for CONFIG_FILE in "/etc/${package_sysname}/documentserver/local.json" "/etc/${package_sysname}/documentserver/local.json.rpmsave"; do
         [ -f "${CONFIG_FILE}" ] || continue
-        SAVED_PASSWORD=$(jq -r '.services.CoAuthoring.sql.dbPass // empty' "${CONFIG_FILE}" 2>/dev/null) || true
-        if [ -n "${SAVED_PASSWORD}" ]; then
-            printf '%s\n' "${SAVED_PASSWORD}"
+        SAVED_VALUE=$(jq -r "${1} // empty" "${CONFIG_FILE}" 2>/dev/null) || true
+        if [ -n "${SAVED_VALUE}" ]; then
+            printf '%s\n' "${SAVED_VALUE}"
             return 0
         fi
     done
@@ -84,7 +84,7 @@ setup_postgres_db () {
         printf "CREATE USER %s WITH PASSWORD '%s';\nCREATE DATABASE %s OWNER %s;\n" "${DS_DB_USER}" "${SQL_PASSWORD}" "${DS_DB_NAME}" "${DS_DB_USER}" | run_postgres_sql
     elif [ -z "${DS_DB_PWD}" ]; then
         # A kept database keeps the password of the Docs that used it, so reinstalling or switching the edition does not rotate it
-        DS_DB_PWD=$(get_saved_db_password)
+        DS_DB_PWD=$(get_saved_config_value '.services.CoAuthoring.sql.dbPass')
         if [ -z "${DS_DB_PWD}" ] || ! PGPASSWORD="${DS_DB_PWD}" psql -h localhost -U "${DS_DB_USER}" -d "${DS_DB_NAME}" -w -c ';' >/dev/null 2>&1; then
             # Nothing else knows the password of a kept database without a working config, so the Docs installed now sets a new one
             DS_DB_PWD=$(tr -dc A-Za-z0-9 < /dev/urandom | head -c 24)
@@ -112,7 +112,10 @@ fi
 if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
     DS_PORT=${DS_PORT:-80}
     DS_JWT_ENABLED=${DS_JWT_ENABLED:-true}
+    # Reinstalling or switching the edition keeps the JWT secret and header of the Docs installed before, so integrations keep working
+    DS_JWT_SECRET=${DS_JWT_SECRET:-$(get_saved_config_value '.services.CoAuthoring.secret.inbox.string')}
     DS_JWT_SECRET=${DS_JWT_SECRET:-$(cat /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)}
+    DS_JWT_HEADER=${DS_JWT_HEADER:-$(get_saved_config_value '.services.CoAuthoring.token.inbox.header')}
     DS_JWT_HEADER=${DS_JWT_HEADER:-AuthorizationJwt}
 
     echo ${ds_pkg_name} $DS_COMMON_NAME/listenaddress string 0.0.0.0:${DS_PORT} | sudo debconf-set-selections
