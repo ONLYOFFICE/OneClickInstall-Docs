@@ -56,7 +56,9 @@ if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
     if [[ "$(uname -m)" =~ (arm|aarch) ]]; then
         dnf -y install jq
         ERLANG_LATEST_URL=$(curl -s https://api.github.com/repos/rabbitmq/erlang-rpm/releases | \
-            jq -r '.[] | .assets[]? | select(.name | test("erlang-[0-9\\.]+-1\\.el9\\.aarch64\\.rpm$")) | .browser_download_url' | head -n1)
+            jq -r '.[] | .assets[]? | select(.name | test("^erlang-[0-9.]+-1\\.el9\\.aarch64\\.rpm$")) | .browser_download_url' | head -n1)
+        # An empty or unexpected result must not reach dnf, which would install whatever it was given
+        [[ "${ERLANG_LATEST_URL}" == https://github.com/rabbitmq/erlang-rpm/releases/download/* ]] || { echo "Error: no Erlang package for el9 aarch64 was found" >&2; exit 1; }
         dnf install -y "${ERLANG_LATEST_URL}"
     else
         curl -s https://packagecloud.io/install/repositories/rabbitmq/erlang/script.rpm.sh | os=el dist=9 bash

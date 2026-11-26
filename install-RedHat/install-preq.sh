@@ -62,7 +62,34 @@ END
     fi
 fi
 
-${package_manager} install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
+# Installs epel-release only when its signature matches the EPEL key with the pinned fingerprint
+install_epel_release () {
+    local EPEL_DIR EPEL_KEY_FINGERPRINT
+    rpm -q epel-release >/dev/null 2>&1 && return 0
+    case "$REV" in
+        7) EPEL_KEY_FINGERPRINT="91E97D7C4A5E96F17F3E888F6A2FAEA2352C64E5" ;;
+        8) EPEL_KEY_FINGERPRINT="94E279EB8D8F25B21810ADF121EA45AB2F86D6A1" ;;
+        9) EPEL_KEY_FINGERPRINT="FF8AD1344597106ECE813B918A3872BF3228467C" ;;
+        10) EPEL_KEY_FINGERPRINT="7D8D15CBFC4E62688591FB2633D98517E37ED158" ;;
+        *) echo "Warning: no EPEL key is known for release ${REV}, EPEL is not added" >&2; return 1 ;;
+    esac
+    EPEL_DIR=$(mktemp -d) || return 1
+    # A private GNUPGHOME keeps the key check from creating a keyring of root; the rpm of EL7 reports a verified signature as "pgp md5 OK"
+    if curl -fsSL --retry 3 "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-${REV}" -o "${EPEL_DIR}/RPM-GPG-KEY-EPEL" &&
+       [ "$(GNUPGHOME="${EPEL_DIR}" gpg --with-colons --with-fingerprint "${EPEL_DIR}/RPM-GPG-KEY-EPEL" 2>/dev/null | awk -F: '$1 == "fpr" {print $10; exit}')" = "${EPEL_KEY_FINGERPRINT}" ] &&
+       rpm --import "${EPEL_DIR}/RPM-GPG-KEY-EPEL" &&
+       curl -fsSL --retry 3 "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${REV}.noarch.rpm" -o "${EPEL_DIR}/epel-release.rpm" &&
+       rpmkeys --checksig "${EPEL_DIR}/epel-release.rpm" | grep -qE 'signatures OK|pgp md5 OK' &&
+       ${package_manager} install -y "${EPEL_DIR}/epel-release.rpm"; then
+        rm -rf "${EPEL_DIR}"
+        return 0
+    fi
+    rm -rf "${EPEL_DIR}"
+    echo "Warning: the EPEL release package could not be verified and installed" >&2
+    return 1
+}
+
+install_epel_release || true
 ${package_manager} -y install jq yum-utils policycoreutils-python*
 
 if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
@@ -94,6 +121,8 @@ if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
         ERLANG_LATEST_URL=$(curl -s https://api.github.com/repos/rabbitmq/erlang-rpm/releases | jq -r --arg rev "$REV" \
             --arg major "$(repoquery --disablerepo='*' --enablerepo='rabbitmq_rabbitmq-server' --latest-limit=1 --requires rabbitmq-server | sed -n 's/^erlang >= \([0-9][0-9]*\)\..*/\1/p' | head -n1)" \
             '.[] | .assets[]? | select(.name | test("^erlang-" + $major + "\\.[0-9.]+-1\\.el" + $rev + "\\.aarch64\\.rpm$")) | .browser_download_url' | head -n1)
+        # An empty or unexpected result must not reach dnf, which would install whatever it was given
+        [[ "${ERLANG_LATEST_URL}" == https://github.com/rabbitmq/erlang-rpm/releases/download/* ]] || { echo "Error: no Erlang package for el${REV} aarch64 was found" >&2; exit 1; }
         ${package_manager} install -y "${ERLANG_LATEST_URL}"
     else
         curl -s https://packagecloud.io/install/repositories/rabbitmq/erlang/script.rpm.sh | os="${_rabbit_dist}" dist="${_rabbit_ver}" bash

@@ -423,13 +423,40 @@ install_curl () {
     fi
 }
 
+# Installs epel-release only when its signature matches the EPEL key with the pinned fingerprint
+install_epel_release () {
+    local EPEL_DIR EPEL_KEY_FINGERPRINT
+    rpm -q epel-release >/dev/null 2>&1 && return 0
+    case "$REV" in
+        7) EPEL_KEY_FINGERPRINT="91E97D7C4A5E96F17F3E888F6A2FAEA2352C64E5" ;;
+        8) EPEL_KEY_FINGERPRINT="94E279EB8D8F25B21810ADF121EA45AB2F86D6A1" ;;
+        9) EPEL_KEY_FINGERPRINT="FF8AD1344597106ECE813B918A3872BF3228467C" ;;
+        10) EPEL_KEY_FINGERPRINT="7D8D15CBFC4E62688591FB2633D98517E37ED158" ;;
+        *) echo "Warning: no EPEL key is known for release ${REV}, EPEL is not added" >&2; return 1 ;;
+    esac
+    EPEL_DIR=$(mktemp -d) || return 1
+    # A private GNUPGHOME keeps the key check from creating a keyring of root; the rpm of EL7 reports a verified signature as "pgp md5 OK"
+    if curl -fsSL --retry 3 "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-${REV}" -o "${EPEL_DIR}/RPM-GPG-KEY-EPEL" &&
+       [ "$(GNUPGHOME="${EPEL_DIR}" gpg --with-colons --with-fingerprint "${EPEL_DIR}/RPM-GPG-KEY-EPEL" 2>/dev/null | awk -F: '$1 == "fpr" {print $10; exit}')" = "${EPEL_KEY_FINGERPRINT}" ] &&
+       rpm --import "${EPEL_DIR}/RPM-GPG-KEY-EPEL" &&
+       curl -fsSL --retry 3 "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${REV}.noarch.rpm" -o "${EPEL_DIR}/epel-release.rpm" &&
+       rpmkeys --checksig "${EPEL_DIR}/epel-release.rpm" | grep -qE 'signatures OK|pgp md5 OK' &&
+       yum install -y "${EPEL_DIR}/epel-release.rpm"; then
+        rm -rf "${EPEL_DIR}"
+        return 0
+    fi
+    rm -rf "${EPEL_DIR}"
+    echo "Warning: the EPEL release package could not be verified and installed" >&2
+    return 1
+}
+
 install_jq () {
     if command_exists apt-get; then
         apt-get -y update
         apt-get -y -q install jq
     elif command_exists yum; then
-        rpm -ivh https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
-        yum -y install jq
+        # EPEL is needed only where the distribution has no jq
+        yum -y install jq || { install_epel_release && yum -y install jq; }
     fi
 
     if ! command_exists jq; then
