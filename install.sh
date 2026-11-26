@@ -948,12 +948,10 @@ install_document_server () {
             args+=(-p 443:443)
         fi
 
+        args+=(-e "JWT_ENABLED=$JWT_ENABLED")
+        args+=(-e "JWT_HEADER=$JWT_HEADER")
         if [[ -n ${JWT_SECRET} ]]; then
-            args+=(-e "JWT_ENABLED=$JWT_ENABLED")
-            args+=(-e "JWT_HEADER=$JWT_HEADER")
             args+=(-e "JWT_SECRET=$JWT_SECRET")
-        else
-            args+=(-e "JWT_ENABLED=false")
         fi
 
         if [[ -n ${LETS_ENCRYPT_DOMAIN} ]]; then
@@ -1042,9 +1040,20 @@ set_jwt_secret () {
         fi
     fi
 
-    if [[ -z ${JWT_SECRET} ]] && [[ "$UPDATE" != "true" ]]; then
+    # Images since 10.0.3 keep the secret they generated in the Data volume, so an update reuses it even without the old container
+    local SAVED_JWT_SECRET_FILE="$BASE_DIR/DocumentServer/data/.private/jwt_secret"
+    if [[ -z ${JWT_SECRET} ]] && [ -s "$SAVED_JWT_SECRET_FILE" ]; then
+        JWT_SECRET=$(cat "$SAVED_JWT_SECRET_FILE")
+    fi
+
+    # A secret is generated only when none exists yet, an update without one would otherwise start with JWT disabled
+    if [[ -z ${JWT_SECRET} ]] && [ "$JWT_ENABLED" = "true" ]; then
         JWT_SECRET=$(get_random_str 32)
-        [ $JWT_ENABLED = "true" ] && JWT_MESSAGE='JWT is enabled by default. A random secret is generated automatically. Run the command "docker exec $(sudo docker ps -q) sudo documentserver-jwt-status" to get information about JWT.'
+        if [ "$UPDATE" = "true" ]; then
+            JWT_MESSAGE='No JWT secret of the previous installation was found, a new random secret is generated: set it in the applications that use ONLYOFFICE Docs. Run the command "docker exec $(sudo docker ps -q) sudo documentserver-jwt-status" to get information about JWT.'
+        else
+            JWT_MESSAGE='JWT is enabled by default. A random secret is generated automatically. Run the command "docker exec $(sudo docker ps -q) sudo documentserver-jwt-status" to get information about JWT.'
+        fi
     fi
 }
 
