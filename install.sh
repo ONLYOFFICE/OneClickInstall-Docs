@@ -775,9 +775,14 @@ prepare_docker_desktop () {
 }
 
 docker_login () {
+    # Keep the password out of the xtrace output
+    local XTRACE_STATE=""
+    [[ $- == *x* ]] && XTRACE_STATE="on"
+    set +x
     if [[ -n ${USERNAME} && -n ${PASSWORD}  ]]; then
         echo "$PASSWORD" | docker login ${REGISTRY_URL} --username ${USERNAME} --password-stdin || { echo "Docker authentication failed"; exit 1; }
     fi
+    if [ -n "${XTRACE_STATE}" ]; then set -x; fi
 }
 
 make_directories () {
@@ -791,6 +796,11 @@ curl_config_line () {
 }
 
 get_tag_from_registry() {
+    # Keep the credentials and the registry token out of the xtrace output
+    local XTRACE_STATE=""
+    [[ $- == *x* ]] && XTRACE_STATE="on"
+    set +x
+
     if [[ -n ${REGISTRY_URL} ]]; then
         if [[ -n ${USERNAME} && -n ${PASSWORD} ]]; then
             CREDENTIALS=$(echo -n "$USERNAME:$PASSWORD" | base64)
@@ -809,6 +819,8 @@ get_tag_from_registry() {
     fi
 
     mapfile -t TAGS_RESP < <({ [ -z "$AUTH_HEADER" ] || curl_config_line header "$AUTH_HEADER"; } | curl -s -K - "$REGISTRY_TAGS_URL" | jq -r "$JQ_FILTER")
+
+    if [ -n "${XTRACE_STATE}" ]; then set -x; fi
 }
 
 get_available_version() {

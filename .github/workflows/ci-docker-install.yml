@@ -50,12 +50,12 @@ jobs:
           sudo docker image prune --all --force
 
       - name: Decode and Docker login
-        id: decode
+        env:
+          DOCKER_AUTH_KEY: ${{ secrets.DOCKER_AUTH_KEY }}
         run: |
           set +x
-          IFS=':' read -r USERNAME PASSWORD <<< "$(echo "${{ secrets.DOCKER_AUTH_KEY }}" | base64 -d)"
+          IFS=':' read -r USERNAME PASSWORD <<< "$(echo "$DOCKER_AUTH_KEY" | base64 -d)"
           echo "::add-mask::$USERNAME" && echo "::add-mask::$PASSWORD"
-          { echo "username=$USERNAME"; echo "password=$PASSWORD"; } | tee -a $GITHUB_OUTPUT
           echo "$PASSWORD" | docker login --username "$USERNAME" --password-stdin
 
       - name: Prepare Enterprise license
@@ -65,16 +65,22 @@ jobs:
         run: (umask 077; printf '%s' "$LICENSE_ENTERPRISE" > /tmp/docs-license.lic)
 
       - name: Test Docs Docker scripts
+        env:
+          DOCKER_AUTH_KEY: ${{ secrets.DOCKER_AUTH_KEY }}
+          EDITION: ${{ matrix.edition }}
         run: |
-          case "${{ matrix.edition }}" in
+          IFS=':' read -r USERNAME OCI_REGISTRY_PASSWORD <<< "$(echo "$DOCKER_AUTH_KEY" | base64 -d)"
+          export OCI_REGISTRY_PASSWORD
+          case "$EDITION" in
             community)  image="documentserver" ;;
             enterprise) image="documentserver-ee" ;;
             developer)  image="documentserver-de" ;;
           esac
-          [ "${{ github.ref }}" = "refs/heads/master" ] || image="4testing-${image}"
-          extra_args="-it ${{ matrix.edition }} -di onlyoffice/${image}"
-          [ "${{ matrix.edition }}" != "enterprise" ] || extra_args+=" --licensepath /tmp/docs-license.lic"
-          sudo bash -x install.sh -un "${{ steps.decode.outputs.username }}" -p "${{ steps.decode.outputs.password }}" -skiphc true $extra_args </dev/null
+          [ "$GITHUB_REF" = "refs/heads/master" ] || image="4testing-${image}"
+          extra_args="-it $EDITION -di onlyoffice/${image}"
+          [ "$EDITION" != "enterprise" ] || extra_args+=" --licensepath /tmp/docs-license.lic"
+          # The password reaches the installer in its environment, and the installer keeps the registry calls out of the trace
+          sudo --preserve-env=OCI_REGISTRY_PASSWORD bash -x install.sh -un "$USERNAME" -skiphc true $extra_args </dev/null
 
       - name: Wait for container to become healthy
         run: |
