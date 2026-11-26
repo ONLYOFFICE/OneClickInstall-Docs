@@ -65,8 +65,6 @@ fi
 ${package_manager} install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
 ${package_manager} -y install jq yum-utils policycoreutils-python*
 
-semanage permissive -a httpd_t
-
 if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
     # EL9: the packagecloud keys of RabbitMQ and Erlang use SHA-1, so it is allowed only until they are installed and the default policy is restored even on a failure
     CRYPTO_POLICY_TO_RESTORE=""

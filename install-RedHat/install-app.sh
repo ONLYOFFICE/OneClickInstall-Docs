@@ -93,6 +93,25 @@ setup_postgres_db () {
     fi
 }
 
+# Packages before 10.0.3 needed httpd_t to be permissive; later ones label their ports and nginx logs, and those before Bug 85420 miss only the boolean that lets nginx connect to them
+configure_selinux () {
+    local DS_PACKAGE DS_PACKAGE_SCRIPTS
+    command -v selinuxenabled >/dev/null 2>&1 && selinuxenabled || return 0
+    DS_PACKAGE=$(rpm -qa --qf '%{NAME}\n' | grep -E "^${package_sysname}-documentserver(-ee|-de)?$" | head -n 1)
+    [ -n "${DS_PACKAGE}" ] || return 0
+    DS_PACKAGE_SCRIPTS=$(rpm -q --scripts "${DS_PACKAGE}")
+    if ! grep -q httpd_log_t <<< "${DS_PACKAGE_SCRIPTS}"; then
+        semanage permissive -l | grep -qw httpd_t || semanage permissive -a httpd_t
+    elif ! grep -q httpd_graceful_shutdown <<< "${DS_PACKAGE_SCRIPTS}" && ! getsebool httpd_graceful_shutdown 2>/dev/null | grep -q -- '--> on$'; then
+        # The state file of the package records the boolean, so a package that knows it turns it off on uninstall
+        if setsebool -P httpd_graceful_shutdown on; then
+            echo "boolean httpd_graceful_shutdown" >> "/var/lib/${package_sysname}/documentserver.selinux-labels"
+        else
+            echo "Warning: could not enable the SELinux boolean httpd_graceful_shutdown, nginx may fail to reach ONLYOFFICE Docs (502)" >&2
+        fi
+    fi
+}
+
 [ "$package_manager" = "dnf" ] && _nobest="--nobest"
 if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
     ds_pkg_installed_name=$(rpm -qa --qf '%{NAME}\n' | grep "${package_sysname}-documentserver")
@@ -105,6 +124,7 @@ if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
         else
             ${package_manager} -y update "${ds_pkg_installed_name}" ${_nobest} # --nobest for rhel 8 compatibility
         fi
+        configure_selinux
     fi
 fi
 
@@ -122,6 +142,7 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
     fi
     
     ${package_manager} -y install "${ds_pkg_source}" ${_nobest}
+    configure_selinux
 
     if [ "${DS_PORT}" = "80" ]; then
         [ -e /etc/nginx/nginx.conf ] && sed -i "s/ default_server//" /etc/nginx/nginx.conf && \
