@@ -63,12 +63,19 @@ END
 fi
 
 ${package_manager} install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-$REV.noarch.rpm || true
-[ "$REV" = "9" ] && update-crypto-policies --set DEFAULT:SHA1
 ${package_manager} -y install jq yum-utils policycoreutils-python*
 
 semanage permissive -a httpd_t
 
 if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
+    # EL9: the packagecloud keys of RabbitMQ and Erlang use SHA-1, so it is allowed only until they are installed and the default policy is restored even on a failure
+    CRYPTO_POLICY_TO_RESTORE=""
+    if [ "$REV" = "9" ] && [ "$(update-crypto-policies --show 2>/dev/null)" = "DEFAULT" ]; then
+        CRYPTO_POLICY_TO_RESTORE="DEFAULT"
+        trap 'update-crypto-policies --set "${CRYPTO_POLICY_TO_RESTORE}" >/dev/null' EXIT
+        update-crypto-policies --set DEFAULT:SHA1 >/dev/null
+    fi
+
     # setup RabbitMQ repo
     _rabbit_dist=$( [[ "$REV" == "10" || ( "$REV" == "7" && "$DIST" == "redhat" ) ]] && echo "el" || echo "$DIST" )
     _rabbit_ver=$( [[ "$REV" == "10" ]] && echo "9" || echo "$REV" )
@@ -95,6 +102,11 @@ if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
     fi
 
     ${package_manager} -y install ${REDIS_PACKAGE} postgresql postgresql-server rabbitmq-server
+
+    if [ -n "${CRYPTO_POLICY_TO_RESTORE}" ]; then
+        update-crypto-policies --set "${CRYPTO_POLICY_TO_RESTORE}" >/dev/null
+        trap - EXIT
+    fi
 
     # configure Redis
     REDIS_CONF="/etc/${REDIS_PACKAGE}.conf"; [ -e "$REDIS_CONF" ] || REDIS_CONF="/etc/${REDIS_PACKAGE}/${REDIS_PACKAGE}.conf"
