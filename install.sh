@@ -99,7 +99,8 @@ KERNEL=""
 UPDATE="false"
 
 USERNAME=""
-PASSWORD=""
+# docs-install.sh passes the secrets in the environment, a command line parameter still wins
+PASSWORD="${OCI_REGISTRY_PASSWORD:-}"
 
 INSTALL_DOCUMENT_SERVER="true"
 
@@ -110,7 +111,8 @@ INSTALLATION_TYPE="ENTERPRISE"
 HELP_TARGET="install.sh"
 
 JWT_ENABLED=""
-JWT_SECRET=""
+JWT_SECRET="${OCI_JWT_SECRET:-}"
+unset OCI_REGISTRY_PASSWORD OCI_JWT_SECRET
 
 SKIP_HARDWARE_CHECK="false"
 SKIP_VERSION_CHECK="false"

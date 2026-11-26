@@ -175,6 +175,10 @@ if [ -z "${INSTALLATION_TYPE}" ]; then
     INSTALLATION_TYPE=${INSTALLATION_TYPE:-ENTERPRISE}
 fi
 
+# docs-install.sh passes the secret in the environment, the command line parameter still wins
+DS_JWT_SECRET=${DS_JWT_SECRET:-${OCI_JWT_SECRET:-}}
+unset OCI_JWT_SECRET
+
 if [ -z "${UPDATE}" ]; then
     UPDATE="false"
 fi

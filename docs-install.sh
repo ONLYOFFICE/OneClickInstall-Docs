@@ -92,6 +92,23 @@ while [ "$1" != "" ]; do
             continue
         ;;
 
+        # Secrets reach the installer through the environment, so they are not in its command line
+        -p | --password )
+            if [ -n "$2" ]; then
+                export OCI_REGISTRY_PASSWORD="$2"
+                shift 2
+                continue
+            fi
+        ;;
+
+        -js | --jwtsecret )
+            if [ -n "$2" ]; then
+                export OCI_JWT_SECRET="$2"
+                shift 2
+                continue
+            fi
+        ;;
+
         "-?" | -h | --help )
             HELP="true"
             DOCKER="true"

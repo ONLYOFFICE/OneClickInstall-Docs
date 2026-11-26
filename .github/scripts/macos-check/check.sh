@@ -94,8 +94,11 @@ ls "${INSTALL_DIR}"/OneClick*.log > /dev/null 2>&1 && fail "the log file stays a
 end_scenario
 
 new_scenario "Enterprise install keeps PostgreSQL, RabbitMQ and Redis in Docker volumes"
-run_wrapper -ls true -it enterprise -di onlyoffice/documentserver-ee -dv 9.1.0 -skiphc true --licensepath "${WORK_DIR}/license.lic"
+run_wrapper -ls true -it enterprise -di onlyoffice/documentserver-ee -dv 9.1.0 -skiphc true --licensepath "${WORK_DIR}/license.lic" -js given-secret
 expect_rc 0
+# The secret given to the wrapper reaches the container, but no command line
+grep -qx 'JWT_SECRET=given-secret' "${FAKE_DOCKER_STATE}/env_file" 2> /dev/null || fail "the given JWT secret did not reach the container"
+expect_no_log "given-secret"
 expect_log "-v onlyoffice_docs_db:/var/lib/postgresql"
 expect_log "-v onlyoffice_docs_rabbitmq:/var/lib/rabbitmq"
 expect_log "-v onlyoffice_docs_redis:/var/lib/redis"
@@ -137,7 +140,7 @@ LOG_FILE=$(ls "${INSTALL_DIR}"/OneClick*.log 2> /dev/null | head -n 1)
 if [ -z "${LOG_FILE}" ]; then
     fail "no log file after a failed install"
 else
-    grep -qE '^Command: .* -js \*\*\*' "${LOG_FILE}" || fail "the log has no masked command line"
+    grep -q '^Command: bash install.sh ' "${LOG_FILE}" || fail "the log has no command line"
     grep -q '^OS: macOS' "${LOG_FILE}" || fail "the log has no host summary"
     grep -q 'check-secret' "${LOG_FILE}" && fail "the secret reached the log"
     grep -qF "of RAM (available: 2000 MB)" "${LOG_FILE}" || fail "the installer output is not in the log"
