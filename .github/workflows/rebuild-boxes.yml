@@ -11,6 +11,8 @@ jobs:
   vagrant-up:
     name: "Rebuild box with ${{ matrix.box_name }}"
     runs-on: ubuntu-22.04
+    # The environment lets the admins require an approval and hold the HCP secrets
+    environment: release
     defaults:
       run:
         working-directory: tests/vagrant
@@ -31,6 +33,12 @@ jobs:
             box_name: "ubuntu2604"
 
     steps:
+      - name: Check the release branch
+        working-directory: ${{ github.workspace }}
+        run: |
+          # Only a stable branch may publish the boxes used by the update tests
+          [[ "${GITHUB_REF_NAME}" == master || "${GITHUB_REF_NAME}" == release/* || "${GITHUB_REF_NAME}" == hotfix/* ]] || { echo "::error::The boxes can be published only from master, release/* or hotfix/*, not from ${GITHUB_REF_NAME}"; exit 1; }
+
       - name: Free Disk Space
         working-directory: ${{ github.workspace }}
         run: |
