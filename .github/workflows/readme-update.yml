@@ -24,9 +24,13 @@ jobs:
           git clone https://${{ secrets.GITEA_HOST }}/${{ github.repository }} -b ${{ github.ref_name }} --single-branch --depth=1
 
       - name: Install yq
+        env:
+          YQ_VERSION: v4.54.3
+          YQ_SHA256: 129534601871538efe0ba4c5e62a34fb1d5f469bcb975c4fddeb467d82974973
         run: |
-          sudo wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
-          sudo chmod +x /usr/local/bin/yq
+          curl -fsSL --retry 3 "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o "${RUNNER_TEMP}/yq"
+          echo "${YQ_SHA256}  ${RUNNER_TEMP}/yq" | sha256sum -c -
+          sudo install -m 755 "${RUNNER_TEMP}/yq" /usr/local/bin/yq
 
       - name: Update OS list in README
         working-directory: ${{ github.event.repository.name }}
