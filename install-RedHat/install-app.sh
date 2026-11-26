@@ -138,14 +138,16 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
             --redishost "${DS_REDIS_HOST:-localhost}"
             --amqphost "${DS_RABBITMQ_HOST:-localhost}"
             --amqpuser "${DS_RABBITMQ_USER:-guest}"
-            --amqppassword "${DS_RABBITMQ_PWD:-guest}"
             --databasehost "${DS_DB_HOST:-localhost}"
             --databasename "$DS_DB_NAME"
             --databaseuser "$DS_DB_USER"
-            --databasepassword "$DS_DB_PWD"
         )
     fi
-    documentserver-configure "${ds_configure_args[@]}"
+    # documentserver-configure takes the passwords from DB_PWD and AMQP_SERVER_PWD, which keeps them off the command line
+    (
+        [ "$INSTALLATION_TYPE" = "COMMUNITY" ] || export DB_PWD="${DS_DB_PWD}" AMQP_SERVER_PWD="${DS_RABBITMQ_PWD:-guest}"
+        documentserver-configure "${ds_configure_args[@]}"
+    )
 fi
 
 if systemctl is-active --quiet firewalld; then
