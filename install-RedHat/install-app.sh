@@ -150,9 +150,10 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
     )
 fi
 
-if systemctl is-active --quiet firewalld; then
-    firewall-cmd --permanent --zone=public --add-service=http --add-service=https
-    firewall-cmd --permanent --zone=public --add-port="${DS_PORT:-80}/tcp"
+# Only the port of a new installation is opened: the package serves plain HTTP on it, and an update keeps the firewall as it is
+if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ] && systemctl is-active --quiet firewalld && \
+    ! firewall-cmd --permanent --zone=public --query-port="${DS_PORT}/tcp" >/dev/null 2>&1; then
+    firewall-cmd --permanent --zone=public --add-port="${DS_PORT}/tcp"
     firewall-cmd --reload
 fi
 
