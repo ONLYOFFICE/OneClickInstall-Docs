@@ -784,6 +784,12 @@ make_directories () {
     mkdir -p "$BASE_DIR/DocumentServer/data/certs" "$BASE_DIR/DocumentServer/logs" "$BASE_DIR/DocumentServer/fonts" "$BASE_DIR/DocumentServer/forgotten" || { echo "Failed to create directories in $BASE_DIR"; exit 1; }
 }
 
+# Prints a quoted curl config line, so a credential reaches curl on stdin instead of its command line
+curl_config_line () {
+    local VALUE="${2//\\/\\\\}"
+    printf '%s = "%s"\n' "$1" "${VALUE//\"/\\\"}"
+}
+
 get_tag_from_registry() {
     if [[ -n ${REGISTRY_URL} ]]; then
         if [[ -n ${USERNAME} && -n ${PASSWORD} ]]; then
@@ -795,16 +801,14 @@ get_tag_from_registry() {
         REGISTRY_TAGS_URL="${REGISTRY_URL%/}/v2/${IMAGE}/tags/list"
         JQ_FILTER='.tags[]?'
     else
-        if [[ -n ${USERNAME} && -n ${PASSWORD} ]]; then
-            CREDENTIALS=${USERNAME:+${PASSWORD:+-u ${USERNAME}:${PASSWORD}}}
-        fi
-        TOKEN=$(curl -fs ${CREDENTIALS} "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${IMAGE}:pull" | jq -r .token)
+        TOKEN=$({ [[ -z ${USERNAME} || -z ${PASSWORD} ]] || curl_config_line user "${USERNAME}:${PASSWORD}"; } \
+            | curl -fs -K - "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${IMAGE}:pull" | jq -r .token)
         AUTH_HEADER="Authorization: Bearer $TOKEN"
         REGISTRY_TAGS_URL="https://registry-1.docker.io/v2/${IMAGE}/tags/list"
         JQ_FILTER='.tags | map(select( test("^99\\.") | not )) | .[]'
     fi
 
-    mapfile -t TAGS_RESP < <(curl -s ${AUTH_HEADER:+-H "$AUTH_HEADER"} "$REGISTRY_TAGS_URL" | jq -r "$JQ_FILTER")
+    mapfile -t TAGS_RESP < <({ [ -z "$AUTH_HEADER" ] || curl_config_line header "$AUTH_HEADER"; } | curl -s -K - "$REGISTRY_TAGS_URL" | jq -r "$JQ_FILTER")
 }
 
 get_available_version() {
