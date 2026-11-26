@@ -950,8 +950,12 @@ install_document_server () {
 
         args+=(-e "JWT_ENABLED=$JWT_ENABLED")
         args+=(-e "JWT_HEADER=$JWT_HEADER")
+        # The secret reaches docker through a private env file, so it does not show up in the process list
+        local SECRET_ENV_FILE=""
         if [[ -n ${JWT_SECRET} ]]; then
-            args+=(-e "JWT_SECRET=$JWT_SECRET")
+            SECRET_ENV_FILE=$(umask 077; mktemp) || { echo "Failed to create a temporary file"; exit 1; }
+            printf 'JWT_SECRET=%s\n' "$JWT_SECRET" > "$SECRET_ENV_FILE"
+            args+=(--env-file "$SECRET_ENV_FILE")
         fi
 
         if [[ -n ${LETS_ENCRYPT_DOMAIN} ]]; then
@@ -985,6 +989,7 @@ install_document_server () {
         args+=("$DOCUMENT_IMAGE_NAME:$DOCUMENT_VERSION")
 
         docker run --net ${NETWORK} -i -t -d --restart=always "${args[@]}"
+        [ -z "$SECRET_ENV_FILE" ] || rm -f "$SECRET_ENV_FILE"
 
         DOCUMENT_SERVER_ID=$(get_container_id "$DOCUMENT_CONTAINER_NAME")
 

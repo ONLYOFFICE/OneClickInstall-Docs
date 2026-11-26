@@ -73,10 +73,14 @@ case "$1" in
             *--rm*) ;;
             *)
                 touch "$STATE/container"
+                PREVIOUS_ARG=""
                 for ARG in "$@"; do
                     case "$ARG" in
                         *:/var/www/onlyoffice/Data) echo "${ARG%:/var/www/onlyoffice/Data}" > "$STATE/mount_source" ;;
                     esac
+                    # the env file is removed after the run, so its variables are kept for the checks
+                    [ "$PREVIOUS_ARG" != "--env-file" ] || cat "$ARG" >> "$STATE/env_file"
+                    PREVIOUS_ARG="$ARG"
                 done
                 ;;
         esac

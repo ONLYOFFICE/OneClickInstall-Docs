@@ -86,8 +86,10 @@ expect_log "-v ${SCENARIO_HOME}/onlyoffice/DocumentServer/data:/var/www/onlyoffi
 for DIRECTORY in data logs fonts forgotten; do
     [ -d "${SCENARIO_HOME}/onlyoffice/DocumentServer/${DIRECTORY}" ] || fail "no ~/onlyoffice/DocumentServer/${DIRECTORY}"
 done
-# 32 random characters, made by get_random_str with the GNU tr
-grep -qE 'JWT_SECRET=[A-Za-z0-9]{32}( |$)' "${FAKE_DOCKER_STATE}/docker.log" || fail "the JWT secret is missing or has a wrong length"
+# 32 random characters, made by get_random_str with the GNU tr, passed in an env file instead of the command line
+grep -qE '^JWT_SECRET=[A-Za-z0-9]{32}$' "${FAKE_DOCKER_STATE}/env_file" 2> /dev/null || fail "the JWT secret is missing or has a wrong length"
+expect_no_log "JWT_SECRET="
+expect_log "-e JWT_ENABLED=true"
 ls "${INSTALL_DIR}"/OneClick*.log > /dev/null 2>&1 && fail "the log file stays after a successful install"
 end_scenario
 
