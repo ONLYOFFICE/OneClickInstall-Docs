@@ -79,13 +79,13 @@ prepare_vm() {
       cat <<'EOF' | sudo tee /etc/yum.repos.d/centos-stream-9.repo >/dev/null
 [centos9s-baseos]
 name=CentOS Stream 9 - BaseOS
-baseurl=http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/
+baseurl=https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/
 enabled=1
 gpgcheck=0
 
 [centos9s-appstream]
 name=CentOS Stream 9 - AppStream
-baseurl=http://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/
+baseurl=https://mirror.stream.centos.org/9-stream/AppStream/x86_64/os/
 enabled=1
 gpgcheck=0
 EOF
@@ -117,17 +117,17 @@ EOF
 
     if [ "$REV" = "8" ]; then
       if grep -qi 'centos' /etc/redhat-release 2>/dev/null; then
-        sudo sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|' /etc/yum.repos.d/CentOS-*
+        sudo sed -i 's|^mirrorlist=|#&|; s|^#baseurl=http://mirror.centos.org|baseurl=https://vault.centos.org|' /etc/yum.repos.d/CentOS-*
       else
         cat <<'EOF' | sudo tee /etc/yum.repos.d/CentOS-Vault.repo >/dev/null
 [BaseOS]
 name=CentOS-8 - Base
-baseurl=http://vault.centos.org/8.5.2111/BaseOS/x86_64/os/
+baseurl=https://vault.centos.org/8.5.2111/BaseOS/x86_64/os/
 gpgcheck=0
 enabled=1
 [AppStream]
 name=CentOS-8 - AppStream
-baseurl=http://vault.centos.org/8.5.2111/AppStream/x86_64/os/
+baseurl=https://vault.centos.org/8.5.2111/AppStream/x86_64/os/
 gpgcheck=0
 enabled=1
 EOF
