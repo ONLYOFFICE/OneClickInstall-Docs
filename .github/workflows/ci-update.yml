@@ -29,6 +29,9 @@ on:
   schedule:
     - cron: '0 21 * * 0'
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
   cancel-in-progress: true
@@ -58,12 +61,12 @@ jobs:
               "ubuntu2404": ["Ubuntu 24.04",    "onlyoffice", "docs-ubuntu2404"],
               "ubuntu2604": ["Ubuntu 26.04",    "onlyoffice", "docs-ubuntu2604"]
             }
+          DISTROS_INPUT: ${{ github.event.inputs.distros }}
         run: |
           declare -A os_set
 
           # Handle individual distro selection (only when no override flags set)
           if [[ "${{ github.event.inputs.deb_build }}" != "true" && "${{ github.event.inputs.rpm_build }}" != "true" ]]; then
-            DISTROS_INPUT="${{ github.event.inputs.distros }}"
             [[ -z "$DISTROS_INPUT" ]] && DISTROS_INPUT="$OS_ORDER"
             for os in ${DISTROS_INPUT//,/ }; do
               os_trimmed="$(echo "$os" | xargs)"

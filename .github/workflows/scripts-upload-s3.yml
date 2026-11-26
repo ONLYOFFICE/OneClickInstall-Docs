@@ -10,6 +10,9 @@ on:
       - '.github/**'
       - 'tests/**'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Chart release

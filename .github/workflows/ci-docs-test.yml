@@ -59,6 +59,9 @@ on:
   schedule:
     - cron: '0 21 * * 0'
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
   cancel-in-progress: true
@@ -93,6 +96,7 @@ jobs:
               "ubuntu2404":      ["Ubuntu 24.04",      "onlyoffice", "base-ubuntu2404"],
               "ubuntu2604":      ["Ubuntu 26.04",      "onlyoffice", "base-ubuntu2604"]
             }
+          DISTROS_INPUT: ${{ github.event.inputs.distros }}
         run: |
           declare -A os_set
 
@@ -101,7 +105,6 @@ jobs:
             for os in $(jq -r 'keys[] | select(. != "rhel7" and . != "centos7")' <<< "$OS_MAP"); do os_set["$os"]=1; done
           # Handle individual distro selection (only when no override flags set)
           elif [[ "${{ github.event.inputs.deb_build }}" != "true" && "${{ github.event.inputs.rpm_build }}" != "true" ]]; then
-            DISTROS_INPUT="${{ github.event.inputs.distros }}"
             for os in ${DISTROS_INPUT//,/ }; do
               os_trimmed="$(echo "$os" | xargs)"
               [[ -n "$os_trimmed" ]] && os_set["$os_trimmed"]=1
@@ -348,7 +351,7 @@ jobs:
         set -eux
         install_args="--skiphardwarecheck true"
         [[ "${{ github.event_name }}" == "schedule" ]] && source_args="-ds true" || { source_args="-ds false -v ${VER} -tr true"; install_args+=" --localscripts true"; }
-        sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh $source_args -it '${{ github.event.inputs.installationtype || 'enterprise' }}' -arg "$install_args"
+        sudo timeout --kill-after=60s 15m bash tests/vagrant/install.sh $source_args -it "$INSTALLATION_TYPE" -arg "$install_args"
 
     - name: Health check
       timeout-minutes: 10
