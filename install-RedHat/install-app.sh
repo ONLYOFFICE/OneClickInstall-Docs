@@ -52,6 +52,47 @@ case "${INSTALLATION_TYPE}" in
 esac
 ds_pkg_source="${DS_PACKAGE_PATH:-$ds_pkg_name}"
 
+DS_COMMON_NAME=${DS_COMMON_NAME:-ds}
+
+# Runs the SQL given on stdin as the postgres superuser, so no password shows up in a command line
+run_postgres_sql () {
+    su - postgres -s /bin/bash -c "psql -q -v ON_ERROR_STOP=1"
+}
+
+# Prints the database password of a Docs installed on this host before, if its config is still there
+get_saved_db_password () {
+    local CONFIG_FILE SAVED_PASSWORD
+    for CONFIG_FILE in "/etc/${package_sysname}/documentserver/local.json" "/etc/${package_sysname}/documentserver/local.json.rpmsave"; do
+        [ -f "${CONFIG_FILE}" ] || continue
+        SAVED_PASSWORD=$(jq -r '.services.CoAuthoring.sql.dbPass // empty' "${CONFIG_FILE}" 2>/dev/null) || true
+        if [ -n "${SAVED_PASSWORD}" ]; then
+            printf '%s\n' "${SAVED_PASSWORD}"
+            return 0
+        fi
+    done
+}
+
+setup_postgres_db () {
+    local SQL_PASSWORD
+    DS_DB_NAME=${DS_DB_NAME:-$DS_COMMON_NAME}
+    DS_DB_USER=${DS_DB_USER:-$DS_COMMON_NAME}
+
+    if ! su - postgres -s /bin/bash -c "psql -lqt" | cut -d \| -f 1 | grep -q "${DS_DB_NAME}"; then
+        # A new Docs database gets its own password instead of the well-known default
+        DS_DB_PWD=${DS_DB_PWD:-$(tr -dc A-Za-z0-9 < /dev/urandom | head -c 24)}
+        SQL_PASSWORD=${DS_DB_PWD//"'"/"''"}
+        printf "CREATE USER %s WITH PASSWORD '%s';\nCREATE DATABASE %s OWNER %s;\n" "${DS_DB_USER}" "${SQL_PASSWORD}" "${DS_DB_NAME}" "${DS_DB_USER}" | run_postgres_sql
+    elif [ -z "${DS_DB_PWD}" ]; then
+        # A kept database keeps the password of the Docs that used it, so reinstalling or switching the edition does not rotate it
+        DS_DB_PWD=$(get_saved_db_password)
+        if [ -z "${DS_DB_PWD}" ] || ! PGPASSWORD="${DS_DB_PWD}" psql -h localhost -U "${DS_DB_USER}" -d "${DS_DB_NAME}" -w -c ';' >/dev/null 2>&1; then
+            # Nothing else knows the password of a kept database without a working config, so the Docs installed now sets a new one
+            DS_DB_PWD=$(tr -dc A-Za-z0-9 < /dev/urandom | head -c 24)
+            printf "ALTER USER %s WITH PASSWORD '%s';\n" "${DS_DB_USER}" "${DS_DB_PWD}" | run_postgres_sql
+        fi
+    fi
+}
+
 [ "$package_manager" = "dnf" ] && _nobest="--nobest"
 if [ "$UPDATE" = "true" ] && [ "$DOCUMENT_SERVER_INSTALLED" = "true" ]; then
     ds_pkg_installed_name=$(rpm -qa --qf '%{NAME}\n' | grep "${package_sysname}-documentserver")
@@ -76,16 +117,8 @@ if [ "$DOCUMENT_SERVER_INSTALLED" = "false" ]; then
     [ -n "${WOPI_ENABLED}" ] && declare -x WOPI_ENABLED
 
     if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
-        DS_COMMON_NAME=${DS_COMMON_NAME:-ds}
         DS_DB_HOST=${DS_DB_HOST:-localhost}
-        DS_DB_NAME=${DS_DB_NAME:-$DS_COMMON_NAME}
-        DS_DB_USER=${DS_DB_USER:-$DS_COMMON_NAME}
-        DS_DB_PWD=${DS_DB_PWD:-$DS_COMMON_NAME}
-
-        if ! su - postgres -s /bin/bash -c "psql -lqt" | cut -d \| -f 1 | grep -q "${DS_DB_NAME}"; then
-            su - postgres -s /bin/bash -c "psql -c \"CREATE USER ${DS_DB_USER} WITH password '${DS_DB_PWD}';\""
-            su - postgres -s /bin/bash -c "psql -c \"CREATE DATABASE ${DS_DB_NAME} OWNER ${DS_DB_USER};\""
-        fi
+        setup_postgres_db
     fi
     
     ${package_manager} -y install "${ds_pkg_source}" ${_nobest}

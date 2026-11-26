@@ -46,7 +46,7 @@ cat<<EOF
 EOF
 
 apt-get -y update --allow-releaseinfo-change -o DPkg::Lock::Timeout=60
-apt-get install -yq -o DPkg::Lock::Timeout=60 locales dirmngr curl
+apt-get install -yq -o DPkg::Lock::Timeout=60 locales dirmngr curl jq
 
 locale-gen en_US.UTF-8
 

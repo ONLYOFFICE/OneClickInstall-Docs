@@ -46,7 +46,7 @@ cat<<EOF
 EOF
 
 dnf clean all
-dnf -y install nano policycoreutils-python*
+dnf -y install nano jq policycoreutils-python*
 semanage permissive -a httpd_t
 
 if [ "$INSTALLATION_TYPE" != "COMMUNITY" ]; then
