@@ -930,11 +930,13 @@ install_document_server () {
             else
                 RUN_DOCUMENT_SERVER="false"
                 echo "The latest version of ONLYOFFICE DOCUMENT SERVER is already installed."
+                install_license "$CURRENT_IMAGE_ID" || exit 1
                 docker start ${DOCUMENT_SERVER_ID}
             fi
         else
             RUN_DOCUMENT_SERVER="false"
             echo "ONLYOFFICE DOCUMENT SERVER is already installed."
+            install_license "$(docker inspect --format='{{.Image}}' "$DOCUMENT_SERVER_ID")" || exit 1
             docker start ${DOCUMENT_SERVER_ID}
         fi
     fi
@@ -988,6 +990,7 @@ install_document_server () {
 
         args+=("$DOCUMENT_IMAGE_NAME:$DOCUMENT_VERSION")
 
+        install_license "$DOCUMENT_IMAGE_NAME:$DOCUMENT_VERSION" || exit 1
         docker run --net ${NETWORK} -i -t -d --restart=always "${args[@]}"
         [ -z "$SECRET_ENV_FILE" ] || rm -f "$SECRET_ENV_FILE"
 
@@ -1209,6 +1212,29 @@ pull_image () {
     exit 1
 }
 
+# Copies the license given with --licensepath and lets only the ds user of the image that runs read it
+install_license () {
+    local LICENSE_FILE="$BASE_DIR/DocumentServer/data/license.lic" DS_PASSWD_ENTRY DS_USER_NAME DS_USER_PASSWORD DS_UID DS_GID DS_USER_REST
+    if [ -n "${DS_LICENSE_PATH:-}" ]; then
+        install -m 600 "$DS_LICENSE_PATH" "$LICENSE_FILE" || return 1
+    fi
+    [ -f "$LICENSE_FILE" ] || return 0
+    # The macOS home directory is private already and Docker Desktop does not keep the file owners
+    if is_macos; then
+        chmod 644 "$LICENSE_FILE"
+        return
+    fi
+    # The uid of ds differs between images, so the owner is set again for the image that runs
+    DS_PASSWD_ENTRY=$(docker run --rm --network none --entrypoint getent "$1" passwd ds 2>/dev/null)
+    IFS=: read -r DS_USER_NAME DS_USER_PASSWORD DS_UID DS_GID DS_USER_REST <<< "$DS_PASSWD_ENTRY"
+    if [[ "$DS_UID" =~ ^[0-9]+$ && "$DS_GID" =~ ^[0-9]+$ ]]; then
+        chown "$DS_UID:$DS_GID" "$LICENSE_FILE" && chmod 640 "$LICENSE_FILE"
+    else
+        echo "Warning: the ds user of the image was not found, the license file stays readable by all users" >&2
+        chmod 644 "$LICENSE_FILE"
+    fi
+}
+
 create_network () {
     docker network inspect "${NETWORK}" &>/dev/null || docker network create --driver bridge "${NETWORK}" >/dev/null
 }
@@ -1276,7 +1302,6 @@ start_installation () {
 
     if [ "$INSTALL_DOCUMENT_SERVER" == "true" ]; then
         pull_document_server
-        [ -z "${DS_LICENSE_PATH:-}" ] || install -m 644 "$DS_LICENSE_PATH" "$BASE_DIR/DocumentServer/data/license.lic" || exit 1
         install_document_server
     elif [ "$INSTALL_DOCUMENT_SERVER" == "pull" ]; then
         pull_document_server
